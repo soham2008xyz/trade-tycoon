@@ -87,6 +87,19 @@ export const Board: React.FC<Props> = ({
   const getPlayersOnTile = (index: number) => players.filter((p) => p.position === index);
   const getOwner = (tileId: string) => players.find((p) => p.properties.includes(tileId));
 
+  const GROUP_COLORS: Record<string, string> = {
+    brown: '#955436',
+    light_blue: '#AAE0FA',
+    pink: '#D93A96',
+    orange: '#F7941D',
+    red: '#ED1B24',
+    yellow: '#FEF200',
+    green: '#1FB25A',
+    dark_blue: '#0072BB',
+    railroad: '#000000',
+    utility: '#A0A0A0',
+  };
+
   return (
     <View style={[styles.boardContainer, { width: size, height: size }]}>
       {/* Center Logo Area */}
@@ -112,8 +125,23 @@ export const Board: React.FC<Props> = ({
               </View>
 
               <View style={styles.gameInfo}>
-                <Text style={styles.statusText}>Current: {currentPlayer.name}</Text>
-                <Text style={styles.statusText}>Pos: {currentTile?.name}</Text>
+                <View style={styles.currentPlayerInfo}>
+                  <Text style={styles.statusText}>Current: </Text>
+                  <View style={[styles.playerColor, { backgroundColor: currentPlayer.color }]} />
+                  <Text style={styles.statusText}>{currentPlayer.name}</Text>
+                </View>
+                <View style={styles.currentTileInfo}>
+                  <Text style={styles.statusText}>Pos: </Text>
+                  {currentTile?.group && GROUP_COLORS[currentTile.group] && (
+                    <View
+                      style={[
+                        styles.tileColor,
+                        { backgroundColor: GROUP_COLORS[currentTile.group] },
+                      ]}
+                    />
+                  )}
+                  <Text style={styles.statusText}>{currentTile?.name}</Text>
+                </View>
                 {phase === 'action' && (
                   <Text style={styles.statusText}>
                     Dice: {dice[0]} + {dice[1]}
@@ -261,10 +289,26 @@ const styles = StyleSheet.create({
   gameInfo: {
     marginBottom: 15,
     alignItems: 'center',
+    gap: 4,
+  },
+  currentPlayerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  currentTileInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statusText: {
     fontSize: 14,
-    marginBottom: 2,
+  },
+  tileColor: {
+    width: 12,
+    height: 12,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   actions: {
     gap: 8,
