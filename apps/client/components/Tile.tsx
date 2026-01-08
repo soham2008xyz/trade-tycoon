@@ -7,6 +7,7 @@ interface Props {
   orientation: 'bottom' | 'left' | 'top' | 'right' | 'corner';
   style?: StyleProp<ViewStyle>;
   players?: Player[];
+  owner?: Player;
 }
 
 const GROUP_COLORS: Record<string, string> = {
@@ -22,7 +23,7 @@ const GROUP_COLORS: Record<string, string> = {
   utility: '#D3D3D3',
 };
 
-export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [] }) => {
+export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], owner }) => {
   const isStreet = tile.type === 'street';
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
 
@@ -47,6 +48,9 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [] }
         ]} />
       )}
       <View style={styles.content}>
+        {owner && (
+           <View style={[styles.ownerIndicator, { backgroundColor: owner.color }]} />
+        )}
         <Text style={[styles.text, { fontSize: orientation === 'corner' ? 10 : 8 }]}>
           {tile.name}
         </Text>
@@ -73,6 +77,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAF8EF',
     justifyContent: 'space-between',
     overflow: 'hidden',
+  },
+  ownerIndicator: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#000',
   },
   tokenContainer: {
     flexDirection: 'row',

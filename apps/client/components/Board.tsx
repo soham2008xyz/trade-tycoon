@@ -27,6 +27,7 @@ export const Board: React.FC<Props> = ({ players }) => {
     };
 
     const getPlayersOnTile = (index: number) => players.filter(p => p.position === index);
+    const getOwner = (tileId: string) => players.find(p => p.properties.includes(tileId));
 
     return (
       <View style={[styles.boardContainer, { width: size, height: size }]}>
@@ -52,19 +53,19 @@ export const Board: React.FC<Props> = ({ players }) => {
 
         {/* Rows */}
         <View style={styles.rowBottom}>
-          {bottomRow.map(t => <Tile key={t.id} tile={t} orientation="bottom" players={getPlayersOnTile(t.index)} />)}
+          {bottomRow.map(t => <Tile key={t.id} tile={t} orientation="bottom" players={getPlayersOnTile(t.index)} owner={getOwner(t.id)} />)}
         </View>
 
         <View style={styles.colLeft}>
-          {leftRow.map(t => <Tile key={t.id} tile={t} orientation="left" players={getPlayersOnTile(t.index)} />)}
+          {leftRow.map(t => <Tile key={t.id} tile={t} orientation="left" players={getPlayersOnTile(t.index)} owner={getOwner(t.id)} />)}
         </View>
 
         <View style={styles.rowTop}>
-          {topRow.map(t => <Tile key={t.id} tile={t} orientation="top" players={getPlayersOnTile(t.index)} />)}
+          {topRow.map(t => <Tile key={t.id} tile={t} orientation="top" players={getPlayersOnTile(t.index)} owner={getOwner(t.id)} />)}
         </View>
 
         <View style={styles.colRight}>
-          {rightRow.map(t => <Tile key={t.id} tile={t} orientation="right" players={getPlayersOnTile(t.index)} />)}
+          {rightRow.map(t => <Tile key={t.id} tile={t} orientation="right" players={getPlayersOnTile(t.index)} owner={getOwner(t.id)} />)}
         </View>
 
       </View>
