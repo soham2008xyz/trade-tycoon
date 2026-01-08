@@ -114,9 +114,11 @@ export const Board: React.FC<Props> = ({
               <View style={styles.gameInfo}>
                 <Text style={styles.statusText}>Current: {currentPlayer.name}</Text>
                 <Text style={styles.statusText}>Pos: {currentTile?.name}</Text>
-                <Text style={styles.statusText}>
-                  Dice: {dice[0]} + {dice[1]}
-                </Text>
+                {phase === 'action' && (
+                  <Text style={styles.statusText}>
+                    Dice: {dice[0]} + {dice[1]}
+                  </Text>
+                )}
               </View>
 
               <View style={styles.actions}>
