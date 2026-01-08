@@ -50,6 +50,18 @@ export default function GameScreen() {
       </View>
 
       <View style={styles.controls}>
+        <View style={styles.playerList}>
+          <Text style={styles.sectionTitle}>Players</Text>
+          {state.players.map(player => (
+            <View key={player.id} style={styles.playerRow}>
+              <View style={[styles.playerColor, { backgroundColor: player.color }]} />
+              <Text style={styles.playerText}>
+                {player.name}: ${player.money}
+              </Text>
+            </View>
+          ))}
+        </View>
+
         <View style={styles.status}>
           <Text style={styles.statusText}>Current: {currentPlayer.name}</Text>
           <Text style={styles.statusText}>Money: ${currentPlayer.money}</Text>
@@ -93,6 +105,28 @@ const styles = StyleSheet.create({
   },
   status: {
     marginBottom: 20,
+  },
+  playerList: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  playerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  playerColor: {
+    width: 20,
+    height: 20,
+    marginRight: 10,
+    borderRadius: 4,
+  },
+  playerText: {
+    fontSize: 16,
   },
   statusText: {
     fontSize: 18,
