@@ -12,12 +12,17 @@ export type Action =
   | { type: 'BUY_PROPERTY'; playerId: string; propertyId: string }
   | { type: 'PAY_FINE'; playerId: string }
   | { type: 'USE_GOOJ_CARD'; playerId: string }
-  | { type: 'DISMISS_ERROR' };
+  | { type: 'DISMISS_ERROR' }
+  | { type: 'DISMISS_TOAST' };
 
 export const gameReducer = (state: GameState, action: Action): GameState => {
   switch (action.type) {
     case 'DISMISS_ERROR': {
       return { ...state, errorMessage: undefined };
+    }
+
+    case 'DISMISS_TOAST': {
+      return { ...state, toastMessage: undefined };
     }
 
     case 'JOIN_GAME': {
@@ -29,6 +34,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         // If first player, set as current
         currentPlayerId: state.players.length === 0 ? newPlayer.id : state.currentPlayerId,
         errorMessage: undefined,
+        toastMessage: undefined,
       };
     }
 
@@ -55,6 +61,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         players: newPlayers,
         // Stay in roll phase to allow movement
         errorMessage: undefined,
+        toastMessage: 'Used a "Get Out of Jail Free" card!',
       };
     }
 
@@ -76,6 +83,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         players: newPlayers,
         // Stay in roll phase to allow movement
         errorMessage: undefined,
+        toastMessage: 'Paid $50 fine to get out of jail.',
       };
     }
 
@@ -88,6 +96,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       const die2 = Math.floor(Math.random() * 6) + 1;
       const isDouble = die1 === die2;
       let newDoublesCount = isDouble ? state.doublesCount + 1 : 0;
+      let toastMessage: string | undefined;
 
       const playerIndex = state.players.findIndex((p) => p.id === action.playerId);
       let player = state.players[playerIndex];
@@ -104,6 +113,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
           players: newPlayers,
           phase: 'action',
           errorMessage: undefined,
+          toastMessage: 'Speeding! 3 doubles in a row. Go directly to Jail.',
         };
       }
 
@@ -112,11 +122,13 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         if (isDouble) {
           player = { ...player, isInJail: false, jailTurns: 0 };
           newDoublesCount = 0; // No extra turn after escaping
+          toastMessage = 'Rolled doubles! You are free from Jail.';
         } else {
           const turns = player.jailTurns + 1;
           if (turns >= 3) {
             player = { ...player, isInJail: false, jailTurns: 0, money: player.money - 50 };
             newDoublesCount = 0;
+            toastMessage = 'Paid $50 fine after 3 turns in Jail.';
           } else {
             // Stay in Jail
             const newPlayers = [...state.players];
@@ -128,6 +140,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
               doublesCount: 0,
               phase: 'action',
               errorMessage: undefined,
+              toastMessage: 'Still in Jail.',
             };
           }
         }
@@ -140,6 +153,9 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       let money = player.money;
       if (newPosition < player.position) {
         money += 200;
+        toastMessage = toastMessage
+          ? `${toastMessage} Passed GO! Collected $200.`
+          : 'Passed GO! Collected $200.';
       }
 
       let newPlayer = { ...player, position: newPosition, money };
@@ -154,6 +170,9 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
         const { player: updatedPlayer, sentToJail } = processCardEffect(newPlayer, card);
         newPlayer = updatedPlayer;
+
+        const effectMsg = `Chance: ${card.text}`;
+        toastMessage = toastMessage ? `${toastMessage} ${effectMsg}` : effectMsg;
 
         if (sentToJail) {
           newDoublesCount = 0; // End turn if sent to jail
@@ -173,6 +192,9 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
         const { player: updatedPlayer, sentToJail } = processCardEffect(newPlayer, card);
         newPlayer = updatedPlayer;
+
+        const effectMsg = `Community Chest: ${card.text}`;
+        toastMessage = toastMessage ? `${toastMessage} ${effectMsg}` : effectMsg;
 
         if (sentToJail) {
           newDoublesCount = 0; // End turn
@@ -194,12 +216,16 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         newPlayers[playerIndex] = newPlayer;
         targetTile = BOARD[newPosition]; // Update to Jail tile (though no rent on Jail)
         newDoublesCount = 0; // End turn
+        toastMessage = 'Go to Jail!';
       }
 
       // Tax Logic
       if (targetTile.type === 'tax') {
-        newPlayer.money -= targetTile.price || 0;
+        const taxAmount = targetTile.price || 0;
+        newPlayer.money -= taxAmount;
         newPlayers[playerIndex] = newPlayer;
+        const msg = `Paid $${taxAmount} in Tax.`;
+        toastMessage = toastMessage ? `${toastMessage} ${msg}` : msg;
       }
 
       // Rent Logic
@@ -220,6 +246,9 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
           // Pay owner
           const newOwner = { ...owner, money: owner.money + rent };
           newPlayers[ownerIndex] = newOwner;
+
+          const msg = `Paid $${rent} rent to ${owner.name}.`;
+          toastMessage = toastMessage ? `${toastMessage} ${msg}` : msg;
         }
       }
 
@@ -233,6 +262,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         players: newPlayers,
         phase: 'action', // Move to action phase
         errorMessage: undefined,
+        toastMessage,
       };
     }
 
@@ -266,6 +296,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         players: newPlayers,
         // Stay in action phase until End Turn
         errorMessage: undefined,
+        toastMessage: `Purchased ${tile.name} for $${tile.price}.`,
       };
     }
 
@@ -282,6 +313,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         phase: 'roll',
         doublesCount: 0,
         errorMessage: undefined,
+        toastMessage: undefined, // Clear any persisting messages
       };
     }
 

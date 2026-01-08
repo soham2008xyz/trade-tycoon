@@ -44,6 +44,10 @@ export default function GameScreen() {
     dispatch({ type: 'DISMISS_ERROR' });
   };
 
+  const handleDismissToast = () => {
+    dispatch({ type: 'DISMISS_TOAST' });
+  };
+
   if (!currentPlayer) return <Text>Loading...</Text>;
 
   // Check buy availability
@@ -57,6 +61,7 @@ export default function GameScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {state.errorMessage && <Toast message={state.errorMessage} onDismiss={handleDismissError} />}
+      {state.toastMessage && <Toast message={state.toastMessage} onDismiss={handleDismissToast} />}
       <View style={styles.boardArea}>
         <Board
           players={state.players}

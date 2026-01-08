@@ -58,4 +58,5 @@ export interface GameState {
   board: Tile[]; // Static board data, but good to have accessible
   winner: string | null;
   errorMessage?: string;
+  toastMessage?: string;
 }
