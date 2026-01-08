@@ -714,4 +714,87 @@ describe('Game Reducer', () => {
             expect(newState.players[0].isInJail).toBe(true);
         });
     });
+
+    describe('Doubles Logic', () => {
+        let doublesState: GameState;
+
+        beforeEach(() => {
+            doublesState = createInitialState();
+            const p1 = createPlayer('p1', 'Player 1');
+            doublesState.players = [p1];
+            doublesState.currentPlayerId = 'p1';
+            doublesState.phase = 'roll';
+        });
+
+        it('should allow consecutive turns on doubles', () => {
+            // Roll 1: Doubles (1+1)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValue(0); // 1
+
+            let newState = gameReducer(doublesState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(2);
+            expect(newState.doublesCount).toBe(1);
+            expect(newState.phase).toBe('action');
+
+            // Roll 2: Normal (1+2)
+            randomSpy.mockReturnValueOnce(0); // 1
+            randomSpy.mockReturnValueOnce(0.17); // 2
+
+            newState = gameReducer(newState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(5); // 2 + 3
+            expect(newState.doublesCount).toBe(0);
+            expect(newState.phase).toBe('action');
+
+            randomSpy.mockRestore();
+        });
+
+        it('should go to jail on 3rd double', () => {
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValue(0); // Always 1
+
+            // Roll 1 (1+1)
+            let newState = gameReducer(doublesState, { type: 'ROLL_DICE', playerId: 'p1' });
+            expect(newState.doublesCount).toBe(1);
+
+            // Roll 2 (1+1)
+            newState = gameReducer(newState, { type: 'ROLL_DICE', playerId: 'p1' });
+            expect(newState.doublesCount).toBe(2);
+
+            // Roll 3 (1+1) -> Speeding -> Jail
+            newState = gameReducer(newState, { type: 'ROLL_DICE', playerId: 'p1' });
+
+            expect(newState.players[0].position).toBe(10);
+            expect(newState.players[0].isInJail).toBe(true);
+            expect(newState.doublesCount).toBe(0); // Resets
+
+            randomSpy.mockRestore();
+        });
+
+        it('should NOT allow rolling again if not doubles', () => {
+            // Roll 1: Normal (1+2)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0); // 1
+            randomSpy.mockReturnValueOnce(0.17); // 2
+
+            let newState = gameReducer(doublesState, { type: 'ROLL_DICE', playerId: 'p1' });
+            expect(newState.phase).toBe('action');
+            expect(newState.doublesCount).toBe(0);
+
+            // Try Roll 2
+            const stateAfterAttempt = gameReducer(newState, { type: 'ROLL_DICE', playerId: 'p1' });
+
+            // Should be same state object (ignored)
+            expect(stateAfterAttempt).toBe(newState);
+
+            randomSpy.mockRestore();
+        });
+    });
 });

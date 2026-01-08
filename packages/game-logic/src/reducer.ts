@@ -69,23 +69,41 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
         case 'ROLL_DICE': {
             if (state.currentPlayerId !== action.playerId) return state;
-            if (state.phase !== 'roll') return state; // Can only roll in 'roll' phase
+            const canRollAgain = state.doublesCount > 0 && state.dice[0] === state.dice[1];
+            if (state.phase !== 'roll' && !canRollAgain) return state;
 
             const die1 = Math.floor(Math.random() * 6) + 1;
             const die2 = Math.floor(Math.random() * 6) + 1;
             const isDouble = die1 === die2;
+            let newDoublesCount = isDouble ? state.doublesCount + 1 : 0;
 
             const playerIndex = state.players.findIndex(p => p.id === action.playerId);
             let player = state.players[playerIndex];
+            const wasInJail = player.isInJail;
+
+            // Speeding Check
+            if (newDoublesCount >= 3) {
+                 const newPlayers = [...state.players];
+                 newPlayers[playerIndex] = { ...player, position: 10, isInJail: true, jailTurns: 0 };
+                 return {
+                     ...state,
+                     dice: [die1, die2],
+                     doublesCount: 0,
+                     players: newPlayers,
+                     phase: 'action',
+                 };
+            }
 
             // Jail Logic
             if (player.isInJail) {
                 if (isDouble) {
                     player = { ...player, isInJail: false, jailTurns: 0 };
+                    newDoublesCount = 0; // No extra turn after escaping
                 } else {
                     const turns = player.jailTurns + 1;
                     if (turns >= 3) {
                         player = { ...player, isInJail: false, jailTurns: 0, money: player.money - 50 };
+                        newDoublesCount = 0;
                     } else {
                         // Stay in Jail
                         const newPlayers = [...state.players];
@@ -94,6 +112,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
                             ...state,
                             dice: [die1, die2],
                             players: newPlayers,
+                            doublesCount: 0,
                             phase: 'action',
                         };
                     }
@@ -128,6 +147,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
                     newPlayer.isInJail = true;
                     newPlayer.jailTurns = 0;
                     newPosition = 10;
+                    newDoublesCount = 0; // End turn if sent to jail
                 } else if (card.action.type === 'MOVE_TO') {
                     if (card.action.collectGo && card.action.position < newPosition) {
                         newPlayer.money += 200;
@@ -152,6 +172,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
                 newPosition = 10;
                 newPlayers[playerIndex] = newPlayer;
                 targetTile = BOARD[newPosition]; // Update to Jail tile (though no rent on Jail)
+                newDoublesCount = 0; // End turn
             }
 
             // Tax Logic
@@ -184,7 +205,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
             return {
                 ...state,
                 dice: [die1, die2],
-                doublesCount: isDouble ? state.doublesCount + 1 : 0,
+                doublesCount: newDoublesCount,
                 players: newPlayers,
                 phase: 'action', // Move to action phase
             };
