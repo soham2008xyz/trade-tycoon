@@ -13,10 +13,31 @@ export type Action =
   | { type: 'PAY_FINE'; playerId: string }
   | { type: 'USE_GOOJ_CARD'; playerId: string }
   | { type: 'DISMISS_ERROR' }
-  | { type: 'DISMISS_TOAST' };
+  | { type: 'DISMISS_TOAST' }
+  | { type: 'RESET_GAME'; players: { id: string; name: string; color: string }[] };
 
 export const gameReducer = (state: GameState, action: Action): GameState => {
   switch (action.type) {
+    case 'RESET_GAME': {
+      const newPlayers = action.players.map((p) => {
+        const player = createPlayer(p.id, p.name);
+        player.color = p.color;
+        return player;
+      });
+      return {
+        ...state,
+        players: newPlayers,
+        currentPlayerId: newPlayers[0].id,
+        dice: [1, 1], // Reset dice
+        lastDiceRoll: undefined,
+        doublesCount: 0,
+        phase: 'roll',
+        winner: null,
+        errorMessage: undefined,
+        toastMessage: undefined,
+      };
+    }
+
     case 'DISMISS_ERROR': {
       return { ...state, errorMessage: undefined };
     }

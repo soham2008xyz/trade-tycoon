@@ -1,19 +1,24 @@
-import React, { useReducer, useEffect } from 'react';
+import React, { useReducer, useState } from 'react';
 import { View, StyleSheet, SafeAreaView, Text, useWindowDimensions } from 'react-native';
 import { Board } from '../components/Board';
 import { Toast } from '../components/ui/toast';
+import { GameSetup } from '../components/GameSetup';
 import { createInitialState, gameReducer, BOARD, isTileBuyable } from '@trade-tycoon/game-logic';
 
 export default function GameScreen() {
   const [state, dispatch] = useReducer(gameReducer, createInitialState());
+  const [setupVisible, setSetupVisible] = useState(true);
   const { width } = useWindowDimensions();
   const isLandscape = width > 600;
 
-  // Add 2 local players on mount
-  useEffect(() => {
-    dispatch({ type: 'JOIN_GAME', playerId: 'p1', name: 'Player 1' });
-    dispatch({ type: 'JOIN_GAME', playerId: 'p2', name: 'Player 2' });
-  }, []);
+  const handleStartGame = (players: { name: string; color: string }[]) => {
+    const playersWithIds = players.map((p, index) => ({
+      ...p,
+      id: `p${index + 1}`,
+    }));
+    dispatch({ type: 'RESET_GAME', players: playersWithIds });
+    setSetupVisible(false);
+  };
 
   const currentPlayer = state.players.find((p) => p.id === state.currentPlayerId);
   const currentTile = currentPlayer ? BOARD[currentPlayer.position] : null;
@@ -60,6 +65,7 @@ export default function GameScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <GameSetup visible={setupVisible} onStartGame={handleStartGame} />
       {state.errorMessage && <Toast message={state.errorMessage} onDismiss={handleDismissError} />}
       {state.toastMessage && <Toast message={state.toastMessage} onDismiss={handleDismissToast} />}
       <View style={styles.boardArea}>
