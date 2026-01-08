@@ -98,9 +98,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   token: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     margin: 1,
     borderWidth: 1,
     borderColor: 'white',
