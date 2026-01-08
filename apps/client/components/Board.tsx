@@ -1,15 +1,33 @@
 import React from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
-import { BOARD, Player } from '@trade-tycoon/game-logic';
+import { View, StyleSheet, useWindowDimensions, Text, Button } from 'react-native';
+import { BOARD, Player, Tile as TileType } from '@trade-tycoon/game-logic';
 import { Tile } from './Tile';
 
 const CORNER_SIZE_PCT = 14;
 
 interface Props {
   players: Player[];
+  currentPlayer: Player | undefined;
+  currentTile: TileType | null;
+  dice: [number, number];
+  phase: 'roll' | 'action' | 'end';
+  canBuy: boolean;
+  onRoll: () => void;
+  onBuy: () => void;
+  onEndTurn: () => void;
 }
 
-export const Board: React.FC<Props> = ({ players }) => {
+export const Board: React.FC<Props> = ({
+  players,
+  currentPlayer,
+  currentTile,
+  dice,
+  phase,
+  canBuy,
+  onRoll,
+  onBuy,
+  onEndTurn,
+}) => {
   const { width, height } = useWindowDimensions();
   const size = Math.min(width, height) - 20; // Padding
 
@@ -72,7 +90,53 @@ export const Board: React.FC<Props> = ({ players }) => {
   return (
     <View style={[styles.boardContainer, { width: size, height: size }]}>
       {/* Center Logo Area */}
-      <View style={styles.center}>{/* We can put dice and logos here later */}</View>
+      <View style={styles.center}>
+        <View style={styles.statusPanel}>
+          {currentPlayer && (
+            <>
+              <View style={styles.playerList}>
+                <Text style={styles.sectionTitle}>Players</Text>
+                {players.map((player) => (
+                  <View key={player.id} style={styles.playerRow}>
+                    <View style={[styles.playerColor, { backgroundColor: player.color }]} />
+                    <Text
+                      style={[
+                        styles.playerText,
+                        currentPlayer.id === player.id && styles.activePlayerText,
+                      ]}
+                    >
+                      {player.name}: ${player.money}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.gameInfo}>
+                <Text style={styles.statusText}>Current: {currentPlayer.name}</Text>
+                <Text style={styles.statusText}>Pos: {currentTile?.name}</Text>
+                <Text style={styles.statusText}>
+                  Dice: {dice[0]} + {dice[1]}
+                </Text>
+              </View>
+
+              <View style={styles.actions}>
+                {phase === 'roll' && <Button title="Roll Dice" onPress={onRoll} />}
+
+                {phase === 'action' && (
+                  <>
+                    <Button
+                      title={`Buy ($${currentTile?.price || 0})`}
+                      onPress={onBuy}
+                      disabled={!canBuy}
+                    />
+                    <Button title="End Turn" onPress={onEndTurn} color="red" />
+                  </>
+                )}
+              </View>
+            </>
+          )}
+        </View>
+      </View>
 
       {/* Corners */}
       <View style={[styles.corner, styles.bottomRight]}>
@@ -154,6 +218,55 @@ const styles = StyleSheet.create({
     bottom: `${CORNER_SIZE_PCT}%`,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  statusPanel: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: 15,
+    borderRadius: 10,
+    width: '100%',
+    maxWidth: 300,
+    alignItems: 'center',
+  },
+  playerList: {
+    marginBottom: 15,
+    width: '100%',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  playerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+    justifyContent: 'center',
+  },
+  playerColor: {
+    width: 12,
+    height: 12,
+    marginRight: 6,
+    borderRadius: 2,
+  },
+  playerText: {
+    fontSize: 14,
+  },
+  activePlayerText: {
+    fontWeight: 'bold',
+  },
+  gameInfo: {
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  statusText: {
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  actions: {
+    gap: 8,
+    width: '100%',
   },
   corner: {
     position: 'absolute',

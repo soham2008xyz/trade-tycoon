@@ -1,5 +1,5 @@
 import React, { useReducer, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView, Text, Button, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, SafeAreaView, Text, useWindowDimensions } from 'react-native';
 import { Board } from '../components/Board';
 import { Toast } from '../components/ui/toast';
 import { createInitialState, gameReducer, BOARD, isTileBuyable } from '@trade-tycoon/game-logic';
@@ -49,50 +49,26 @@ export default function GameScreen() {
   // Check buy availability
   const canBuy =
     state.phase === 'action' &&
-    currentTile &&
+    !!currentTile &&
     isTileBuyable(currentTile) &&
     !state.players.some((p) => p.properties.includes(currentTile.id)) &&
     currentPlayer.money >= (currentTile.price || 0);
 
   return (
-    <SafeAreaView style={[styles.container, { flexDirection: isLandscape ? 'row' : 'column' }]}>
+    <SafeAreaView style={styles.container}>
       {state.errorMessage && <Toast message={state.errorMessage} onDismiss={handleDismissError} />}
       <View style={styles.boardArea}>
-        <Board players={state.players} />
-      </View>
-
-      <View style={styles.controls}>
-        <View style={styles.playerList}>
-          <Text style={styles.sectionTitle}>Players</Text>
-          {state.players.map((player) => (
-            <View key={player.id} style={styles.playerRow}>
-              <View style={[styles.playerColor, { backgroundColor: player.color }]} />
-              <Text style={styles.playerText}>
-                {player.name}: ${player.money}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.status}>
-          <Text style={styles.statusText}>Current: {currentPlayer.name}</Text>
-          <Text style={styles.statusText}>Money: ${currentPlayer.money}</Text>
-          <Text style={styles.statusText}>Pos: {currentTile?.name}</Text>
-          <Text style={styles.statusText}>
-            Dice: {state.dice[0]} + {state.dice[1]}
-          </Text>
-        </View>
-
-        <View style={styles.actions}>
-          {state.phase === 'roll' && <Button title="Roll Dice" onPress={handleRoll} />}
-
-          {state.phase === 'action' && (
-            <>
-              {canBuy && <Button title={`Buy ($${currentTile.price})`} onPress={handleBuy} />}
-              <Button title="End Turn" onPress={handleEndTurn} color="red" />
-            </>
-          )}
-        </View>
+        <Board
+          players={state.players}
+          currentPlayer={currentPlayer}
+          currentTile={currentTile}
+          dice={state.dice}
+          phase={state.phase}
+          canBuy={canBuy}
+          onRoll={handleRoll}
+          onBuy={handleBuy}
+          onEndTurn={handleEndTurn}
+        />
       </View>
     </SafeAreaView>
   );
@@ -104,47 +80,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
   },
   boardArea: {
-    flex: 2,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 10,
-  },
-  controls: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 20,
-    justifyContent: 'center',
-  },
-  status: {
-    marginBottom: 20,
-  },
-  playerList: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  playerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  playerColor: {
-    width: 20,
-    height: 20,
-    marginRight: 10,
-    borderRadius: 4,
-  },
-  playerText: {
-    fontSize: 16,
-  },
-  statusText: {
-    fontSize: 18,
-    marginBottom: 5,
-  },
-  actions: {
-    gap: 10,
   },
 });
