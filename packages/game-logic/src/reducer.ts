@@ -45,9 +45,28 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
                 money += 200;
             }
 
-            const newPlayer = { ...player, position: newPosition, money };
+            let newPlayer = { ...player, position: newPosition, money };
             const newPlayers = [...state.players];
             newPlayers[playerIndex] = newPlayer;
+
+            // Rent Logic
+            const targetTile = BOARD[newPosition];
+            if (targetTile && targetTile.price) {
+                const ownerIndex = newPlayers.findIndex(p => p.properties.includes(targetTile.id) && p.id !== newPlayer.id);
+                if (ownerIndex !== -1) {
+                    const owner = newPlayers[ownerIndex];
+                    const rent = targetTile.rent ? targetTile.rent[0] : 0; // Simplified MVP Rent
+
+                    // Deduct from current player
+                    newPlayer.money -= rent;
+                    // Update current player in array again (since we modified local var)
+                    newPlayers[playerIndex] = newPlayer;
+
+                    // Pay owner
+                    const newOwner = { ...owner, money: owner.money + rent };
+                    newPlayers[ownerIndex] = newOwner;
+                }
+            }
 
             // Determine next phase based on where they landed
             // For MVP: allow End Turn or Buy

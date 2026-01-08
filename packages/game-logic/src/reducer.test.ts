@@ -220,4 +220,92 @@ describe('Game Reducer', () => {
             expect(newState.currentPlayerId).toBe('p1');
         });
     });
+
+    describe('Rent Payment', () => {
+        let rentState: GameState;
+
+        beforeEach(() => {
+            rentState = createInitialState();
+            const p1 = createPlayer('p1', 'Player 1');
+            const p2 = createPlayer('p2', 'Player 2');
+
+            // Give p2 a property (Mediterranean Ave, index 1, rent[0] = 2)
+            p2.properties = ['mediterranean'];
+
+            rentState.players = [p1, p2];
+            rentState.currentPlayerId = 'p1';
+            rentState.phase = 'roll';
+        });
+
+        it('should pay rent when landing on owned property', () => {
+            // Roll 1 (0.5 -> 0, but forced to 1 via logic? No.
+            // Dice logic: floor(random * 6) + 1.
+            // To get 1 total is impossible with 2 dice (min 2).
+            // Wait, Mediterranean is index 1. GO is 0.
+            // Min roll is 2. So can't land on Mediterranean from GO.
+            // Let's use Baltic Ave (index 3). Min roll 2 can't reach. Roll 3 (1+2).
+            // Better: Move p1 to start at index 0. Target is Baltic (index 3).
+            // Baltic Rent is 4.
+
+            // Setup p2 owns Baltic
+            rentState.players[1].properties = ['baltic'];
+
+            // Mock roll 3 (1+2)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0); // 0 * 6 = 0 -> 1
+            randomSpy.mockReturnValueOnce(0.17); // 0.17 * 6 = 1.02 -> 2
+            // Total 3. Pos 0 -> 3.
+
+            const newState = gameReducer(rentState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            // Baltic rent is 4.
+            expect(newState.players[0].money).toBe(1496); // 1500 - 4
+            expect(newState.players[1].money).toBe(1504); // 1500 + 4
+
+            randomSpy.mockRestore();
+        });
+
+        it('should not pay rent if property is unowned', () => {
+            // p1 lands on Baltic, but p2 doesn't own it
+            rentState.players[1].properties = [];
+
+             // Mock roll 3
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0);
+            randomSpy.mockReturnValueOnce(0.17);
+
+            const newState = gameReducer(rentState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].money).toBe(1500);
+            expect(newState.players[1].money).toBe(1500);
+
+            randomSpy.mockRestore();
+        });
+
+         it('should not pay rent if owned by self', () => {
+            // p1 owns Baltic and lands on it
+            rentState.players[0].properties = ['baltic'];
+            rentState.players[1].properties = [];
+
+             //HbMock roll 3
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0);
+            randomSpy.mockReturnValueOnce(0.17);
+
+            const newState = gameReducer(rentState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].money).toBe(1500);
+
+            randomSpy.mockRestore();
+        });
+    });
 });
