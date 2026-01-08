@@ -383,4 +383,110 @@ describe('Game Reducer', () => {
             randomSpy.mockRestore();
         });
     });
+
+    describe('Pass Go Logic', () => {
+        let goState: GameState;
+
+        beforeEach(() => {
+            goState = createInitialState();
+            const p1 = createPlayer('p1', 'Player 1');
+            goState.players = [p1];
+            goState.currentPlayerId = 'p1';
+            goState.phase = 'roll';
+        });
+
+        it('should collect $200 when passing Go normally', () => {
+            goState.players[0].position = 38;
+            // Roll 4 (2+2) -> 42 -> 2
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValue(0.17); // 2
+
+            const newState = gameReducer(goState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(2);
+            expect(newState.players[0].money).toBe(1700);
+
+            randomSpy.mockRestore();
+        });
+
+        it('should collect $200 when landing on Go', () => {
+            goState.players[0].position = 38;
+            // Roll 2 (1+1) -> 40 -> 0
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValue(0); // 1
+
+            const newState = gameReducer(goState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(0);
+            expect(newState.players[0].money).toBe(1700);
+
+            randomSpy.mockRestore();
+        });
+
+        it('should collect $200 via Advance to Go chance card', () => {
+            // Start at 0. Roll 7 (3+4) -> 7 (Chance)
+            // Card Index 0 (Advance to Go)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0.4); // 3
+            randomSpy.mockReturnValueOnce(0.5); // 4
+            randomSpy.mockReturnValueOnce(0);   // Index 0
+
+            const newState = gameReducer(goState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(0);
+            expect(newState.players[0].money).toBe(1700);
+
+            randomSpy.mockRestore();
+        });
+
+        it('should collect $400 if passed Go on roll AND via card', () => {
+            goState.players[0].position = 35;
+            // Roll 12 (6+6) -> 47 -> 7 (Chance) (Passed Go once)
+            // Card Index 0 (Advance to Go) (Passed Go again)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0.9); // 6
+            randomSpy.mockReturnValueOnce(0.9); // 6
+            randomSpy.mockReturnValueOnce(0);   // Index 0
+
+            const newState = gameReducer(goState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(0);
+            expect(newState.players[0].money).toBe(1900); // 1500 + 200 + 200
+
+            randomSpy.mockRestore();
+        });
+
+        it('should NOT collect $200 when Going to Jail from Chance', () => {
+            goState.players[0].position = 35;
+            // Roll 12 (6+6) -> 47 -> 7 (Chance) (Passed Go once)
+            // Card Index 3 (Go to Jail)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0.9); // 6
+            randomSpy.mockReturnValueOnce(0.9); // 6
+            randomSpy.mockReturnValueOnce(0.4); // Index 3 (Go to Jail)
+
+            const newState = gameReducer(goState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(10);
+            expect(newState.players[0].isInJail).toBe(true);
+            expect(newState.players[0].money).toBe(1700); // 1500 + 200 (from roll) only
+
+            randomSpy.mockRestore();
+        });
+    });
 });
