@@ -53,11 +53,12 @@ export default function GameScreen() {
     dispatch({ type: 'DISMISS_TOAST' });
   };
 
-  if (!currentPlayer) return <Text>Loading...</Text>;
+  if (!setupVisible && !currentPlayer) return <Text>Loading...</Text>;
 
   // Check buy availability
   const canBuy =
     state.phase === 'action' &&
+    !!currentPlayer &&
     !!currentTile &&
     isTileBuyable(currentTile) &&
     !state.players.some((p) => p.properties.includes(currentTile.id)) &&
