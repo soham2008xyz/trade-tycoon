@@ -1,16 +1,8 @@
-import { Player } from './types';
+import { Card } from './cards';
 
-export type ChanceAction =
-  | { type: 'MONEY'; amount: number } // Positive for gain, negative for loss
-  | { type: 'MOVE_TO'; position: number; collectGo?: boolean } // collectGo true means if they pass GO they get $200
-  | { type: 'GO_TO_JAIL' }
-  | { type: 'GET_OUT_OF_JAIL' };
-
-export interface ChanceCard {
-  id: string;
-  text: string;
-  action: ChanceAction;
-}
+// Re-export specific type alias if needed for backward compatibility or clarity,
+// but internally we use the shared Card interface.
+export type ChanceCard = Card;
 
 export const CHANCE_CARDS: ChanceCard[] = [
   {

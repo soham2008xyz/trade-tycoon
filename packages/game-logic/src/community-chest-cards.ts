@@ -1,14 +1,8 @@
-export type CommunityChestAction =
-  | { type: 'MONEY'; amount: number } // Positive for gain, negative for loss
-  | { type: 'MOVE_TO'; position: number; collectGo?: boolean } // collectGo true means if they pass GO they get $200
-  | { type: 'GO_TO_JAIL' }
-  | { type: 'GET_OUT_OF_JAIL' };
+import { Card } from './cards';
 
-export interface CommunityChestCard {
-  id: string;
-  text: string;
-  action: CommunityChestAction;
-}
+// Re-export specific type alias if needed for backward compatibility or clarity,
+// but internally we use the shared Card interface.
+export type CommunityChestCard = Card;
 
 export const COMMUNITY_CHEST_CARDS: CommunityChestCard[] = [
   {
