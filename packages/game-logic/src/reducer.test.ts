@@ -489,4 +489,64 @@ describe('Game Reducer', () => {
             randomSpy.mockRestore();
         });
     });
+
+    describe('Tax Logic', () => {
+        let taxState: GameState;
+
+        beforeEach(() => {
+            taxState = createInitialState();
+            const p1 = createPlayer('p1', 'Player 1');
+            taxState.players = [p1];
+            taxState.currentPlayerId = 'p1';
+            taxState.phase = 'roll';
+        });
+
+        it('should pay Income Tax ($200)', () => {
+            taxState.players[0].position = 2; // Chest
+            // Roll 2 (1+1) -> 4 (Income Tax)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValue(0); // 1
+
+            const newState = gameReducer(taxState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(4);
+            expect(newState.players[0].money).toBe(1300); // 1500 - 200
+
+            randomSpy.mockRestore();
+        });
+
+        it('should pay Luxury Tax ($100)', () => {
+            taxState.players[0].position = 36; // Chance
+            // Roll 2 (1+1) -> 38 (Luxury Tax)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValue(0); // 1
+
+            const newState = gameReducer(taxState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(38);
+            expect(newState.players[0].money).toBe(1400); // 1500 - 100
+
+            randomSpy.mockRestore();
+        });
+
+        it('should NOT be able to buy Tax tiles', () => {
+            taxState.phase = 'action';
+            taxState.players[0].position = 4; // On Tax
+
+            const newState = gameReducer(taxState, {
+                type: 'BUY_PROPERTY',
+                playerId: 'p1',
+                propertyId: 'tax1'
+            });
+
+            expect(newState.players[0].money).toBe(1500);
+            expect(newState.players[0].properties).toHaveLength(0);
+        });
+    });
 });

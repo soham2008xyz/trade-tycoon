@@ -79,6 +79,12 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
                 targetTile = BOARD[newPosition];
             }
 
+            // Tax Logic
+            if (targetTile.type === 'tax') {
+                newPlayer.money -= (targetTile.price || 0);
+                newPlayers[playerIndex] = newPlayer;
+            }
+
             // Rent Logic
             if (targetTile && targetTile.price && !newPlayer.isInJail) { // Don't pay rent if sent to jail
                 const ownerIndex = newPlayers.findIndex(p => p.properties.includes(targetTile.id) && p.id !== newPlayer.id);
@@ -116,6 +122,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
             const tile = BOARD.find(t => t.id === action.propertyId);
 
             if (!tile || !tile.price) return state;
+            if (['tax', 'go', 'jail', 'parking', 'chance', 'community_chest', 'go_to_jail'].includes(tile.type)) return state;
             if (player.money < tile.price) return state;
 
             // Check if owned
