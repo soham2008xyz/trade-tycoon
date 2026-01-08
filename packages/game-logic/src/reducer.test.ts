@@ -349,7 +349,7 @@ describe('Game Reducer', () => {
             const randomSpy = vi.spyOn(Math, 'random');
             randomSpy.mockReturnValueOnce(0.4); // 3
             randomSpy.mockReturnValueOnce(0.5); // 4
-            randomSpy.mockReturnValueOnce(0.9); // 0.9*8=7.2 -> 7
+            randomSpy.mockReturnValueOnce(0.8); // 0.8*9=7.2 -> 7
 
             const newState = gameReducer(chanceState, {
                 type: 'ROLL_DICE',
@@ -652,6 +652,66 @@ describe('Game Reducer', () => {
             expect(newState.players[0].isInJail).toBe(true);
 
             randomSpy.mockRestore();
+        });
+    });
+
+    describe('Get Out Of Jail Logic', () => {
+        let goojState: GameState;
+
+        beforeEach(() => {
+            goojState = createInitialState();
+            const p1 = createPlayer('p1', 'Player 1');
+            goojState.players = [p1];
+            goojState.currentPlayerId = 'p1';
+            goojState.phase = 'roll';
+        });
+
+        it('should receive GOOJ card from Chance', () => {
+            // Roll 7 -> Chance
+            // Card Index 8 (Get Out of Jail Free) - there are 9 cards now (0-8)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0.4); // 3
+            randomSpy.mockReturnValueOnce(0.5); // 4
+            randomSpy.mockReturnValueOnce(0.99); // Index 8
+
+            const newState = gameReducer(goojState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(7);
+            expect(newState.players[0].getOutOfJailCards).toBe(1);
+
+            randomSpy.mockRestore();
+        });
+
+        it('should use GOOJ card to escape jail', () => {
+            goojState.players[0].isInJail = true;
+            goojState.players[0].position = 10;
+            goojState.players[0].getOutOfJailCards = 1;
+
+            const newState = gameReducer(goojState, {
+                type: 'USE_GOOJ_CARD',
+                playerId: 'p1'
+            } as any);
+
+            expect(newState.players[0].isInJail).toBe(false);
+            expect(newState.players[0].getOutOfJailCards).toBe(0);
+            expect(newState.players[0].jailTurns).toBe(0);
+            expect(newState.phase).toBe('roll');
+        });
+
+        it('should NOT be able to use card if count is 0', () => {
+            goojState.players[0].isInJail = true;
+            goojState.players[0].position = 10;
+            goojState.players[0].getOutOfJailCards = 0;
+
+            const newState = gameReducer(goojState, {
+                type: 'USE_GOOJ_CARD',
+                playerId: 'p1'
+            } as any);
+
+            expect(newState.players[0].isInJail).toBe(true);
         });
     });
 });

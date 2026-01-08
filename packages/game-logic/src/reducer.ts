@@ -8,7 +8,8 @@ export type Action =
     | { type: 'ROLL_DICE', playerId: string }
     | { type: 'END_TURN', playerId: string }
     | { type: 'BUY_PROPERTY', playerId: string, propertyId: string }
-    | { type: 'PAY_FINE', playerId: string };
+    | { type: 'PAY_FINE', playerId: string }
+    | { type: 'USE_GOOJ_CARD', playerId: string };
 
 export const gameReducer = (state: GameState, action: Action): GameState => {
     switch (action.type) {
@@ -20,6 +21,30 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
                 players: [...state.players, newPlayer],
                 // If first player, set as current
                 currentPlayerId: state.players.length === 0 ? newPlayer.id : state.currentPlayerId
+            };
+        }
+
+        case 'USE_GOOJ_CARD': {
+            if (state.currentPlayerId !== action.playerId) return state;
+            const playerIndex = state.players.findIndex(p => p.id === action.playerId);
+            const player = state.players[playerIndex];
+
+            if (!player.isInJail) return state;
+            if (player.getOutOfJailCards <= 0) return state;
+
+            const newPlayer = {
+                ...player,
+                isInJail: false,
+                jailTurns: 0,
+                getOutOfJailCards: player.getOutOfJailCards - 1
+            };
+            const newPlayers = [...state.players];
+            newPlayers[playerIndex] = newPlayer;
+
+            return {
+                ...state,
+                players: newPlayers,
+                // Stay in roll phase to allow movement
             };
         }
 
@@ -109,6 +134,8 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
                     }
                     newPlayer.position = card.action.position;
                     newPosition = card.action.position;
+                } else if (card.action.type === 'GET_OUT_OF_JAIL') {
+                    newPlayer.getOutOfJailCards = (newPlayer.getOutOfJailCards || 0) + 1;
                 }
 
                 // Update player with chance changes
