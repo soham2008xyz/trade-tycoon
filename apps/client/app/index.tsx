@@ -1,5 +1,14 @@
 import React, { useReducer, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView, Text, TouchableOpacity, Button, ScrollView, useWindowDimensions } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  SafeAreaView,
+  Text,
+  TouchableOpacity,
+  Button,
+  ScrollView,
+  useWindowDimensions,
+} from 'react-native';
 import { Board } from '../components/Board';
 import { createInitialState, gameReducer, Action, BOARD } from '@trade-tycoon/game-logic';
 
@@ -14,7 +23,7 @@ export default function GameScreen() {
     dispatch({ type: 'JOIN_GAME', playerId: 'p2', name: 'Player 2' });
   }, []);
 
-  const currentPlayer = state.players.find(p => p.id === state.currentPlayerId);
+  const currentPlayer = state.players.find((p) => p.id === state.currentPlayerId);
   const currentTile = currentPlayer ? BOARD[currentPlayer.position] : null;
 
   const handleRoll = () => {
@@ -31,17 +40,22 @@ export default function GameScreen() {
 
   const handleBuy = () => {
     if (state.currentPlayerId && currentTile) {
-      dispatch({ type: 'BUY_PROPERTY', playerId: state.currentPlayerId, propertyId: currentTile.id });
+      dispatch({
+        type: 'BUY_PROPERTY',
+        playerId: state.currentPlayerId,
+        propertyId: currentTile.id,
+      });
     }
   };
 
   if (!currentPlayer) return <Text>Loading...</Text>;
 
   // Check buy availability
-  const canBuy = state.phase === 'action' &&
-                 currentTile?.price &&
-                 !state.players.some(p => p.properties.includes(currentTile.id)) &&
-                 currentPlayer.money >= currentTile.price;
+  const canBuy =
+    state.phase === 'action' &&
+    currentTile?.price &&
+    !state.players.some((p) => p.properties.includes(currentTile.id)) &&
+    currentPlayer.money >= currentTile.price;
 
   return (
     <SafeAreaView style={[styles.container, { flexDirection: isLandscape ? 'row' : 'column' }]}>
@@ -52,7 +66,7 @@ export default function GameScreen() {
       <View style={styles.controls}>
         <View style={styles.playerList}>
           <Text style={styles.sectionTitle}>Players</Text>
-          {state.players.map(player => (
+          {state.players.map((player) => (
             <View key={player.id} style={styles.playerRow}>
               <View style={[styles.playerColor, { backgroundColor: player.color }]} />
               <Text style={styles.playerText}>
@@ -66,13 +80,13 @@ export default function GameScreen() {
           <Text style={styles.statusText}>Current: {currentPlayer.name}</Text>
           <Text style={styles.statusText}>Money: ${currentPlayer.money}</Text>
           <Text style={styles.statusText}>Pos: {currentTile?.name}</Text>
-          <Text style={styles.statusText}>Dice: {state.dice[0]} + {state.dice[1]}</Text>
+          <Text style={styles.statusText}>
+            Dice: {state.dice[0]} + {state.dice[1]}
+          </Text>
         </View>
 
         <View style={styles.actions}>
-          {state.phase === 'roll' && (
-            <Button title="Roll Dice" onPress={handleRoll} />
-          )}
+          {state.phase === 'roll' && <Button title="Roll Dice" onPress={handleRoll} />}
 
           {state.phase === 'action' && (
             <>

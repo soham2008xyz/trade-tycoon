@@ -12,11 +12,13 @@ A cross-platform, multiplayer property trading board game.
 ## Getting Started
 
 1.  **Install Dependencies:**
+
     ```bash
     npm install
     ```
 
 2.  **Run Client (Web/Mobile):**
+
     ```bash
     npm run start --workspace=apps/client
     ```

@@ -8,6 +8,15 @@
   "scripts": {
     "start": "npm run start --workspace=apps/client",
     "server": "npm run dev --workspace=apps/server",
-    "test": "npm test --workspaces"
+    "test": "npm test --workspaces",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.7.4"
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx,json,css,scss,md}": "prettier --write"
   }
 }

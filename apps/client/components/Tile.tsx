@@ -30,9 +30,12 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], 
   // Determine flex direction based on orientation
   let flexDirection: 'column' | 'row' | 'column-reverse' | 'row-reverse' = 'column';
 
-  if (orientation === 'bottom') flexDirection = 'column-reverse'; // Color on top
-  else if (orientation === 'top') flexDirection = 'column'; // Color on bottom
-  else if (orientation === 'left') flexDirection = 'row-reverse'; // Color on right
+  if (orientation === 'bottom')
+    flexDirection = 'column-reverse'; // Color on top
+  else if (orientation === 'top')
+    flexDirection = 'column'; // Color on bottom
+  else if (orientation === 'left')
+    flexDirection = 'row-reverse'; // Color on right
   else if (orientation === 'right') flexDirection = 'row'; // Color on left
 
   // Override for corners (simplified)
@@ -41,27 +44,27 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], 
   return (
     <View style={[styles.container, { flexDirection }, style]}>
       {isStreet && (
-        <View style={[
-          styles.colorBar,
-          { backgroundColor: color },
-          (orientation === 'left' || orientation === 'right') ? styles.colorBarVertical : styles.colorBarHorizontal
-        ]} />
+        <View
+          style={[
+            styles.colorBar,
+            { backgroundColor: color },
+            orientation === 'left' || orientation === 'right'
+              ? styles.colorBarVertical
+              : styles.colorBarHorizontal,
+          ]}
+        />
       )}
       <View style={styles.content}>
-        {owner && (
-           <View style={[styles.ownerIndicator, { backgroundColor: owner.color }]} />
-        )}
+        {owner && <View style={[styles.ownerIndicator, { backgroundColor: owner.color }]} />}
         <Text style={[styles.text, { fontSize: orientation === 'corner' ? 10 : 8 }]}>
           {tile.name}
         </Text>
-        {tile.price && (
-          <Text style={styles.price}>${tile.price}</Text>
-        )}
+        {tile.price && <Text style={styles.price}>${tile.price}</Text>}
 
         {/* Render Players */}
         <View style={styles.tokenContainer}>
-          {players.map(p => (
-             <View key={p.id} style={[styles.token, { backgroundColor: p.color }]} />
+          {players.map((p) => (
+            <View key={p.id} style={[styles.token, { backgroundColor: p.color }]} />
           ))}
         </View>
       </View>
@@ -104,7 +107,8 @@ const styles = StyleSheet.create({
   },
   colorBar: {
     // Dimensions handled below
-  },  colorBarHorizontal: {
+  },
+  colorBarHorizontal: {
     width: '100%',
     height: '25%',
   },
