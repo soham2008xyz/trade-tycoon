@@ -314,3 +314,9 @@ export const BOARD: Tile[] = [
     houseCost: 200,
   },
 ];
+
+export const isTileBuyable = (tile: Tile): boolean => {
+  return !['tax', 'go', 'jail', 'parking', 'chance', 'community_chest', 'go_to_jail'].includes(
+    tile.type
+  );
+};

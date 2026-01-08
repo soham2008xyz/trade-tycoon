@@ -1,16 +1,8 @@
 import React, { useReducer, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  SafeAreaView,
-  Text,
-  TouchableOpacity,
-  Button,
-  ScrollView,
-  useWindowDimensions,
-} from 'react-native';
+import { View, StyleSheet, SafeAreaView, Text, Button, useWindowDimensions } from 'react-native';
 import { Board } from '../components/Board';
-import { createInitialState, gameReducer, Action, BOARD } from '@trade-tycoon/game-logic';
+import { Toast } from '../components/ui/toast';
+import { createInitialState, gameReducer, BOARD, isTileBuyable } from '@trade-tycoon/game-logic';
 
 export default function GameScreen() {
   const [state, dispatch] = useReducer(gameReducer, createInitialState());
@@ -48,17 +40,23 @@ export default function GameScreen() {
     }
   };
 
+  const handleDismissError = () => {
+    dispatch({ type: 'DISMISS_ERROR' });
+  };
+
   if (!currentPlayer) return <Text>Loading...</Text>;
 
   // Check buy availability
   const canBuy =
     state.phase === 'action' &&
-    currentTile?.price &&
+    currentTile &&
+    isTileBuyable(currentTile) &&
     !state.players.some((p) => p.properties.includes(currentTile.id)) &&
-    currentPlayer.money >= currentTile.price;
+    currentPlayer.money >= (currentTile.price || 0);
 
   return (
     <SafeAreaView style={[styles.container, { flexDirection: isLandscape ? 'row' : 'column' }]}>
+      {state.errorMessage && <Toast message={state.errorMessage} onDismiss={handleDismissError} />}
       <View style={styles.boardArea}>
         <Board players={state.players} />
       </View>

@@ -57,4 +57,5 @@ export interface GameState {
   phase: 'roll' | 'action' | 'end'; // Game phase
   board: Tile[]; // Static board data, but good to have accessible
   winner: string | null;
+  errorMessage?: string;
 }

@@ -1,5 +1,5 @@
 import { GameState, Player } from './types';
-import { BOARD } from './board-data';
+import { BOARD, isTileBuyable } from './board-data';
 import { createPlayer } from './game-setup';
 import { processCardEffect } from './cards';
 import { CHANCE_CARDS } from './chance-cards';
@@ -11,10 +11,15 @@ export type Action =
   | { type: 'END_TURN'; playerId: string }
   | { type: 'BUY_PROPERTY'; playerId: string; propertyId: string }
   | { type: 'PAY_FINE'; playerId: string }
-  | { type: 'USE_GOOJ_CARD'; playerId: string };
+  | { type: 'USE_GOOJ_CARD'; playerId: string }
+  | { type: 'DISMISS_ERROR' };
 
 export const gameReducer = (state: GameState, action: Action): GameState => {
   switch (action.type) {
+    case 'DISMISS_ERROR': {
+      return { ...state, errorMessage: undefined };
+    }
+
     case 'JOIN_GAME': {
       if (state.players.find((p) => p.id === action.playerId)) return state;
       const newPlayer = createPlayer(action.playerId, action.name);
@@ -23,6 +28,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         players: [...state.players, newPlayer],
         // If first player, set as current
         currentPlayerId: state.players.length === 0 ? newPlayer.id : state.currentPlayerId,
+        errorMessage: undefined,
       };
     }
 
@@ -32,7 +38,8 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       const player = state.players[playerIndex];
 
       if (!player.isInJail) return state;
-      if (player.getOutOfJailCards <= 0) return state;
+      if (player.getOutOfJailCards <= 0)
+        return { ...state, errorMessage: "You don't have any Get Out of Jail Free cards." };
 
       const newPlayer = {
         ...player,
@@ -47,6 +54,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         ...state,
         players: newPlayers,
         // Stay in roll phase to allow movement
+        errorMessage: undefined,
       };
     }
 
@@ -56,7 +64,8 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       const player = state.players[playerIndex];
 
       if (!player.isInJail) return state;
-      if (player.money < 50) return state;
+      if (player.money < 50)
+        return { ...state, errorMessage: 'Insufficient funds to pay the fine.' };
 
       const newPlayer = { ...player, money: player.money - 50, isInJail: false, jailTurns: 0 };
       const newPlayers = [...state.players];
@@ -66,6 +75,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         ...state,
         players: newPlayers,
         // Stay in roll phase to allow movement
+        errorMessage: undefined,
       };
     }
 
@@ -93,6 +103,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
           doublesCount: 0,
           players: newPlayers,
           phase: 'action',
+          errorMessage: undefined,
         };
       }
 
@@ -116,6 +127,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
               players: newPlayers,
               doublesCount: 0,
               phase: 'action',
+              errorMessage: undefined,
             };
           }
         }
@@ -220,6 +232,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         doublesCount: newDoublesCount,
         players: newPlayers,
         phase: 'action', // Move to action phase
+        errorMessage: undefined,
       };
     }
 
@@ -229,18 +242,16 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       const player = state.players[playerIndex];
       const tile = BOARD.find((t) => t.id === action.propertyId);
 
-      if (!tile || !tile.price) return state;
-      if (
-        ['tax', 'go', 'jail', 'parking', 'chance', 'community_chest', 'go_to_jail'].includes(
-          tile.type
-        )
-      )
-        return state;
-      if (player.money < tile.price) return state;
+      if (!tile || !tile.price) return { ...state, errorMessage: 'Invalid property.' };
+
+      if (!isTileBuyable(tile))
+        return { ...state, errorMessage: 'This property cannot be bought.' };
+
+      if (player.money < tile.price) return { ...state, errorMessage: 'Insufficient funds.' };
 
       // Check if owned
       const isOwned = state.players.some((p) => p.properties.includes(action.propertyId));
-      if (isOwned) return state;
+      if (isOwned) return { ...state, errorMessage: 'Property is already owned.' };
 
       const newPlayer = {
         ...player,
@@ -254,6 +265,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         ...state,
         players: newPlayers,
         // Stay in action phase until End Turn
+        errorMessage: undefined,
       };
     }
 
@@ -269,6 +281,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         currentPlayerId: state.players[nextIndex].id,
         phase: 'roll',
         doublesCount: 0,
+        errorMessage: undefined,
       };
     }
 
