@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions, useWindowDimensions, Text } from 'react-native';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { BOARD, Player } from '@trade-tycoon/game-logic';
 import { Tile } from './Tile';
 
