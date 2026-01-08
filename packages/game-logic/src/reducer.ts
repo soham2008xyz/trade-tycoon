@@ -2,6 +2,7 @@ import { GameState, Player } from './types';
 import { BOARD } from './board-data';
 import { createPlayer } from './game-setup';
 import { CHANCE_CARDS } from './chance-cards';
+import { COMMUNITY_CHEST_CARDS } from './community-chest-cards';
 
 export type Action =
     | { type: 'JOIN_GAME', playerId: string, name: string }
@@ -161,6 +162,34 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
                 // Update player with chance changes
                 newPlayers[playerIndex] = newPlayer;
                 // Update target tile for Rent Logic
+                targetTile = BOARD[newPosition];
+            }
+
+            // Community Chest Logic
+            if (targetTile.type === 'community_chest') {
+                const card = COMMUNITY_CHEST_CARDS[Math.floor(Math.random() * COMMUNITY_CHEST_CARDS.length)];
+
+                if (card.action.type === 'MONEY') {
+                    newPlayer.money += card.action.amount;
+                } else if (card.action.type === 'GO_TO_JAIL') {
+                    newPlayer.position = 10; // Jail index
+                    newPlayer.isInJail = true;
+                    newPlayer.jailTurns = 0;
+                    newPosition = 10;
+                    newDoublesCount = 0; // End turn
+                } else if (card.action.type === 'MOVE_TO') {
+                    if (card.action.collectGo && card.action.position < newPosition) {
+                        newPlayer.money += 200;
+                    }
+                    newPlayer.position = card.action.position;
+                    newPosition = card.action.position;
+                } else if (card.action.type === 'GET_OUT_OF_JAIL') {
+                    newPlayer.getOutOfJailCards = (newPlayer.getOutOfJailCards || 0) + 1;
+                }
+
+                // Update player with chest changes
+                newPlayers[playerIndex] = newPlayer;
+                // Update target tile for Rent Logic (though mostly unrelated if it was a money card)
                 targetTile = BOARD[newPosition];
             }
 
