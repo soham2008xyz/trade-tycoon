@@ -1,6 +1,7 @@
 import { GameState, Player } from './types';
 import { BOARD } from './board-data';
 import { createPlayer } from './game-setup';
+import { CHANCE_CARDS } from './chance-cards';
 
 export type Action =
     | { type: 'JOIN_GAME', playerId: string, name: string }
@@ -47,11 +48,39 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
             let newPlayer = { ...player, position: newPosition, money };
             const newPlayers = [...state.players];
+            // Update immediately so Chance logic works on current state
             newPlayers[playerIndex] = newPlayer;
 
+            // Chance Logic
+            let targetTile = BOARD[newPosition];
+            if (targetTile.type === 'chance') {
+                const card = CHANCE_CARDS[Math.floor(Math.random() * CHANCE_CARDS.length)];
+
+                // console.log(`Chance: ${card.text}`); // Could add an event log to state later
+
+                if (card.action.type === 'MONEY') {
+                    newPlayer.money += card.action.amount;
+                } else if (card.action.type === 'GO_TO_JAIL') {
+                    newPlayer.position = 10; // Jail index
+                    newPlayer.isInJail = true;
+                    newPlayer.jailTurns = 0;
+                    newPosition = 10;
+                } else if (card.action.type === 'MOVE_TO') {
+                    if (card.action.collectGo && card.action.position < newPosition) {
+                        newPlayer.money += 200;
+                    }
+                    newPlayer.position = card.action.position;
+                    newPosition = card.action.position;
+                }
+
+                // Update player with chance changes
+                newPlayers[playerIndex] = newPlayer;
+                // Update target tile for Rent Logic
+                targetTile = BOARD[newPosition];
+            }
+
             // Rent Logic
-            const targetTile = BOARD[newPosition];
-            if (targetTile && targetTile.price) {
+            if (targetTile && targetTile.price && !newPlayer.isInJail) { // Don't pay rent if sent to jail
                 const ownerIndex = newPlayers.findIndex(p => p.properties.includes(targetTile.id) && p.id !== newPlayer.id);
                 if (ownerIndex !== -1) {
                     const owner = newPlayers[ownerIndex];

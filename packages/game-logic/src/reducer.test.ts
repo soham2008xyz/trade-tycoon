@@ -308,4 +308,79 @@ describe('Game Reducer', () => {
             randomSpy.mockRestore();
         });
     });
+
+    describe('Chance Logic', () => {
+        let chanceState: GameState;
+
+        beforeEach(() => {
+            chanceState = createInitialState();
+            const p1 = createPlayer('p1', 'Player 1');
+            const p2 = createPlayer('p2', 'Player 2');
+            chanceState.players = [p1, p2];
+            chanceState.currentPlayerId = 'p1';
+            chanceState.phase = 'roll';
+        });
+
+        it('should apply money card effect', () => {
+            // Roll 7 (3+4) to land on Chance (index 7)
+            // Card Index 1 (Bank error +200)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0.4); // 0.4*6=2.4 -> 3
+            randomSpy.mockReturnValueOnce(0.5); // 0.5*6=3.0 -> 4
+            randomSpy.mockReturnValueOnce(0.15); // 0.15*8=1.2 -> 1
+
+            const newState = gameReducer(chanceState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(7);
+            expect(newState.players[0].money).toBe(1700); // 1500 + 200
+
+            randomSpy.mockRestore();
+        });
+
+        it('should move player and pay rent', () => {
+            // p2 owns Boardwalk (39)
+            chanceState.players[1].properties = ['boardwalk'];
+
+            // Roll 7 to Chance
+            // Card Index 7 (Advance to Boardwalk)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0.4); // 3
+            randomSpy.mockReturnValueOnce(0.5); // 4
+            randomSpy.mockReturnValueOnce(0.9); // 0.9*8=7.2 -> 7
+
+            const newState = gameReducer(chanceState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(39);
+            // Boardwalk Rent: 50
+            expect(newState.players[0].money).toBe(1450); // 1500 - 50
+            expect(newState.players[1].money).toBe(1550); // 1500 + 50
+
+            randomSpy.mockRestore();
+        });
+
+        it('should go to jail', () => {
+            // Roll 7 to Chance
+            // Card Index 3 (Go to Jail)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0.4); // 3
+            randomSpy.mockReturnValueOnce(0.5); // 4
+            randomSpy.mockReturnValueOnce(0.4); // 0.4*8=3.2 -> 3
+
+            const newState = gameReducer(chanceState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(10);
+            expect(newState.players[0].isInJail).toBe(true);
+
+            randomSpy.mockRestore();
+        });
+    });
 });
