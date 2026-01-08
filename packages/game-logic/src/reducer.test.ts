@@ -549,4 +549,109 @@ describe('Game Reducer', () => {
             expect(newState.players[0].properties).toHaveLength(0);
         });
     });
+
+    describe('Jail Logic', () => {
+        let jailState: GameState;
+
+        beforeEach(() => {
+            jailState = createInitialState();
+            const p1 = createPlayer('p1', 'Player 1');
+            jailState.players = [p1];
+            jailState.currentPlayerId = 'p1';
+            jailState.phase = 'roll';
+        });
+
+        it('should pay fine ($50) to leave jail', () => {
+            jailState.players[0].isInJail = true;
+            jailState.players[0].position = 10;
+
+            const newState = gameReducer(jailState, {
+                type: 'PAY_FINE',
+                playerId: 'p1'
+            } as any); // cast any because PAY_FINE is not yet in type
+
+            expect(newState.players[0].isInJail).toBe(false);
+            expect(newState.players[0].money).toBe(1450);
+            expect(newState.players[0].jailTurns).toBe(0);
+            expect(newState.phase).toBe('roll');
+        });
+
+        it('should roll doubles to escape jail', () => {
+            jailState.players[0].isInJail = true;
+            jailState.players[0].position = 10;
+
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValue(0.4); // 3
+
+            const newState = gameReducer(jailState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].isInJail).toBe(false);
+            expect(newState.players[0].position).toBe(16); // 10 + 3 + 3
+            expect(newState.phase).toBe('action');
+
+            randomSpy.mockRestore();
+        });
+
+        it('should stay in jail if doubles not rolled', () => {
+            jailState.players[0].isInJail = true;
+            jailState.players[0].position = 10;
+
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0.4); // 3
+            randomSpy.mockReturnValueOnce(0.5); // 4
+
+            const newState = gameReducer(jailState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].isInJail).toBe(true);
+            expect(newState.players[0].position).toBe(10); // Did not move
+            expect(newState.players[0].jailTurns).toBe(1);
+            expect(newState.phase).toBe('action'); // Ready to End Turn
+
+            randomSpy.mockRestore();
+        });
+
+        it('should force out on 3rd attempt', () => {
+            jailState.players[0].isInJail = true;
+            jailState.players[0].position = 10;
+            jailState.players[0].jailTurns = 2;
+
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValueOnce(0.4); // 3
+            randomSpy.mockReturnValueOnce(0.5); // 4
+
+            const newState = gameReducer(jailState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].isInJail).toBe(false);
+            expect(newState.players[0].money).toBe(1450); // Paid fine
+            expect(newState.players[0].position).toBe(17); // 10 + 3 + 4
+
+            randomSpy.mockRestore();
+        });
+
+        it('should go to jail when landing on Go To Jail', () => {
+            jailState.players[0].position = 28;
+            // Roll 2 (1+1) -> 30 (Go To Jail)
+            const randomSpy = vi.spyOn(Math, 'random');
+            randomSpy.mockReturnValue(0); // 1
+
+            const newState = gameReducer(jailState, {
+                type: 'ROLL_DICE',
+                playerId: 'p1'
+            });
+
+            expect(newState.players[0].position).toBe(10);
+            expect(newState.players[0].isInJail).toBe(true);
+
+            randomSpy.mockRestore();
+        });
+    });
 });

@@ -7,7 +7,8 @@ export type Action =
     | { type: 'JOIN_GAME', playerId: string, name: string }
     | { type: 'ROLL_DICE', playerId: string }
     | { type: 'END_TURN', playerId: string }
-    | { type: 'BUY_PROPERTY', playerId: string, propertyId: string };
+    | { type: 'BUY_PROPERTY', playerId: string, propertyId: string }
+    | { type: 'PAY_FINE', playerId: string };
 
 export const gameReducer = (state: GameState, action: Action): GameState => {
     switch (action.type) {
@@ -22,6 +23,25 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
             };
         }
 
+        case 'PAY_FINE': {
+            if (state.currentPlayerId !== action.playerId) return state;
+            const playerIndex = state.players.findIndex(p => p.id === action.playerId);
+            const player = state.players[playerIndex];
+
+            if (!player.isInJail) return state;
+            if (player.money < 50) return state;
+
+            const newPlayer = { ...player, money: player.money - 50, isInJail: false, jailTurns: 0 };
+            const newPlayers = [...state.players];
+            newPlayers[playerIndex] = newPlayer;
+
+            return {
+                ...state,
+                players: newPlayers,
+                // Stay in roll phase to allow movement
+            };
+        }
+
         case 'ROLL_DICE': {
             if (state.currentPlayerId !== action.playerId) return state;
             if (state.phase !== 'roll') return state; // Can only roll in 'roll' phase
@@ -31,13 +51,31 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
             const isDouble = die1 === die2;
 
             const playerIndex = state.players.findIndex(p => p.id === action.playerId);
-            const player = state.players[playerIndex];
+            let player = state.players[playerIndex];
 
-            // Logic for Jail (Simplified for MVP)
+            // Jail Logic
             if (player.isInJail) {
-                // ...
+                if (isDouble) {
+                    player = { ...player, isInJail: false, jailTurns: 0 };
+                } else {
+                    const turns = player.jailTurns + 1;
+                    if (turns >= 3) {
+                        player = { ...player, isInJail: false, jailTurns: 0, money: player.money - 50 };
+                    } else {
+                        // Stay in Jail
+                        const newPlayers = [...state.players];
+                        newPlayers[playerIndex] = { ...player, jailTurns: turns };
+                        return {
+                            ...state,
+                            dice: [die1, die2],
+                            players: newPlayers,
+                            phase: 'action',
+                        };
+                    }
+                }
             }
 
+            // Standard Move Logic (or Post-Jail Move)
             let newPosition = (player.position + die1 + die2) % 40;
 
             // Check if passed Go
@@ -77,6 +115,16 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
                 newPlayers[playerIndex] = newPlayer;
                 // Update target tile for Rent Logic
                 targetTile = BOARD[newPosition];
+            }
+
+            // Go To Jail Tile Logic
+            if (targetTile.type === 'go_to_jail') {
+                newPlayer.position = 10;
+                newPlayer.isInJail = true;
+                newPlayer.jailTurns = 0;
+                newPosition = 10;
+                newPlayers[playerIndex] = newPlayer;
+                targetTile = BOARD[newPosition]; // Update to Jail tile (though no rent on Jail)
             }
 
             // Tax Logic
