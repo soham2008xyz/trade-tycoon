@@ -1,0 +1,13 @@
+{
+  "name": "trade-tycoon-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "npm run start --workspace=apps/client",
+    "server": "npm run dev --workspace=apps/server",
+    "test": "npm test --workspaces"
+  }
+}
