@@ -1,6 +1,6 @@
 import { GameState, Player } from './types';
 import { BOARD } from './board-data';
-import { createPlayer } from './index';
+import { createPlayer } from './game-setup';
 
 export type Action =
     | { type: 'JOIN_GAME', playerId: string, name: string }
