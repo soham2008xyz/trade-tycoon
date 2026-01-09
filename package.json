@@ -8,7 +8,9 @@
   "scripts": {
     "start": "npm run start --workspace=apps/client",
     "server": "npm run dev --workspace=apps/server",
+    "build": "npm run build --workspace=packages/game-logic",
     "test": "npm test --workspaces",
+    "lint": "npm run lint --workspace=apps/client",
     "lint:md": "markdownlint '**/*.md' --ignore node_modules",
     "prepare": "husky"
   },
