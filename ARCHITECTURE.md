@@ -64,13 +64,17 @@ While the current version runs locally, the architecture is designed to scale to
 3. Implement room management (Create/Join lobbies).
 4. Integrate `game-logic` reducer into the socket event loop.
 
-5. **Logic First (`packages/game-logic`):**
+## Development Guidelines
+
+### Adding a New Feature (e.g., "Auctions")
+
+1. **Logic First (`packages/game-logic`):**
    - Define the `Auction` type in the State.
    - Create an Action type (e.g., `BID_PLACED`).
    - Implement the logic in the reducer to handle the bid and determine the winner.
    - Write Unit Tests.
 
-6. **Client UI (`apps/client`):**
+2. **Client UI (`apps/client`):**
    - Create a React Component (e.g., `AuctionModal.tsx`).
    - Connect it to the game state.
    - Dispatch the `BID_PLACED` action.
