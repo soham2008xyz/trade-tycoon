@@ -7,14 +7,15 @@ import { COMMUNITY_CHEST_CARDS } from './community-chest-cards';
 
 export type Action =
   | { type: 'JOIN_GAME'; playerId: string; name: string }
-  | { type: 'ROLL_DICE'; playerId: string }
+  | { type: 'ROLL_DICE'; playerId: string; die1: number; die2: number }
   | { type: 'END_TURN'; playerId: string }
   | { type: 'BUY_PROPERTY'; playerId: string; propertyId: string }
   | { type: 'PAY_FINE'; playerId: string }
   | { type: 'USE_GOOJ_CARD'; playerId: string }
   | { type: 'DISMISS_ERROR' }
   | { type: 'DISMISS_TOAST' }
-  | { type: 'RESET_GAME'; players: { id: string; name: string; color: string }[] };
+  | { type: 'RESET_GAME'; players: { id: string; name: string; color: string }[] }
+  | { type: 'CONTINUE_TURN'; playerId: string };
 
 export const gameReducer = (state: GameState, action: Action): GameState => {
   switch (action.type) {
@@ -35,6 +36,18 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         winner: null,
         errorMessage: undefined,
         toastMessage: undefined,
+      };
+    }
+
+    case 'CONTINUE_TURN': {
+      if (state.currentPlayerId !== action.playerId) return state;
+      // Only allow continue if doubles were rolled and not sent to jail (doublesCount > 0)
+      if (state.doublesCount === 0) return state;
+
+      return {
+        ...state,
+        phase: 'roll',
+        errorMessage: undefined,
       };
     }
 
@@ -110,11 +123,9 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
     case 'ROLL_DICE': {
       if (state.currentPlayerId !== action.playerId) return state;
-      const canRollAgain = state.doublesCount > 0 && state.dice[0] === state.dice[1];
-      if (state.phase !== 'roll' && !canRollAgain) return state;
+      if (state.phase !== 'roll') return state;
 
-      const die1 = Math.floor(Math.random() * 6) + 1;
-      const die2 = Math.floor(Math.random() * 6) + 1;
+      const { die1, die2 } = action;
       const isDouble = die1 === die2;
       let newDoublesCount = isDouble ? state.doublesCount + 1 : 0;
       let toastMessage: string | undefined;

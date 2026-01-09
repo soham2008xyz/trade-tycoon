@@ -74,21 +74,17 @@ describe('Game Reducer', () => {
     });
 
     it('should update position and change phase to action', () => {
-      // Mock Math.random to return predictable dice rolls
-      // 0.5 * 6 = 3 -> floor + 1 = 4
-      const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
-
+      // 4 + 4 = 8
       const newState = gameReducer(stateWithPlayers, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 4,
+        die2: 4,
       });
 
-      // 4 + 4 = 8
       expect(newState.dice).toEqual([4, 4]);
       expect(newState.players[0].position).toBe(8); // Started at 0
       expect(newState.phase).toBe('action');
-
-      randomSpy.mockRestore();
     });
 
     it('should add money when passing GO', () => {
@@ -96,25 +92,22 @@ describe('Game Reducer', () => {
       stateWithPlayers.players[0].position = 38;
 
       // Roll 5 (2+3) -> 38 + 5 = 43 % 40 = 3 (Baltic)
-      // Avoids Community Chest at 2
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0.17); // 2
-      randomSpy.mockReturnValueOnce(0.4); // 3
-
       const newState = gameReducer(stateWithPlayers, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 2,
+        die2: 3,
       });
 
       expect(newState.players[0].position).toBe(3);
       expect(newState.players[0].money).toBe(1700); // 1500 + 200
-
-      randomSpy.mockRestore();
     });
     it('should ignore roll if not current player', () => {
       const newState = gameReducer(stateWithPlayers, {
         type: 'ROLL_DICE',
         playerId: 'p2',
+        die1: 1,
+        die2: 1,
       });
       expect(newState).toBe(stateWithPlayers);
     });
@@ -124,6 +117,8 @@ describe('Game Reducer', () => {
       const newState = gameReducer(stateWithPlayers, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 1,
+        die2: 1,
       });
       expect(newState).toBe(stateWithPlayers);
     });
@@ -240,54 +235,36 @@ describe('Game Reducer', () => {
     });
 
     it('should pay rent when landing on owned property', () => {
-      // Roll 1 (0.5 -> 0, but forced to 1 via logic? No.
-      // Dice logic: floor(random * 6) + 1.
-      // To get 1 total is impossible with 2 dice (min 2).
-      // Wait, Mediterranean is index 1. GO is 0.
-      // Min roll is 2. So can't land on Mediterranean from GO.
-      // Let's use Baltic Ave (index 3). Min roll 2 can't reach. Roll 3 (1+2).
-      // Better: Move p1 to start at index 0. Target is Baltic (index 3).
-      // Baltic Rent is 4.
-
       // Setup p2 owns Baltic
       rentState.players[1].properties = ['baltic'];
 
-      // Mock roll 3 (1+2)
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0); // 0 * 6 = 0 -> 1
-      randomSpy.mockReturnValueOnce(0.17); // 0.17 * 6 = 1.02 -> 2
-      // Total 3. Pos 0 -> 3.
-
+      // Roll 3 (1+2). Pos 0 -> 3.
       const newState = gameReducer(rentState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 1,
+        die2: 2,
       });
 
       // Baltic rent is 4.
       expect(newState.players[0].money).toBe(1496); // 1500 - 4
       expect(newState.players[1].money).toBe(1504); // 1500 + 4
-
-      randomSpy.mockRestore();
     });
 
     it('should not pay rent if property is unowned', () => {
       // p1 lands on Baltic, but p2 doesn't own it
       rentState.players[1].properties = [];
 
-      // Mock roll 3
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0);
-      randomSpy.mockReturnValueOnce(0.17);
-
+      // Roll 3
       const newState = gameReducer(rentState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 1,
+        die2: 2,
       });
 
       expect(newState.players[0].money).toBe(1500);
       expect(newState.players[1].money).toBe(1500);
-
-      randomSpy.mockRestore();
     });
 
     it('should not pay rent if owned by self', () => {
@@ -295,19 +272,15 @@ describe('Game Reducer', () => {
       rentState.players[0].properties = ['baltic'];
       rentState.players[1].properties = [];
 
-      //HbMock roll 3
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0);
-      randomSpy.mockReturnValueOnce(0.17);
-
+      // Roll 3
       const newState = gameReducer(rentState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 1,
+        die2: 2,
       });
 
       expect(newState.players[0].money).toBe(1500);
-
-      randomSpy.mockRestore();
     });
   });
 
@@ -327,13 +300,13 @@ describe('Game Reducer', () => {
       // Roll 7 (3+4) to land on Chance (index 7)
       // Card Index 1 (Bank error +200)
       const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0.4); // 0.4*6=2.4 -> 3
-      randomSpy.mockReturnValueOnce(0.5); // 0.5*6=3.0 -> 4
-      randomSpy.mockReturnValueOnce(0.15); // 0.15*8=1.2 -> 1
+      randomSpy.mockReturnValueOnce(0.15); // 0.15*8=1.2 -> 1 (Card Index)
 
       const newState = gameReducer(chanceState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 3,
+        die2: 4,
       });
 
       expect(newState.players[0].position).toBe(7);
@@ -349,13 +322,13 @@ describe('Game Reducer', () => {
       // Roll 7 to Chance
       // Card Index 7 (Advance to Boardwalk)
       const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0.4); // 3
-      randomSpy.mockReturnValueOnce(0.5); // 4
       randomSpy.mockReturnValueOnce(0.8); // 0.8*9=7.2 -> 7
 
       const newState = gameReducer(chanceState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 3,
+        die2: 4,
       });
 
       expect(newState.players[0].position).toBe(39);
@@ -371,12 +344,12 @@ describe('Game Reducer', () => {
       // Card Index 3 (Go to Jail)
       const randomSpy = vi.spyOn(Math, 'random');
       randomSpy.mockReturnValueOnce(0.4); // 3
-      randomSpy.mockReturnValueOnce(0.5); // 4
-      randomSpy.mockReturnValueOnce(0.4); // 0.4*8=3.2 -> 3
 
       const newState = gameReducer(chanceState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 3,
+        die2: 4,
       });
 
       expect(newState.players[0].position).toBe(10);
@@ -400,49 +373,41 @@ describe('Game Reducer', () => {
     it('should collect $200 when passing Go normally', () => {
       goState.players[0].position = 38;
       // Roll 5 (2+3) -> 43 -> 3 (Baltic)
-      // Avoids Community Chest at 2
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0.17); // 2
-      randomSpy.mockReturnValueOnce(0.4); // 3
-
       const newState = gameReducer(goState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 2,
+        die2: 3,
       });
 
       expect(newState.players[0].position).toBe(3);
       expect(newState.players[0].money).toBe(1700);
-
-      randomSpy.mockRestore();
     });
     it('should collect $200 when landing on Go', () => {
       goState.players[0].position = 38;
       // Roll 2 (1+1) -> 40 -> 0
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValue(0); // 1
-
       const newState = gameReducer(goState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 1,
+        die2: 1,
       });
 
       expect(newState.players[0].position).toBe(0);
       expect(newState.players[0].money).toBe(1700);
-
-      randomSpy.mockRestore();
     });
 
     it('should collect $200 via Advance to Go chance card', () => {
       // Start at 0. Roll 7 (3+4) -> 7 (Chance)
       // Card Index 0 (Advance to Go)
       const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0.4); // 3
-      randomSpy.mockReturnValueOnce(0.5); // 4
       randomSpy.mockReturnValueOnce(0); // Index 0
 
       const newState = gameReducer(goState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 3,
+        die2: 4,
       });
 
       expect(newState.players[0].position).toBe(0);
@@ -456,13 +421,13 @@ describe('Game Reducer', () => {
       // Roll 12 (6+6) -> 47 -> 7 (Chance) (Passed Go once)
       // Card Index 0 (Advance to Go) (Passed Go again)
       const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0.9); // 6
-      randomSpy.mockReturnValueOnce(0.9); // 6
       randomSpy.mockReturnValueOnce(0); // Index 0
 
       const newState = gameReducer(goState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 6,
+        die2: 6,
       });
 
       expect(newState.players[0].position).toBe(0);
@@ -476,13 +441,13 @@ describe('Game Reducer', () => {
       // Roll 12 (6+6) -> 47 -> 7 (Chance) (Passed Go once)
       // Card Index 3 (Go to Jail)
       const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0.9); // 6
-      randomSpy.mockReturnValueOnce(0.9); // 6
       randomSpy.mockReturnValueOnce(0.4); // Index 3 (Go to Jail)
 
       const newState = gameReducer(goState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 6,
+        die2: 6,
       });
 
       expect(newState.players[0].position).toBe(10);
@@ -507,35 +472,29 @@ describe('Game Reducer', () => {
     it('should pay Income Tax ($200)', () => {
       taxState.players[0].position = 2; // Chest
       // Roll 2 (1+1) -> 4 (Income Tax)
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValue(0); // 1
-
       const newState = gameReducer(taxState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 1,
+        die2: 1,
       });
 
       expect(newState.players[0].position).toBe(4);
       expect(newState.players[0].money).toBe(1300); // 1500 - 200
-
-      randomSpy.mockRestore();
     });
 
     it('should pay Luxury Tax ($100)', () => {
       taxState.players[0].position = 36; // Chance
       // Roll 2 (1+1) -> 38 (Luxury Tax)
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValue(0); // 1
-
       const newState = gameReducer(taxState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 1,
+        die2: 1,
       });
 
       expect(newState.players[0].position).toBe(38);
       expect(newState.players[0].money).toBe(1400); // 1500 - 100
-
-      randomSpy.mockRestore();
     });
 
     it('should NOT be able to buy Tax tiles', () => {
@@ -571,7 +530,7 @@ describe('Game Reducer', () => {
       const newState = gameReducer(jailState, {
         type: 'PAY_FINE',
         playerId: 'p1',
-      } as any); // cast any because PAY_FINE is not yet in type
+      } as any);
 
       expect(newState.players[0].isInJail).toBe(false);
       expect(newState.players[0].money).toBe(1450);
@@ -583,40 +542,33 @@ describe('Game Reducer', () => {
       jailState.players[0].isInJail = true;
       jailState.players[0].position = 10;
 
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValue(0.4); // 3
-
       const newState = gameReducer(jailState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 3,
+        die2: 3,
       });
 
       expect(newState.players[0].isInJail).toBe(false);
       expect(newState.players[0].position).toBe(16); // 10 + 3 + 3
       expect(newState.phase).toBe('action');
-
-      randomSpy.mockRestore();
     });
 
     it('should stay in jail if doubles not rolled', () => {
       jailState.players[0].isInJail = true;
       jailState.players[0].position = 10;
 
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0.4); // 3
-      randomSpy.mockReturnValueOnce(0.5); // 4
-
       const newState = gameReducer(jailState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 3,
+        die2: 4,
       });
 
       expect(newState.players[0].isInJail).toBe(true);
       expect(newState.players[0].position).toBe(10); // Did not move
       expect(newState.players[0].jailTurns).toBe(1);
-      expect(newState.phase).toBe('action'); // Ready to End Turn
-
-      randomSpy.mockRestore();
+      expect(newState.phase).toBe('action');
     });
 
     it('should force out on 3rd attempt', () => {
@@ -624,36 +576,29 @@ describe('Game Reducer', () => {
       jailState.players[0].position = 10;
       jailState.players[0].jailTurns = 2;
 
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0.4); // 3
-      randomSpy.mockReturnValueOnce(0.7); // 5 (Total 8) -> Pos 18
-
       const newState = gameReducer(jailState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 3,
+        die2: 5,
       });
 
       expect(newState.players[0].isInJail).toBe(false);
       expect(newState.players[0].money).toBe(1450); // Paid fine
       expect(newState.players[0].position).toBe(18); // 10 + 3 + 5
-
-      randomSpy.mockRestore();
     });
     it('should go to jail when landing on Go To Jail', () => {
       jailState.players[0].position = 28;
       // Roll 2 (1+1) -> 30 (Go To Jail)
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValue(0); // 1
-
       const newState = gameReducer(jailState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 1,
+        die2: 1,
       });
 
       expect(newState.players[0].position).toBe(10);
       expect(newState.players[0].isInJail).toBe(true);
-
-      randomSpy.mockRestore();
     });
   });
 
@@ -670,15 +615,15 @@ describe('Game Reducer', () => {
 
     it('should receive GOOJ card from Chance', () => {
       // Roll 7 -> Chance
-      // Card Index 8 (Get Out of Jail Free) - there are 9 cards now (0-8)
+      // Card Index 8 (Get Out of Jail Free)
       const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0.4); // 3
-      randomSpy.mockReturnValueOnce(0.5); // 4
       randomSpy.mockReturnValueOnce(0.99); // Index 8
 
       const newState = gameReducer(goojState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 3,
+        die2: 4,
       });
 
       expect(newState.players[0].position).toBe(7);
@@ -730,74 +675,92 @@ describe('Game Reducer', () => {
 
     it('should allow consecutive turns on doubles', () => {
       // Roll 1: Doubles (3+3) -> Pos 6 (Oriental Ave)
-      // Avoids Community Chest at 2
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0.4); // 3
-      randomSpy.mockReturnValueOnce(0.4); // 3
-
       let newState = gameReducer(doublesState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 3,
+        die2: 3,
       });
 
       expect(newState.players[0].position).toBe(6);
       expect(newState.doublesCount).toBe(1);
       expect(newState.phase).toBe('action');
 
-      // Roll 2: Normal (1+2)
-      randomSpy.mockReturnValueOnce(0); // 1
-      randomSpy.mockReturnValueOnce(0.17); // 2
+      // We need to simulate action done and continuing turn
+      // Since we can't trigger ROLL_DICE in 'action' anymore, we need to use CONTINUE_TURN
+      newState = gameReducer(newState, {
+        type: 'CONTINUE_TURN',
+        playerId: 'p1',
+      });
+      expect(newState.phase).toBe('roll');
 
+      // Roll 2: Normal (1+2)
       newState = gameReducer(newState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 1,
+        die2: 2,
       });
 
       expect(newState.players[0].position).toBe(9); // 6 + 3
       expect(newState.doublesCount).toBe(0);
       expect(newState.phase).toBe('action');
-
-      randomSpy.mockRestore();
     });
     it('should go to jail on 3rd double', () => {
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValue(0); // Always 1
-
       // Roll 1 (1+1)
-      let newState = gameReducer(doublesState, { type: 'ROLL_DICE', playerId: 'p1' });
+      let newState = gameReducer(doublesState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 1,
+      });
       expect(newState.doublesCount).toBe(1);
+      newState = gameReducer(newState, { type: 'CONTINUE_TURN', playerId: 'p1' });
 
       // Roll 2 (1+1)
-      newState = gameReducer(newState, { type: 'ROLL_DICE', playerId: 'p1' });
+      newState = gameReducer(newState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 1,
+      });
       expect(newState.doublesCount).toBe(2);
+      newState = gameReducer(newState, { type: 'CONTINUE_TURN', playerId: 'p1' });
 
       // Roll 3 (1+1) -> Speeding -> Jail
-      newState = gameReducer(newState, { type: 'ROLL_DICE', playerId: 'p1' });
+      newState = gameReducer(newState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 1,
+      });
 
       expect(newState.players[0].position).toBe(10);
       expect(newState.players[0].isInJail).toBe(true);
       expect(newState.doublesCount).toBe(0); // Resets
-
-      randomSpy.mockRestore();
     });
 
     it('should NOT allow rolling again if not doubles', () => {
       // Roll 1: Normal (1+2)
-      const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0); // 1
-      randomSpy.mockReturnValueOnce(0.17); // 2
-
-      let newState = gameReducer(doublesState, { type: 'ROLL_DICE', playerId: 'p1' });
+      let newState = gameReducer(doublesState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 2,
+      });
       expect(newState.phase).toBe('action');
       expect(newState.doublesCount).toBe(0);
 
       // Try Roll 2
-      const stateAfterAttempt = gameReducer(newState, { type: 'ROLL_DICE', playerId: 'p1' });
+      const stateAfterAttempt = gameReducer(newState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 2,
+      });
 
       // Should be same state object (ignored)
       expect(stateAfterAttempt).toBe(newState);
-
-      randomSpy.mockRestore();
     });
   });
 
@@ -816,13 +779,13 @@ describe('Game Reducer', () => {
       // Roll 2 (1+1) -> Index 2 (Community Chest)
       // Card Index 1 (Bank error +200)
       const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0); // 1
-      randomSpy.mockReturnValueOnce(0); // 1
       randomSpy.mockReturnValueOnce(0.07); // 0.07 * 16 = 1.12 -> 1
 
       const newState = gameReducer(chestState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 1,
+        die2: 1,
       });
 
       expect(newState.players[0].position).toBe(2);
@@ -835,13 +798,13 @@ describe('Game Reducer', () => {
       // Roll 2 -> Chest
       // Card Index 5 (Go to Jail)
       const randomSpy = vi.spyOn(Math, 'random');
-      randomSpy.mockReturnValueOnce(0); // 1
-      randomSpy.mockReturnValueOnce(0); // 1
       randomSpy.mockReturnValueOnce(0.32); // 0.32 * 16 = 5.12 -> 5
 
       const newState = gameReducer(chestState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
+        die1: 1,
+        die2: 1,
       });
 
       expect(newState.players[0].position).toBe(10);

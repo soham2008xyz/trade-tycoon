@@ -10,11 +10,13 @@ interface Props {
   currentPlayer: Player | undefined;
   currentTile: TileType | null;
   dice: [number, number];
+  doublesCount: number;
   phase: 'roll' | 'action' | 'end';
   canBuy: boolean;
   onRoll: () => void;
   onBuy: () => void;
   onEndTurn: () => void;
+  onRollAgain: () => void;
 }
 
 export const Board: React.FC<Props> = ({
@@ -22,11 +24,13 @@ export const Board: React.FC<Props> = ({
   currentPlayer,
   currentTile,
   dice,
+  doublesCount,
   phase,
   canBuy,
   onRoll,
   onBuy,
   onEndTurn,
+  onRollAgain,
 }) => {
   const { width, height } = useWindowDimensions();
   const size = Math.min(width, height) - 20; // Padding
@@ -159,7 +163,11 @@ export const Board: React.FC<Props> = ({
                       onPress={onBuy}
                       disabled={!canBuy}
                     />
-                    <Button title="End Turn" onPress={onEndTurn} color="red" />
+                    {doublesCount > 0 ? (
+                      <Button title="Roll Again" onPress={onRollAgain} color="orange" />
+                    ) : (
+                      <Button title="End Turn" onPress={onEndTurn} color="red" />
+                    )}
                   </>
                 )}
               </View>

@@ -25,7 +25,15 @@ export default function GameScreen() {
 
   const handleRoll = () => {
     if (state.currentPlayerId) {
-      dispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId });
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      dispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId, die1, die2 });
+    }
+  };
+
+  const handleRollAgain = () => {
+    if (state.currentPlayerId) {
+      dispatch({ type: 'CONTINUE_TURN', playerId: state.currentPlayerId });
     }
   };
 
@@ -75,11 +83,13 @@ export default function GameScreen() {
           currentPlayer={currentPlayer}
           currentTile={currentTile}
           dice={state.dice}
+          doublesCount={state.doublesCount}
           phase={state.phase}
           canBuy={canBuy}
           onRoll={handleRoll}
           onBuy={handleBuy}
           onEndTurn={handleEndTurn}
+          onRollAgain={handleRollAgain}
         />
       </View>
     </SafeAreaView>
