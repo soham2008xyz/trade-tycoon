@@ -9,12 +9,14 @@ A Monopoly-style trading game built with React Native (Expo) and a shared game l
 
 ## Getting Started
 
-1.  **Install dependencies:**
+1. **Install dependencies:**
+
     ```bash
     npm install
     ```
 
-2.  **Run the client:**
+2. **Run the client:**
+
     ```bash
     npm run ios --workspace=apps/client
     # or
