@@ -38,10 +38,17 @@ This document tracks the implementation status of features for the Trade Tycoon 
     - [ ] Build Houses (up to 4) on complete color sets.
     - [ ] Build Hotels (after 4 houses).
 - [ ] **Mortgages**:
-    - [ ] Mortgage properties for cash.
-    - [ ] Lift mortgage with interest.
-    - [ ] No rent collection on mortgaged properties.
-- [ ] **Trading**: Trade money, properties, and cards between players.
+    - [ ] **Action**: Mortgage owned property for 50% of its value during player's turn.
+    - [ ] **Restriction**: Cannot mortgage if buildings exist on the property (must sell buildings first).
+    - [ ] **Effect**: No rent can be collected on mortgaged properties.
+    - [ ] **Visuals**: Mortgaged properties appear visually distinct (e.g., grayed out or flipped).
+    - [ ] **Unmortgage**: Lift mortgage by paying mortgage value + 10% interest.
+- [ ] **Trading**:
+    - [ ] **Offer**: Initiate trade with another player during turn.
+    - [ ] **Content**: Trade combination of Cash and Properties.
+    - [ ] **Flow**: 
+        - Propose trade -> Counter-party reviews -> Accept/Decline.
+    - [ ] **Validation**: Ensure trade is valid (assets owned, sufficient funds).
 
 ## 5. Special Spaces & Cards
 - [x] **Chance Cards**: Implement standard deck effects (Movement, Money, Jail, etc.).

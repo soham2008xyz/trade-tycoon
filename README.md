@@ -25,6 +25,8 @@ A Monopoly-style trading game built with React Native (Expo) and a shared game l
 
 ## Development
 
+For detailed feature tracking and implementation status, please refer to [SPECIFICATION.md](./SPECIFICATION.md).
+
 - **Game Logic:**
   - Tests: `npm run test --workspace=packages/game-logic`
   - Build: `npm run build --workspace=packages/game-logic`
