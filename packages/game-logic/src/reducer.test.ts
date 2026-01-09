@@ -674,65 +674,64 @@ describe('Game Reducer', () => {
     });
 
     it('should allow consecutive turns on doubles', () => {
-      // Roll 1: Doubles (3+3) -> Pos 6 (Oriental Ave)
+      // Roll 1: Doubles (2+2) -> Pos 4 (Income Tax) - Safe
       let newState = gameReducer(doublesState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
-        die1: 3,
-        die2: 3,
+        die1: 2,
+        die2: 2,
       });
 
-      expect(newState.players[0].position).toBe(6);
+      expect(newState.players[0].position).toBe(4);
       expect(newState.doublesCount).toBe(1);
       expect(newState.phase).toBe('action');
 
-      // We need to simulate action done and continuing turn
-      // Since we can't trigger ROLL_DICE in 'action' anymore, we need to use CONTINUE_TURN
+      // Continue Turn
       newState = gameReducer(newState, {
         type: 'CONTINUE_TURN',
         playerId: 'p1',
       });
       expect(newState.phase).toBe('roll');
 
-      // Roll 2: Normal (1+2)
+      // Roll 2: Normal (1+3) -> Pos 8 (Vermont Ave) - Safe
       newState = gameReducer(newState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
         die1: 1,
-        die2: 2,
+        die2: 3,
       });
 
-      expect(newState.players[0].position).toBe(9); // 6 + 3
+      expect(newState.players[0].position).toBe(8); // 4 + 4 = 8
       expect(newState.doublesCount).toBe(0);
       expect(newState.phase).toBe('action');
     });
     it('should go to jail on 3rd double', () => {
-      // Roll 1 (1+1)
+      // Roll 1 (2+2) -> Pos 4 (Income Tax) - safe from random cards
       let newState = gameReducer(doublesState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
-        die1: 1,
-        die2: 1,
+        die1: 2,
+        die2: 2,
       });
       expect(newState.doublesCount).toBe(1);
       newState = gameReducer(newState, { type: 'CONTINUE_TURN', playerId: 'p1' });
 
-      // Roll 2 (1+1)
+      // Roll 2 (2+2) -> Pos 8 (Vermont Ave) - safe
       newState = gameReducer(newState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
-        die1: 1,
-        die2: 1,
+        die1: 2,
+        die2: 2,
       });
       expect(newState.doublesCount).toBe(2);
       newState = gameReducer(newState, { type: 'CONTINUE_TURN', playerId: 'p1' });
 
-      // Roll 3 (1+1) -> Speeding -> Jail
+      // Roll 3 (2+2) -> Speeding -> Jail
       newState = gameReducer(newState, {
         type: 'ROLL_DICE',
         playerId: 'p1',
-        die1: 1,
-        die2: 1,
+        die1: 2,
+        die2: 2,
       });
 
       expect(newState.players[0].position).toBe(10);

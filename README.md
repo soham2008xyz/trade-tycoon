@@ -1,33 +1,43 @@
-# Trade Tycoon (Monopoly-Clone)
+# Trade Tycoon
 
-A cross-platform, multiplayer property trading board game.
+A Monopoly-style trading game built with React Native (Expo) and a shared game logic package.
 
-## Tech Stack
+## Project Structure
 
-- **Monorepo Management:** NPM Workspaces
-- **Frontend (Mobile/Web):** React Native (Expo), React Native Web
-- **Backend:** Node.js, Socket.io
-- **Shared Logic:** TypeScript
+- `apps/client`: The React Native mobile application.
+- `packages/game-logic`: Core game rules, state management, and types (TypeScript).
 
 ## Getting Started
 
-1.  **Install Dependencies:**
-
+1.  **Install dependencies:**
     ```bash
     npm install
     ```
 
-2.  **Run Client (Web/Mobile):**
-
+2.  **Run the client:**
     ```bash
-    npm run start --workspace=apps/client
+    npm run ios --workspace=apps/client
+    # or
+    npm run android --workspace=apps/client
+    # or
+    npm run web --workspace=apps/client
     ```
 
-3.  **Run Server:**
-    ```bash
-    npm run server --workspace=apps/server
-    ```
+## Development
 
-## Structure
+- **Game Logic:**
+  - Tests: `npm run test --workspace=packages/game-logic`
+  - Build: `npm run build --workspace=packages/game-logic`
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for details.
+## Features
+
+- [x] Board rendering
+- [x] Player movement
+- [x] Property buying
+- [x] Rent payment
+- [x] Chance & Community Chest cards
+- [x] Jail logic
+- [x] Doubles logic (Speeding)
+- [x] Toast notifications for game events
+- [x] Game Setup Modal
+- [x] Pure Game Reducer with deterministic tests
