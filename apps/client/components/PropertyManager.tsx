@@ -8,6 +8,8 @@ interface Props {
   onClose: () => void;
   onBuild: (propertyId: string) => void;
   onSell: (propertyId: string) => void;
+  onMortgage: (propertyId: string) => void;
+  onUnmortgage: (propertyId: string) => void;
 }
 
 const GROUP_COLORS: Record<string, string> = {
@@ -36,11 +38,19 @@ const GROUP_DISPLAY_NAMES: Record<string, string> = {
   utility: 'Utilities',
 };
 
-export const PropertyManager: React.FC<Props> = ({ visible, player, onClose, onBuild, onSell }) => {
+export const PropertyManager: React.FC<Props> = ({
+  visible,
+  player,
+  onClose,
+  onBuild,
+  onSell,
+  onMortgage,
+  onUnmortgage,
+}) => {
   // Group properties by color
   const properties = player.properties
     .map((id) => BOARD.find((t) => t.id === id))
-    .filter((t): t is Tile => !!t && t.type === 'street') // Only show buildable properties (streets)
+    .filter((t): t is Tile => !!t && (t.type === 'street' || t.type === 'railroad' || t.type === 'utility'))
     .reduce((acc, tile) => {
       const group = tile.group || 'misc';
       if (!acc[group]) acc[group] = [];
@@ -78,39 +88,78 @@ export const PropertyManager: React.FC<Props> = ({ visible, player, onClose, onB
 
                   return (
                     <View key={group} style={styles.groupContainer}>
-                        <View style={[styles.groupHeader, { backgroundColor: GROUP_COLORS[group] || '#ccc' }]}>
-                            <Text style={styles.groupTitle}>{displayName} ({ownedCount}/{totalCount} properties owned)</Text>
-                        </View>
-                        {properties[group].map((tile) => {
-                            const houses = player.houses[tile.id] || 0;
-                            const houseCost = tile.houseCost || 0;
-                            return (
-                                <View key={tile.id} style={styles.propertyRow}>
-                                    <View style={styles.propertyInfo}>
-                                        <Text style={styles.propertyName}>{tile.name}</Text>
-                                        <Text style={styles.houseCount}>
-                                            {houses === 5 ? 'Hotel' : `${houses} House${houses !== 1 ? 's' : ''}`}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.buttons}>
-                                        <Button
-                                            title={`Build ($${houseCost})`}
-                                            onPress={() => onBuild(tile.id)}
-                                            disabled={player.money < houseCost || houses >= 5 || !hasCompleteGroup}
-                                        />
-                                        <View style={{ width: 8 }} />
-                                        <Button
-                                            title={`Sell ($${houseCost/2})`}
-                                            onPress={() => onSell(tile.id)}
-                                            color="red"
-                                            disabled={houses <= 0}
-                                        />
-                                    </View>
-                                </View>
-                            );
-                        })}
+                      <View style={[styles.groupHeader, { backgroundColor: GROUP_COLORS[group] || '#ccc' }]}>
+                        <Text style={styles.groupTitle}>
+                          {displayName} ({ownedCount}/{totalCount} properties owned)
+                        </Text>
+                      </View>
+                      {properties[group].map((tile) => {
+                        const houses = player.houses[tile.id] || 0;
+                        const houseCost = tile.houseCost || 0;
+                        const isMortgaged = player.mortgaged.includes(tile.id);
+                        const mortgageValue = tile.mortgageValue || 0;
+                        const unmortgageCost = Math.ceil(mortgageValue * 1.1);
+
+                        // Validation for mortgage logic
+                        const groupTiles = getPropertiesInGroup(group as PropertyGroup);
+                        const groupHasHouses = groupTiles.some((t) => (player.houses[t.id] || 0) > 0);
+
+                        return (
+                          <View key={tile.id} style={styles.propertyRow}>
+                            <View style={styles.propertyInfo}>
+                              <Text style={[styles.propertyName, isMortgaged && styles.mortgagedText]}>
+                                {tile.name} {isMortgaged ? '(Mortgaged)' : ''}
+                              </Text>
+                              {tile.type === 'street' && (
+                                <Text style={styles.houseCount}>
+                                  {houses === 5 ? 'Hotel' : `${houses} House${houses !== 1 ? 's' : ''}`}
+                                </Text>
+                              )}
+                            </View>
+                            <View style={styles.buttons}>
+                              {/* Build/Sell Houses (Only for Streets) */}
+                              {tile.type === 'street' && !isMortgaged && (
+                                <>
+                                  <Button
+                                    title={`Build ($${houseCost})`}
+                                    onPress={() => onBuild(tile.id)}
+                                    disabled={
+                                      player.money < houseCost || houses >= 5 || !hasCompleteGroup
+                                    }
+                                  />
+                                  <View style={{ width: 8 }} />
+                                  <Button
+                                    title={`Sell ($${houseCost / 2})`}
+                                    onPress={() => onSell(tile.id)}
+                                    color="orange"
+                                    disabled={houses <= 0}
+                                  />
+                                  <View style={{ width: 8 }} />
+                                </>
+                              )}
+
+                              {/* Mortgage/Unmortgage */}
+                              {!isMortgaged ? (
+                                <Button
+                                  title={`Mortgage ($${mortgageValue})`}
+                                  onPress={() => onMortgage(tile.id)}
+                                  color="red"
+                                  disabled={houses > 0 || groupHasHouses}
+                                />
+                              ) : (
+                                <Button
+                                  title={`Unmortgage ($${unmortgageCost})`}
+                                  onPress={() => onUnmortgage(tile.id)}
+                                  color="green"
+                                  disabled={player.money < unmortgageCost}
+                                />
+                              )}
+                            </View>
+                          </View>
+                        );
+                      })}
                     </View>
-                );
+                  );
               })
             )}
           </ScrollView>
@@ -193,6 +242,10 @@ const styles = StyleSheet.create({
   propertyName: {
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  mortgagedText: {
+    color: 'red',
+    fontStyle: 'italic',
   },
   houseCount: {
     fontSize: 12,

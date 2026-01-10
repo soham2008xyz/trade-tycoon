@@ -20,6 +20,8 @@ interface Props {
   onRollAgain: () => void;
   onBuild: (propertyId: string) => void;
   onSell: (propertyId: string) => void;
+  onMortgage: (propertyId: string) => void;
+  onUnmortgage: (propertyId: string) => void;
   onPayFine: () => void;
   onUseGOOJCard: () => void;
   onRestart: () => void;
@@ -40,6 +42,8 @@ export const Board: React.FC<Props> = ({
   onRollAgain,
   onBuild,
   onSell,
+  onMortgage,
+  onUnmortgage,
   onPayFine,
   onUseGOOJCard,
   onRestart,
@@ -231,6 +235,8 @@ export const Board: React.FC<Props> = ({
           onClose={() => setShowPropertyManager(false)}
           onBuild={onBuild}
           onSell={onSell}
+          onMortgage={onMortgage}
+          onUnmortgage={onUnmortgage}
         />
       )}
 
