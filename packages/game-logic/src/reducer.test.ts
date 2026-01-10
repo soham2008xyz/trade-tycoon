@@ -11,12 +11,6 @@ describe('Game Reducer', () => {
     initialState = createInitialState();
   });
 
-  // ... (Existing tests) ...
-  // Since I cannot "append" effectively with overwrite_file, and replace_with_git_merge_diff is fickle,
-  // I will rewrite the file but keep existing tests and add new ones at the end.
-  // Actually, I should just paste the WHOLE file content including my new tests.
-
-  // Existing tests start
   it('should return initial state', () => {
     expect(initialState.players).toHaveLength(0);
     expect(initialState.phase).toBe('roll');
@@ -290,7 +284,6 @@ describe('Game Reducer', () => {
       expect(newState.players[0].money).toBe(1500);
     });
 
-    // NEW RENT TESTS
     it('should pay double rent if owner owns all properties of color group (unimproved)', () => {
       // p2 owns Mediterranean and Baltic (Brown Group)
       rentState.players[1].properties = ['mediterranean', 'baltic'];
@@ -337,9 +330,90 @@ describe('Game Reducer', () => {
 
       expect(newState.players[0].money).toBe(1250); // 1500 - 250
     });
+
+    // --- NEW RENT TESTS ---
+
+    it('should pay correct rent for Railroads', () => {
+      // Reading RR (Index 5). Rent: 25, 50, 100, 200
+      // p2 owns 1 RR (Reading)
+      rentState.players[1].properties = ['reading_rr'];
+      rentState.players[0].position = 3; // Baltic
+      // Roll 2 (1+1) -> 5 (Reading RR)
+      let newState = gameReducer(rentState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 1,
+      });
+      expect(newState.players[0].money).toBe(1475); // 1500 - 25
+
+      // p2 owns 2 RRs
+      rentState.players[1].properties = ['reading_rr', 'penn_rr'];
+      rentState.players[0].money = 1500;
+      newState = gameReducer(rentState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 1,
+      });
+      expect(newState.players[0].money).toBe(1450); // 1500 - 50
+
+       // p2 owns 4 RRs
+      rentState.players[1].properties = ['reading_rr', 'penn_rr', 'bo_rr', 'short_rr'];
+      rentState.players[0].money = 1500;
+      newState = gameReducer(rentState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 1,
+      });
+      expect(newState.players[0].money).toBe(1300); // 1500 - 200
+    });
+
+    it('should pay correct rent for Utilities', () => {
+      // Electric Company (Index 12).
+      // p2 owns 1 Utility
+      rentState.players[1].properties = ['electric'];
+      rentState.players[0].position = 8; // Vermont
+      // Roll 4 (2+2) -> 12 (Electric)
+      // Rent = 4 * Roll = 4 * 4 = 16
+      let newState = gameReducer(rentState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 2,
+        die2: 2,
+      });
+      expect(newState.players[0].money).toBe(1484); // 1500 - 16
+
+      // p2 owns 2 Utilities
+      rentState.players[1].properties = ['electric', 'water'];
+      rentState.players[0].money = 1500;
+      // Rent = 10 * Roll = 10 * 4 = 40
+      newState = gameReducer(rentState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 2,
+        die2: 2,
+      });
+      expect(newState.players[0].money).toBe(1460); // 1500 - 40
+    });
+
+    it('should pay 0 rent if property is mortgaged', () => {
+      rentState.players[1].properties = ['mediterranean'];
+      rentState.players[1].mortgaged = ['mediterranean'];
+
+      // Roll to Med
+      const newState = gameReducer(rentState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 0,
+      });
+
+      expect(newState.players[0].money).toBe(1500); // No change
+    });
   });
 
-  // NEW BUILDING TESTS
   describe('BUILD_HOUSE', () => {
     let buildState: GameState;
 
@@ -487,12 +561,6 @@ describe('Game Reducer', () => {
     });
   });
 
-  // ... (Rest of existing tests like Chance, Jail, Tax, Gooj, Doubles, Chest) ...
-  // Actually, I'll assume the previous tests covered these and just close the describe block.
-  // Wait, I need to make sure I didn't delete the other tests by overwriting.
-  // Since I am writing the WHOLE file, I must include everything.
-  // I will just copy the rest of the original tests here.
-
   describe('Chance Logic', () => {
     let chanceState: GameState;
 
@@ -568,7 +636,6 @@ describe('Game Reducer', () => {
     });
   });
 
-  // Re-adding the rest of the original tests
   describe('Pass Go Logic', () => {
     let goState: GameState;
 
@@ -1021,5 +1088,68 @@ describe('Game Reducer', () => {
 
       randomSpy.mockRestore();
     });
+
+    // --- NEW CHEST TESTS ---
+    it('should collect money from all players', () => {
+        // Add more players
+        const p2 = createPlayer('p2', 'Player 2');
+        const p3 = createPlayer('p3', 'Player 3');
+        chestState.players = [chestState.players[0], p2, p3];
+
+        // Roll 2 (1+1) -> Community Chest (Index 2)
+        // Card Index 6 (Grand Opera, Collect $50 from every player)
+        // 6 / 16 = 0.375
+        const randomSpy = vi.spyOn(Math, 'random');
+        randomSpy.mockReturnValueOnce(0.38);
+
+        const newState = gameReducer(chestState, {
+            type: 'ROLL_DICE',
+            playerId: 'p1',
+            die1: 1,
+            die2: 1,
+        });
+
+        // Player 1 collects 50 from p2 and p3 (Total +100)
+        expect(newState.players[0].money).toBe(1600);
+        expect(newState.players[1].money).toBe(1450);
+        expect(newState.players[2].money).toBe(1450);
+
+        randomSpy.mockRestore();
+    });
   });
+
+  // --- NEW BANKRUPTCY TEST ---
+  describe('Bankruptcy Logic', () => {
+      let brokeState: GameState;
+      beforeEach(() => {
+          brokeState = createInitialState();
+          const p1 = createPlayer('p1', 'Player 1');
+          const p2 = createPlayer('p2', 'Player 2');
+          p1.money = 10; // Very poor
+          p2.properties = ['boardwalk'];
+          p2.houses = { boardwalk: 5 }; // Hotel! Rent is 2000
+
+          brokeState.players = [p1, p2];
+          brokeState.currentPlayerId = 'p1';
+          brokeState.phase = 'roll';
+      });
+
+      it('should allow money to go negative', () => {
+          // Player 1 lands on Boardwalk (39).
+          // Start at 30 (Go To Jail), roll 9 (4+5) -> 39
+          brokeState.players[0].position = 30;
+
+          const newState = gameReducer(brokeState, {
+              type: 'ROLL_DICE',
+              playerId: 'p1',
+              die1: 4,
+              die2: 5,
+          });
+
+          // Rent is 2000
+          expect(newState.players[0].money).toBe(10 - 2000); // -1990
+          expect(newState.players[1].money).toBe(1500 + 2000); // 3500
+      });
+  });
+
 });
