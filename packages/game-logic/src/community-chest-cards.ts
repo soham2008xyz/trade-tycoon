@@ -26,8 +26,8 @@ export const COMMUNITY_CHEST_CARDS: CommunityChestCard[] = [
   {
     id: 'cc7',
     text: 'Grand Opera Night. Collect $50 from every player for opening night seats',
-    action: { type: 'MONEY', amount: 50 },
-  }, // Simplified to just getting $50 for MVP
+    action: { type: 'COLLECT_FROM_ALL', amount: 50 },
+  },
   { id: 'cc8', text: 'Holiday Fund matures. Receive $100', action: { type: 'MONEY', amount: 100 } },
   { id: 'cc9', text: 'Income tax refund. Collect $20', action: { type: 'MONEY', amount: 20 } },
   { id: 'cc10', text: 'It is your birthday. Collect $10', action: { type: 'MONEY', amount: 10 } },

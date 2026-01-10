@@ -5,7 +5,8 @@ export type CardAction =
   | { type: 'MOVE_TO'; position: number; collectGo?: boolean } // collectGo true means if they pass GO they get $200
   | { type: 'GO_TO_JAIL' }
   | { type: 'GET_OUT_OF_JAIL' }
-  | { type: 'REPAIRS'; houseCost: number; hotelCost: number };
+  | { type: 'REPAIRS'; houseCost: number; hotelCost: number }
+  | { type: 'COLLECT_FROM_ALL'; amount: number };
 
 export interface Card {
   id: string;
@@ -63,6 +64,10 @@ export const processCardEffect = (
 
     case 'GET_OUT_OF_JAIL':
       newPlayer.getOutOfJailCards = (newPlayer.getOutOfJailCards || 0) + 1;
+      break;
+
+    case 'COLLECT_FROM_ALL':
+      // Handled in reducer as it requires access to all players
       break;
   }
 
