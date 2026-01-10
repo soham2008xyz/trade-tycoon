@@ -18,7 +18,9 @@ export type Action =
   | { type: 'RESET_GAME'; players: { id: string; name: string; color: string }[] }
   | { type: 'CONTINUE_TURN'; playerId: string }
   | { type: 'BUILD_HOUSE'; playerId: string; propertyId: string }
-  | { type: 'SELL_HOUSE'; playerId: string; propertyId: string };
+  | { type: 'SELL_HOUSE'; playerId: string; propertyId: string }
+  | { type: 'MORTGAGE_PROPERTY'; playerId: string; propertyId: string }
+  | { type: 'UNMORTGAGE_PROPERTY'; playerId: string; propertyId: string };
 
 export const gameReducer = (state: GameState, action: Action): GameState => {
   switch (action.type) {
@@ -499,6 +501,91 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       newPlayers[playerIndex] = newPlayer;
 
       const toastMessage = `Sold a ${currentHouses === 5 ? 'Hotel' : 'House'} on ${tile.name} for $${refund}.`;
+      return {
+        ...state,
+        players: newPlayers,
+        toastMessage,
+        errorMessage: undefined,
+        logs: [...state.logs, `[${player.name}] ${toastMessage}`],
+      };
+    }
+
+    case 'MORTGAGE_PROPERTY': {
+      if (state.currentPlayerId !== action.playerId) return state;
+      if (state.phase !== 'action') return { ...state, errorMessage: 'Can only mortgage during action phase.' };
+
+      const playerIndex = state.players.findIndex((p) => p.id === action.playerId);
+      const player = state.players[playerIndex];
+      const tile = BOARD.find((t) => t.id === action.propertyId);
+
+      if (!tile) return { ...state, errorMessage: 'Invalid property.' };
+      if (!tile.mortgageValue) return { ...state, errorMessage: 'This property cannot be mortgaged.' };
+
+      // Ownership
+      if (!player.properties.includes(action.propertyId)) return { ...state, errorMessage: 'You do not own this property.' };
+
+      // Already Mortgaged
+      if (player.mortgaged.includes(action.propertyId)) return { ...state, errorMessage: 'Property is already mortgaged.' };
+
+      // Check for houses in the group (Must sell buildings first)
+      if (tile.group) {
+        const groupTiles = BOARD.filter((t) => t.group === tile.group);
+        const hasHouses = groupTiles.some((t) => (player.houses[t.id] || 0) > 0);
+        if (hasHouses) return { ...state, errorMessage: 'You must sell all buildings in this color group before mortgaging.' };
+      }
+
+      // Execute
+      const newPlayer = {
+        ...player,
+        money: player.money + tile.mortgageValue,
+        mortgaged: [...player.mortgaged, action.propertyId],
+      };
+
+      const newPlayers = [...state.players];
+      newPlayers[playerIndex] = newPlayer;
+
+      const toastMessage = `Mortgaged ${tile.name} for $${tile.mortgageValue}.`;
+      return {
+        ...state,
+        players: newPlayers,
+        toastMessage,
+        errorMessage: undefined,
+        logs: [...state.logs, `[${player.name}] ${toastMessage}`],
+      };
+    }
+
+    case 'UNMORTGAGE_PROPERTY': {
+      if (state.currentPlayerId !== action.playerId) return state;
+      if (state.phase !== 'action') return { ...state, errorMessage: 'Can only unmortgage during action phase.' };
+
+      const playerIndex = state.players.findIndex((p) => p.id === action.playerId);
+      const player = state.players[playerIndex];
+      const tile = BOARD.find((t) => t.id === action.propertyId);
+
+      if (!tile) return { ...state, errorMessage: 'Invalid property.' };
+      if (!tile.mortgageValue) return { ...state, errorMessage: 'This property cannot be unmortgaged.' };
+
+      // Ownership
+      if (!player.properties.includes(action.propertyId)) return { ...state, errorMessage: 'You do not own this property.' };
+
+      // Is Mortgaged
+      if (!player.mortgaged.includes(action.propertyId)) return { ...state, errorMessage: 'Property is not mortgaged.' };
+
+      // Cost Calculation (Value + 10%)
+      const cost = Math.ceil(tile.mortgageValue * 1.1);
+      if (player.money < cost) return { ...state, errorMessage: `Insufficient funds. Cost: $${cost}` };
+
+      // Execute
+      const newPlayer = {
+        ...player,
+        money: player.money - cost,
+        mortgaged: player.mortgaged.filter((id) => id !== action.propertyId),
+      };
+
+      const newPlayers = [...state.players];
+      newPlayers[playerIndex] = newPlayer;
+
+      const toastMessage = `Unmortgaged ${tile.name} for $${cost}.`;
       return {
         ...state,
         players: newPlayers,

@@ -561,6 +561,112 @@ describe('Game Reducer', () => {
     });
   });
 
+  describe('MORTGAGE_PROPERTY', () => {
+    let mortgageState: GameState;
+
+    beforeEach(() => {
+      mortgageState = createInitialState();
+      const p1 = createPlayer('p1', 'Player 1');
+      p1.properties = ['mediterranean', 'baltic']; // Brown Group
+      p1.money = 1000;
+      mortgageState.players = [p1];
+      mortgageState.currentPlayerId = 'p1';
+      mortgageState.phase = 'action';
+    });
+
+    it('should mortgage property and receive money', () => {
+      // Mediterranean mortgage value is 30
+      const newState = gameReducer(mortgageState, {
+        type: 'MORTGAGE_PROPERTY',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+
+      expect(newState.players[0].mortgaged).toContain('mediterranean');
+      expect(newState.players[0].money).toBe(1030);
+      expect(newState.errorMessage).toBeUndefined();
+    });
+
+    it('should fail if not owned', () => {
+      mortgageState.players[0].properties = [];
+      const newState = gameReducer(mortgageState, {
+        type: 'MORTGAGE_PROPERTY',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(newState.errorMessage).toMatch(/not own/);
+    });
+
+    it('should fail if already mortgaged', () => {
+      mortgageState.players[0].mortgaged = ['mediterranean'];
+      const newState = gameReducer(mortgageState, {
+        type: 'MORTGAGE_PROPERTY',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(newState.errorMessage).toMatch(/already mortgaged/);
+    });
+
+    it('should fail if any property in group has houses', () => {
+      mortgageState.players[0].houses = { baltic: 1 };
+      // Try mortgage Med
+      const newState = gameReducer(mortgageState, {
+        type: 'MORTGAGE_PROPERTY',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(newState.errorMessage).toMatch(/must sell all buildings/);
+    });
+  });
+
+  describe('UNMORTGAGE_PROPERTY', () => {
+    let unmortgageState: GameState;
+
+    beforeEach(() => {
+      unmortgageState = createInitialState();
+      const p1 = createPlayer('p1', 'Player 1');
+      p1.properties = ['mediterranean'];
+      p1.mortgaged = ['mediterranean'];
+      p1.money = 1000;
+      unmortgageState.players = [p1];
+      unmortgageState.currentPlayerId = 'p1';
+      unmortgageState.phase = 'action';
+    });
+
+    it('should unmortgage property and pay cost', () => {
+      // Mortgage value 30. Cost = 30 * 1.1 = 33.
+      const newState = gameReducer(unmortgageState, {
+        type: 'UNMORTGAGE_PROPERTY',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+
+      expect(newState.players[0].mortgaged).not.toContain('mediterranean');
+      expect(newState.players[0].money).toBe(967); // 1000 - 33
+      expect(newState.errorMessage).toBeUndefined();
+    });
+
+    it('should fail if not mortgaged', () => {
+      unmortgageState.players[0].mortgaged = [];
+      const newState = gameReducer(unmortgageState, {
+        type: 'UNMORTGAGE_PROPERTY',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(newState.errorMessage).toMatch(/not mortgaged/);
+    });
+
+    it('should fail if insufficient funds', () => {
+      unmortgageState.players[0].money = 10;
+      const newState = gameReducer(unmortgageState, {
+        type: 'UNMORTGAGE_PROPERTY',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(newState.errorMessage).toMatch(/Insufficient funds/);
+    });
+  });
+
   describe('Chance Logic', () => {
     let chanceState: GameState;
 

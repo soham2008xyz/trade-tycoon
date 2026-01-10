@@ -71,6 +71,26 @@ export default function GameScreen() {
     }
   };
 
+  const handleMortgage = (propertyId: string) => {
+    if (state.currentPlayerId) {
+      dispatch({
+        type: 'MORTGAGE_PROPERTY',
+        playerId: state.currentPlayerId,
+        propertyId,
+      });
+    }
+  };
+
+  const handleUnmortgage = (propertyId: string) => {
+    if (state.currentPlayerId) {
+      dispatch({
+        type: 'UNMORTGAGE_PROPERTY',
+        playerId: state.currentPlayerId,
+        propertyId,
+      });
+    }
+  };
+
   const handlePayFine = () => {
     if (state.currentPlayerId) {
       dispatch({ type: 'PAY_FINE', playerId: state.currentPlayerId });
@@ -143,6 +163,8 @@ export default function GameScreen() {
           onRollAgain={handleRollAgain}
           onBuild={handleBuild}
           onSell={handleSell}
+          onMortgage={handleMortgage}
+          onUnmortgage={handleUnmortgage}
           onPayFine={handlePayFine}
           onUseGOOJCard={handleUseGOOJCard}
           onRestart={handleRestart}
