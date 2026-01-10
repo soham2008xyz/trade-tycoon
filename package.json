@@ -9,6 +9,7 @@
     "start": "npm run start --workspace=apps/client",
     "server": "npm run dev --workspace=apps/server",
     "build": "npm run build --workspace=packages/game-logic",
+    "export": "npm run vercel-build --workspace=apps/client",
     "test": "npm test --workspaces --if-present",
     "lint": "npm run lint --workspace=apps/client",
     "lint:md": "markdownlint '**/*.md' --ignore node_modules",
