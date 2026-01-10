@@ -111,6 +111,28 @@ export default function GameScreen() {
     dispatch({ type: 'DISMISS_TOAST' });
   };
 
+  const handleDeclareBankruptcy = () => {
+    if (state.currentPlayerId) {
+      if (Platform.OS === 'web') {
+        const confirmed = window.confirm('Are you sure you want to declare bankruptcy? You will be removed from the game.');
+        if (confirmed) {
+          dispatch({ type: 'DECLARE_BANKRUPTCY', playerId: state.currentPlayerId });
+        }
+      } else {
+        Alert.alert('Declare Bankruptcy', 'Are you sure you want to declare bankruptcy? You will be removed from the game.', [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Yes',
+            onPress: () => dispatch({ type: 'DECLARE_BANKRUPTCY', playerId: state.currentPlayerId! }),
+          },
+        ]);
+      }
+    }
+  };
+
   const handleRestart = () => {
     if (Platform.OS === 'web') {
       const confirmed = window.confirm('Are you sure you want to restart the game?');
@@ -131,7 +153,7 @@ export default function GameScreen() {
     }
   };
 
-  if (!setupVisible && !currentPlayer) return <Text>Loading...</Text>;
+  if (!setupVisible && !currentPlayer && !state.winner) return <Text>Loading...</Text>;
 
   // Check buy availability
   const canBuy =
@@ -174,6 +196,7 @@ export default function GameScreen() {
           onUseGOOJCard={handleUseGOOJCard}
           onRestart={handleRestart}
           onShowLog={() => setLogVisible(true)}
+          onDeclareBankruptcy={handleDeclareBankruptcy}
         />
       </View>
     </SafeAreaView>

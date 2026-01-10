@@ -26,6 +26,7 @@ interface Props {
   onUseGOOJCard: () => void;
   onRestart: () => void;
   onShowLog: () => void;
+  onDeclareBankruptcy: () => void;
 }
 
 export const Board: React.FC<Props> = ({
@@ -48,6 +49,7 @@ export const Board: React.FC<Props> = ({
   onUseGOOJCard,
   onRestart,
   onShowLog,
+  onDeclareBankruptcy,
 }) => {
   const { width, height } = useWindowDimensions();
   const [showPropertyManager, setShowPropertyManager] = useState(false);
@@ -198,6 +200,13 @@ export const Board: React.FC<Props> = ({
                       </>
                     )}
                   </>
+                )}
+                {currentPlayer.money < 0 && (
+                  <Button
+                    title="Declare Bankruptcy"
+                    onPress={onDeclareBankruptcy}
+                    color="#444"
+                  />
                 )}
 
                 {phase === 'action' && (
