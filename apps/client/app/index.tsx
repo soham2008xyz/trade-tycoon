@@ -125,7 +125,12 @@ export default function GameScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <GameSetup visible={setupVisible} onStartGame={handleStartGame} />
-      <LogModal visible={logVisible} logs={state.logs} onClose={() => setLogVisible(false)} />
+      <LogModal
+        visible={logVisible}
+        logs={state.logs}
+        players={state.players}
+        onClose={() => setLogVisible(false)}
+      />
       {state.errorMessage && <Toast message={state.errorMessage} onDismiss={handleDismissError} />}
       {state.toastMessage && <Toast message={state.toastMessage} onDismiss={handleDismissToast} />}
       <View style={styles.boardArea}>
