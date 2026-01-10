@@ -4,6 +4,7 @@ import { createPlayer } from './game-setup';
 import { processCardEffect } from './cards';
 import { CHANCE_CARDS } from './chance-cards';
 import { COMMUNITY_CHEST_CARDS } from './community-chest-cards';
+import { ownsCompleteGroup, validateEvenBuild, validateEvenSell } from './helpers';
 
 export type Action =
   | { type: 'JOIN_GAME'; playerId: string; name: string }
@@ -15,7 +16,9 @@ export type Action =
   | { type: 'DISMISS_ERROR' }
   | { type: 'DISMISS_TOAST' }
   | { type: 'RESET_GAME'; players: { id: string; name: string; color: string }[] }
-  | { type: 'CONTINUE_TURN'; playerId: string };
+  | { type: 'CONTINUE_TURN'; playerId: string }
+  | { type: 'BUILD_HOUSE'; playerId: string; propertyId: string }
+  | { type: 'SELL_HOUSE'; playerId: string; propertyId: string };
 
 export const gameReducer = (state: GameState, action: Action): GameState => {
   switch (action.type) {
@@ -296,7 +299,29 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         );
         if (ownerIndex !== -1) {
           const owner = newPlayers[ownerIndex];
-          const rent = targetTile.rent ? targetTile.rent[0] : 0; // Simplified MVP Rent
+          let rent = 0;
+
+          if (targetTile.group === 'railroad' || targetTile.group === 'utility') {
+             // MVP: Simplified rent for RR/Utility if no specific logic implemented yet
+             // Spec says "MVP uses base rent" for RR/Utility, but let's check if we can do better or stick to base.
+             // Board data for RR has array [25, 50, 100, 200].
+             // Board data for Utility has no rent array (calculated by dice).
+             // Since this task is about House/Hotel workflow which applies to Streets,
+             // I will focus on Street rent logic improvements.
+             rent = targetTile.rent ? targetTile.rent[0] : 0;
+          } else if (targetTile.type === 'street') {
+            const houseCount = owner.houses[targetTile.id] || 0;
+
+            if (houseCount === 0 && targetTile.group && ownsCompleteGroup(owner, targetTile.group)) {
+              // Double rent for unimproved complete set
+              rent = (targetTile.rent ? targetTile.rent[0] : 0) * 2;
+            } else {
+              // Rent based on houses
+              rent = targetTile.rent ? targetTile.rent[houseCount] : 0;
+            }
+          } else {
+            rent = targetTile.rent ? targetTile.rent[0] : 0;
+          }
 
           // Deduct from current player
           newPlayer.money -= rent;
@@ -357,6 +382,95 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         // Stay in action phase until End Turn
         errorMessage: undefined,
         toastMessage: `Purchased ${tile.name} for $${tile.price}.`,
+      };
+    }
+
+    case 'BUILD_HOUSE': {
+      if (state.currentPlayerId !== action.playerId) return state;
+      if (state.phase !== 'action') return { ...state, errorMessage: 'Can only build during action phase.' };
+      if (state.doublesCount > 0) return { ...state, errorMessage: 'Cannot build while you have a pending double roll.' };
+
+      const playerIndex = state.players.findIndex((p) => p.id === action.playerId);
+      const player = state.players[playerIndex];
+      const tile = BOARD.find((t) => t.id === action.propertyId);
+
+      if (!tile || !tile.houseCost || !tile.group) return { ...state, errorMessage: 'Cannot build on this property.' };
+
+      // Ownership
+      if (!player.properties.includes(action.propertyId)) return { ...state, errorMessage: 'You do not own this property.' };
+
+      // Complete Group
+      if (!ownsCompleteGroup(player, tile.group)) return { ...state, errorMessage: 'You must own the complete color group to build.' };
+
+      // Max Houses
+      const currentHouses = player.houses[action.propertyId] || 0;
+      if (currentHouses >= 5) return { ...state, errorMessage: 'Max buildings reached.' };
+
+      // Funds
+      if (player.money < tile.houseCost) return { ...state, errorMessage: 'Insufficient funds.' };
+
+      // Even Build Rule
+      if (!validateEvenBuild(player, action.propertyId)) return { ...state, errorMessage: 'You must build evenly across the color group.' };
+
+      // Execute
+      const newHouses = { ...player.houses, [action.propertyId]: currentHouses + 1 };
+      const newPlayer = {
+        ...player,
+        money: player.money - tile.houseCost,
+        houses: newHouses,
+      };
+
+      const newPlayers = [...state.players];
+      newPlayers[playerIndex] = newPlayer;
+
+      return {
+        ...state,
+        players: newPlayers,
+        toastMessage: `Built a ${currentHouses === 4 ? 'Hotel' : 'House'} on ${tile.name}.`,
+        errorMessage: undefined,
+      };
+    }
+
+    case 'SELL_HOUSE': {
+      if (state.currentPlayerId !== action.playerId) return state;
+      if (state.phase !== 'action') return { ...state, errorMessage: 'Can only sell during action phase.' };
+      // Standard rules allow selling at any time, but user said "build" during turn.
+      // Assuming sell is also restricted to turn for simplicity, or at least action phase.
+
+      const playerIndex = state.players.findIndex((p) => p.id === action.playerId);
+      const player = state.players[playerIndex];
+      const tile = BOARD.find((t) => t.id === action.propertyId);
+
+      if (!tile || !tile.houseCost || !tile.group) return { ...state, errorMessage: 'Cannot sell from this property.' };
+
+      // Ownership
+      if (!player.properties.includes(action.propertyId)) return { ...state, errorMessage: 'You do not own this property.' };
+
+      // Has Houses
+      const currentHouses = player.houses[action.propertyId] || 0;
+      if (currentHouses <= 0) return { ...state, errorMessage: 'No buildings to sell.' };
+
+      // Even Sell Rule
+      if (!validateEvenSell(player, action.propertyId)) return { ...state, errorMessage: 'You must sell evenly across the color group.' };
+
+      // Execute
+      const newHouses = { ...player.houses, [action.propertyId]: currentHouses - 1 };
+      const refund = tile.houseCost / 2;
+
+      const newPlayer = {
+        ...player,
+        money: player.money + refund,
+        houses: newHouses,
+      };
+
+      const newPlayers = [...state.players];
+      newPlayers[playerIndex] = newPlayer;
+
+      return {
+        ...state,
+        players: newPlayers,
+        toastMessage: `Sold a ${currentHouses === 5 ? 'Hotel' : 'House'} on ${tile.name} for $${refund}.`,
+        errorMessage: undefined,
       };
     }
 

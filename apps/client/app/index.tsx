@@ -1,5 +1,5 @@
 import React, { useReducer, useState } from 'react';
-import { View, StyleSheet, SafeAreaView, Text, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, SafeAreaView, Text } from 'react-native';
 import { Board } from '../components/Board';
 import { Toast } from '../components/ui/toast';
 import { GameSetup } from '../components/GameSetup';
@@ -8,8 +8,6 @@ import { createInitialState, gameReducer, BOARD, isTileBuyable } from '@trade-ty
 export default function GameScreen() {
   const [state, dispatch] = useReducer(gameReducer, createInitialState());
   const [setupVisible, setSetupVisible] = useState(true);
-  const { width } = useWindowDimensions();
-  const isLandscape = width > 600;
 
   const handleStartGame = (players: { name: string; color: string }[]) => {
     const playersWithIds = players.map((p, index) => ({
@@ -51,6 +49,26 @@ export default function GameScreen() {
     }
   };
 
+  const handleBuild = (propertyId: string) => {
+    if (state.currentPlayerId) {
+      dispatch({
+        type: 'BUILD_HOUSE',
+        playerId: state.currentPlayerId,
+        propertyId,
+      });
+    }
+  };
+
+  const handleSell = (propertyId: string) => {
+    if (state.currentPlayerId) {
+      dispatch({
+        type: 'SELL_HOUSE',
+        playerId: state.currentPlayerId,
+        propertyId,
+      });
+    }
+  };
+
   const handleDismissError = () => {
     dispatch({ type: 'DISMISS_ERROR' });
   };
@@ -88,6 +106,8 @@ export default function GameScreen() {
           onBuy={handleBuy}
           onEndTurn={handleEndTurn}
           onRollAgain={handleRollAgain}
+          onBuild={handleBuild}
+          onSell={handleSell}
         />
       </View>
     </SafeAreaView>
