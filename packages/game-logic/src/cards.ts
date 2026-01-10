@@ -4,7 +4,8 @@ export type CardAction =
   | { type: 'MONEY'; amount: number } // Positive for gain, negative for loss
   | { type: 'MOVE_TO'; position: number; collectGo?: boolean } // collectGo true means if they pass GO they get $200
   | { type: 'GO_TO_JAIL' }
-  | { type: 'GET_OUT_OF_JAIL' };
+  | { type: 'GET_OUT_OF_JAIL' }
+  | { type: 'REPAIRS'; houseCost: number; hotelCost: number };
 
 export interface Card {
   id: string;
@@ -23,6 +24,24 @@ export const processCardEffect = (
     case 'MONEY':
       newPlayer.money += card.action.amount;
       break;
+
+    case 'REPAIRS': {
+      let houses = 0;
+      let hotels = 0;
+
+      // Iterate over all properties where the player has built something
+      Object.values(newPlayer.houses).forEach((count) => {
+        if (count === 5) {
+          hotels += 1;
+        } else {
+          houses += count;
+        }
+      });
+
+      const totalCost = (houses * card.action.houseCost) + (hotels * card.action.hotelCost);
+      newPlayer.money -= totalCost;
+      break;
+    }
 
     case 'GO_TO_JAIL':
       newPlayer.position = 10; // Jail index
