@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { gameReducer } from './reducer';
 import { createInitialState, createPlayer } from './index';
 import { GameState } from './types';
+import { BOARD } from './board-data';
 
 describe('Game Reducer', () => {
   let initialState: GameState;
@@ -10,6 +11,12 @@ describe('Game Reducer', () => {
     initialState = createInitialState();
   });
 
+  // ... (Existing tests) ...
+  // Since I cannot "append" effectively with overwrite_file, and replace_with_git_merge_diff is fickle,
+  // I will rewrite the file but keep existing tests and add new ones at the end.
+  // Actually, I should just paste the WHOLE file content including my new tests.
+
+  // Existing tests start
   it('should return initial state', () => {
     expect(initialState.players).toHaveLength(0);
     expect(initialState.phase).toBe('roll');
@@ -282,7 +289,209 @@ describe('Game Reducer', () => {
 
       expect(newState.players[0].money).toBe(1500);
     });
+
+    // NEW RENT TESTS
+    it('should pay double rent if owner owns all properties of color group (unimproved)', () => {
+      // p2 owns Mediterranean and Baltic (Brown Group)
+      rentState.players[1].properties = ['mediterranean', 'baltic'];
+
+      // p1 lands on Mediterranean (Rent 2 normally, 4 with full set)
+      const newState = gameReducer(rentState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 0, // Hack to move 1 space
+      });
+
+      expect(newState.players[0].money).toBe(1496); // 1500 - 4
+    });
+
+    it('should pay rent based on house count', () => {
+      // p2 owns Mediterranean with 1 house
+      rentState.players[1].properties = ['mediterranean'];
+      rentState.players[1].houses['mediterranean'] = 1;
+
+      // Rent with 1 house is 10
+      const newState = gameReducer(rentState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 0,
+      });
+
+      expect(newState.players[0].money).toBe(1490); // 1500 - 10
+    });
+
+    it('should pay rent based on hotel (5 houses)', () => {
+      // p2 owns Mediterranean with 5 houses (Hotel)
+      rentState.players[1].properties = ['mediterranean'];
+      rentState.players[1].houses['mediterranean'] = 5;
+
+      // Rent with hotel is 250
+      const newState = gameReducer(rentState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 0,
+      });
+
+      expect(newState.players[0].money).toBe(1250); // 1500 - 250
+    });
   });
+
+  // NEW BUILDING TESTS
+  describe('BUILD_HOUSE', () => {
+    let buildState: GameState;
+
+    beforeEach(() => {
+        buildState = createInitialState();
+        const p1 = createPlayer('p1', 'Player 1');
+        p1.properties = ['mediterranean', 'baltic']; // Owns brown group
+        p1.money = 1500;
+        buildState.players = [p1];
+        buildState.currentPlayerId = 'p1';
+        buildState.phase = 'action';
+    });
+
+    it('should allow building a house if criteria met', () => {
+        // Mediterranean house cost 50
+        const newState = gameReducer(buildState, {
+            type: 'BUILD_HOUSE',
+            playerId: 'p1',
+            propertyId: 'mediterranean',
+        });
+
+        expect(newState.players[0].houses['mediterranean']).toBe(1);
+        expect(newState.players[0].money).toBe(1450);
+        expect(newState.errorMessage).toBeUndefined();
+    });
+
+    it('should fail if not owner', () => {
+        buildState.players[0].properties = [];
+        const newState = gameReducer(buildState, {
+            type: 'BUILD_HOUSE',
+            playerId: 'p1',
+            propertyId: 'mediterranean',
+        });
+        expect(newState.players[0].houses['mediterranean']).toBeUndefined();
+        expect(newState.errorMessage).toMatch(/own/);
+    });
+
+    it('should fail if incomplete group', () => {
+        buildState.players[0].properties = ['mediterranean']; // Missing Baltic
+        const newState = gameReducer(buildState, {
+            type: 'BUILD_HOUSE',
+            playerId: 'p1',
+            propertyId: 'mediterranean',
+        });
+        expect(newState.players[0].houses['mediterranean']).toBeUndefined();
+        expect(newState.errorMessage).toMatch(/complete color group/);
+    });
+
+    it('should fail if insufficient funds', () => {
+        buildState.players[0].money = 10;
+        const newState = gameReducer(buildState, {
+            type: 'BUILD_HOUSE',
+            playerId: 'p1',
+            propertyId: 'mediterranean',
+        });
+        expect(newState.players[0].houses['mediterranean']).toBeUndefined();
+        expect(newState.errorMessage).toMatch(/funds/);
+    });
+
+    it('should fail if trying to build unevenly', () => {
+        // Build one on Med
+        buildState.players[0].houses['mediterranean'] = 1;
+        // Try to build another on Med without building on Baltic (Bal=0)
+        const newState = gameReducer(buildState, {
+            type: 'BUILD_HOUSE',
+            playerId: 'p1',
+            propertyId: 'mediterranean',
+        });
+        expect(newState.players[0].houses['mediterranean']).toBe(1);
+        expect(newState.errorMessage).toMatch(/evenly/);
+    });
+
+    it('should succeed building evenly', () => {
+        // Build one on Med
+        buildState.players[0].houses['mediterranean'] = 1;
+        // Now build on Baltic
+        const newState = gameReducer(buildState, {
+            type: 'BUILD_HOUSE',
+            playerId: 'p1',
+            propertyId: 'baltic',
+        });
+        expect(newState.players[0].houses['baltic']).toBe(1);
+        expect(newState.errorMessage).toBeUndefined();
+    });
+
+    it('should fail if doubles pending', () => {
+        buildState.doublesCount = 1;
+        const newState = gameReducer(buildState, {
+            type: 'BUILD_HOUSE',
+            playerId: 'p1',
+            propertyId: 'mediterranean',
+        });
+        expect(newState.errorMessage).toMatch(/pending double roll/);
+    });
+  });
+
+  describe('SELL_HOUSE', () => {
+    let sellState: GameState;
+
+    beforeEach(() => {
+        sellState = createInitialState();
+        const p1 = createPlayer('p1', 'Player 1');
+        p1.properties = ['mediterranean', 'baltic'];
+        p1.houses = { mediterranean: 1, baltic: 1 };
+        sellState.players = [p1];
+        sellState.currentPlayerId = 'p1';
+        sellState.phase = 'action';
+    });
+
+    it('should sell house for half price', () => {
+        const newState = gameReducer(sellState, {
+            type: 'SELL_HOUSE',
+            playerId: 'p1',
+            propertyId: 'mediterranean',
+        });
+
+        expect(newState.players[0].houses['mediterranean']).toBe(0);
+        expect(newState.players[0].money).toBe(1525); // 1500 + 25 (50/2)
+    });
+
+    it('should fail if no houses', () => {
+        sellState.players[0].houses['mediterranean'] = 0;
+        const newState = gameReducer(sellState, {
+            type: 'SELL_HOUSE',
+            playerId: 'p1',
+            propertyId: 'mediterranean',
+        });
+        expect(newState.errorMessage).toMatch(/No buildings/);
+    });
+
+    it('should fail if selling unevenly', () => {
+        // Med=1, Bal=2. Cannot sell Med because Bal > Med (Wait, Rule is: "You cannot sell a house from a property if any other property in that group has more houses.")
+        // So if Med=1, Bal=2. I want to sell Med. Bal has 2. 2 > 1. Fail.
+        // I must sell Bal first.
+        sellState.players[0].houses['baltic'] = 2;
+
+        const newState = gameReducer(sellState, {
+            type: 'SELL_HOUSE',
+            playerId: 'p1',
+            propertyId: 'mediterranean',
+        });
+
+        expect(newState.players[0].houses['mediterranean']).toBe(1);
+        expect(newState.errorMessage).toMatch(/evenly/);
+    });
+  });
+
+  // ... (Rest of existing tests like Chance, Jail, Tax, Gooj, Doubles, Chest) ...
+  // Actually, I'll assume the previous tests covered these and just close the describe block.
+  // Wait, I need to make sure I didn't delete the other tests by overwriting.
+  // Since I am writing the WHOLE file, I must include everything.
+  // I will just copy the rest of the original tests here.
 
   describe('Chance Logic', () => {
     let chanceState: GameState;
@@ -359,6 +568,7 @@ describe('Game Reducer', () => {
     });
   });
 
+  // Re-adding the rest of the original tests
   describe('Pass Go Logic', () => {
     let goState: GameState;
 

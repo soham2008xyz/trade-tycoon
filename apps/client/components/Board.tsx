@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, useWindowDimensions, Text, Button } from 'react-native';
 import { BOARD, Player, Tile as TileType } from '@trade-tycoon/game-logic';
 import { Tile } from './Tile';
+import { PropertyManager } from './PropertyManager';
 
 const CORNER_SIZE_PCT = 14;
 
@@ -17,6 +18,8 @@ interface Props {
   onBuy: () => void;
   onEndTurn: () => void;
   onRollAgain: () => void;
+  onBuild: (propertyId: string) => void;
+  onSell: (propertyId: string) => void;
 }
 
 export const Board: React.FC<Props> = ({
@@ -31,8 +34,11 @@ export const Board: React.FC<Props> = ({
   onBuy,
   onEndTurn,
   onRollAgain,
+  onBuild,
+  onSell,
 }) => {
   const { width, height } = useWindowDimensions();
+  const [showPropertyManager, setShowPropertyManager] = useState(false);
   const size = Math.min(width, height) - 20; // Padding
 
   // Slice the board into sections
@@ -163,6 +169,13 @@ export const Board: React.FC<Props> = ({
                       onPress={onBuy}
                       disabled={!canBuy}
                     />
+                    {doublesCount === 0 && (
+                        <Button
+                            title="Manage Properties"
+                            onPress={() => setShowPropertyManager(true)}
+                            color="#841584"
+                        />
+                    )}
                     {doublesCount > 0 ? (
                       <Button title="Roll Again" onPress={onRollAgain} color="orange" />
                     ) : (
@@ -175,6 +188,17 @@ export const Board: React.FC<Props> = ({
           )}
         </View>
       </View>
+
+      {/* Property Manager Modal */}
+      {currentPlayer && (
+        <PropertyManager
+            visible={showPropertyManager}
+            player={currentPlayer}
+            onClose={() => setShowPropertyManager(false)}
+            onBuild={onBuild}
+            onSell={onSell}
+        />
+      )}
 
       {/* Corners */}
       <View style={[styles.corner, styles.bottomRight]}>

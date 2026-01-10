@@ -26,6 +26,7 @@ const GROUP_COLORS: Record<string, string> = {
 export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], owner }) => {
   const isStreet = tile.type === 'street';
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
+  const houseCount = owner?.houses[tile.id] || 0;
 
   // Determine flex direction based on orientation
   let flexDirection: 'column' | 'row' | 'column-reverse' | 'row-reverse' = 'column';
@@ -41,6 +42,20 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], 
   // Override for corners (simplified)
   if (orientation === 'corner') flexDirection = 'column';
 
+  const renderHouses = () => {
+    if (houseCount === 0) return null;
+    if (houseCount === 5) {
+      return <View style={styles.hotel} />;
+    }
+    return (
+      <View style={styles.houseContainer}>
+        {Array.from({ length: houseCount }).map((_, i) => (
+          <View key={i} style={styles.house} />
+        ))}
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { flexDirection }, style]}>
       {isStreet && (
@@ -52,7 +67,10 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], 
               ? styles.colorBarVertical
               : styles.colorBarHorizontal,
           ]}
-        />
+        >
+          {/* Render Houses on Color Bar */}
+          <View style={styles.houseOverlay}>{renderHouses()}</View>
+        </View>
       )}
       <View style={styles.content}>
         {owner && <View style={[styles.ownerIndicator, { backgroundColor: owner.color }]} />}
@@ -106,6 +124,7 @@ const styles = StyleSheet.create({
     borderColor: 'white',
   },
   colorBar: {
+    position: 'relative',
     // Dimensions handled below
   },
   colorBarHorizontal: {
@@ -115,6 +134,29 @@ const styles = StyleSheet.create({
   colorBarVertical: {
     width: '25%',
     height: '100%',
+  },
+  houseOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  houseContainer: {
+    flexDirection: 'row',
+    gap: 1,
+  },
+  house: {
+    width: 6,
+    height: 6,
+    backgroundColor: '#0f0', // Green
+    borderWidth: 1,
+    borderColor: '#000',
+  },
+  hotel: {
+    width: 12,
+    height: 8,
+    backgroundColor: '#f00', // Red
+    borderWidth: 1,
+    borderColor: '#000',
   },
   content: {
     flex: 1,
