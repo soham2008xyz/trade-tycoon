@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, Button, ScrollView } from 'react-native';
-import { Player, BOARD, Tile } from '@trade-tycoon/game-logic';
+import { Player, BOARD, Tile, ownsCompleteGroup, getPropertiesInGroup, PropertyGroup } from '@trade-tycoon/game-logic';
 
 interface Props {
   visible: boolean;
@@ -21,6 +21,19 @@ const GROUP_COLORS: Record<string, string> = {
   dark_blue: '#00008B',
   railroad: '#000000',
   utility: '#D3D3D3',
+};
+
+const GROUP_DISPLAY_NAMES: Record<string, string> = {
+  brown: 'Brown',
+  light_blue: 'Light Blue',
+  pink: 'Pink',
+  orange: 'Orange',
+  red: 'Red',
+  yellow: 'Yellow',
+  green: 'Green',
+  dark_blue: 'Dark Blue',
+  railroad: 'Railroads',
+  utility: 'Utilities',
 };
 
 export const PropertyManager: React.FC<Props> = ({ visible, player, onClose, onBuild, onSell }) => {
@@ -54,41 +67,51 @@ export const PropertyManager: React.FC<Props> = ({ visible, player, onClose, onB
             {sortedGroups.length === 0 ? (
                 <Text style={styles.emptyText}>You don&apos;t own any buildable properties.</Text>
             ) : (
-                sortedGroups.map((group) => (
-                <View key={group} style={styles.groupContainer}>
-                    <View style={[styles.groupHeader, { backgroundColor: GROUP_COLORS[group] || '#ccc' }]}>
-                        <Text style={styles.groupTitle}>{group.toUpperCase()}</Text>
+                sortedGroups.map((group) => {
+                  const ownedCount = properties[group].length;
+                  // For streets, total count is usually accurate via getPropertiesInGroup.
+                  // Since we filtered by street, and we are iterating groups from that filtered list,
+                  // we are dealing with street groups.
+                  const totalCount = getPropertiesInGroup(group as PropertyGroup).length;
+                  const hasCompleteGroup = ownsCompleteGroup(player, group as PropertyGroup);
+                  const displayName = GROUP_DISPLAY_NAMES[group] || group.toUpperCase();
+
+                  return (
+                    <View key={group} style={styles.groupContainer}>
+                        <View style={[styles.groupHeader, { backgroundColor: GROUP_COLORS[group] || '#ccc' }]}>
+                            <Text style={styles.groupTitle}>{displayName} ({ownedCount}/{totalCount} properties owned)</Text>
+                        </View>
+                        {properties[group].map((tile) => {
+                            const houses = player.houses[tile.id] || 0;
+                            const houseCost = tile.houseCost || 0;
+                            return (
+                                <View key={tile.id} style={styles.propertyRow}>
+                                    <View style={styles.propertyInfo}>
+                                        <Text style={styles.propertyName}>{tile.name}</Text>
+                                        <Text style={styles.houseCount}>
+                                            {houses === 5 ? 'Hotel' : `${houses} House${houses !== 1 ? 's' : ''}`}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.buttons}>
+                                        <Button
+                                            title={`Build ($${houseCost})`}
+                                            onPress={() => onBuild(tile.id)}
+                                            disabled={player.money < houseCost || houses >= 5 || !hasCompleteGroup}
+                                        />
+                                        <View style={{ width: 8 }} />
+                                        <Button
+                                            title={`Sell ($${houseCost/2})`}
+                                            onPress={() => onSell(tile.id)}
+                                            color="red"
+                                            disabled={houses <= 0}
+                                        />
+                                    </View>
+                                </View>
+                            );
+                        })}
                     </View>
-                    {properties[group].map((tile) => {
-                        const houses = player.houses[tile.id] || 0;
-                        const houseCost = tile.houseCost || 0;
-                        return (
-                            <View key={tile.id} style={styles.propertyRow}>
-                                <View style={styles.propertyInfo}>
-                                    <Text style={styles.propertyName}>{tile.name}</Text>
-                                    <Text style={styles.houseCount}>
-                                        {houses === 5 ? 'Hotel' : `${houses} House${houses !== 1 ? 's' : ''}`}
-                                    </Text>
-                                </View>
-                                <View style={styles.buttons}>
-                                    <Button
-                                        title={`Build ($${houseCost})`}
-                                        onPress={() => onBuild(tile.id)}
-                                        disabled={player.money < houseCost || houses >= 5}
-                                    />
-                                    <View style={{ width: 8 }} />
-                                    <Button
-                                        title={`Sell ($${houseCost/2})`}
-                                        onPress={() => onSell(tile.id)}
-                                        color="red"
-                                        disabled={houses <= 0}
-                                    />
-                                </View>
-                            </View>
-                        );
-                    })}
-                </View>
-                ))
+                );
+              })
             )}
           </ScrollView>
 
