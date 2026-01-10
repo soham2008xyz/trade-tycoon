@@ -3,11 +3,13 @@ import { View, StyleSheet, SafeAreaView, Text } from 'react-native';
 import { Board } from '../components/Board';
 import { Toast } from '../components/ui/toast';
 import { GameSetup } from '../components/GameSetup';
+import { LogModal } from '../components/LogModal';
 import { createInitialState, gameReducer, BOARD, isTileBuyable } from '@trade-tycoon/game-logic';
 
 export default function GameScreen() {
   const [state, dispatch] = useReducer(gameReducer, createInitialState());
   const [setupVisible, setSetupVisible] = useState(true);
+  const [logVisible, setLogVisible] = useState(false);
 
   const handleStartGame = (players: { name: string; color: string }[]) => {
     const playersWithIds = players.map((p, index) => ({
@@ -89,6 +91,10 @@ export default function GameScreen() {
     dispatch({ type: 'DISMISS_TOAST' });
   };
 
+  const handleRestart = () => {
+    setSetupVisible(true);
+  };
+
   if (!setupVisible && !currentPlayer) return <Text>Loading...</Text>;
 
   // Check buy availability
@@ -103,6 +109,7 @@ export default function GameScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <GameSetup visible={setupVisible} onStartGame={handleStartGame} />
+      <LogModal visible={logVisible} logs={state.logs} onClose={() => setLogVisible(false)} />
       {state.errorMessage && <Toast message={state.errorMessage} onDismiss={handleDismissError} />}
       {state.toastMessage && <Toast message={state.toastMessage} onDismiss={handleDismissToast} />}
       <View style={styles.boardArea}>
@@ -122,6 +129,8 @@ export default function GameScreen() {
           onSell={handleSell}
           onPayFine={handlePayFine}
           onUseGOOJCard={handleUseGOOJCard}
+          onRestart={handleRestart}
+          onShowLog={() => setLogVisible(true)}
         />
       </View>
     </SafeAreaView>

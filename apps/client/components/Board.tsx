@@ -22,6 +22,8 @@ interface Props {
   onSell: (propertyId: string) => void;
   onPayFine: () => void;
   onUseGOOJCard: () => void;
+  onRestart: () => void;
+  onShowLog: () => void;
 }
 
 export const Board: React.FC<Props> = ({
@@ -40,6 +42,8 @@ export const Board: React.FC<Props> = ({
   onSell,
   onPayFine,
   onUseGOOJCard,
+  onRestart,
+  onShowLog,
 }) => {
   const { width, height } = useWindowDimensions();
   const [showPropertyManager, setShowPropertyManager] = useState(false);
@@ -118,6 +122,11 @@ export const Board: React.FC<Props> = ({
     <View style={[styles.boardContainer, { width: size, height: size }]}>
       {/* Center Logo Area */}
       <View style={styles.center}>
+        <View style={styles.topButtons}>
+          <Button title="Restart Game" onPress={onRestart} color="#666" />
+          <Button title="Show Log" onPress={onShowLog} color="#666" />
+        </View>
+
         <View style={styles.statusPanel}>
           {currentPlayer && (
             <>
@@ -195,11 +204,11 @@ export const Board: React.FC<Props> = ({
                       disabled={!canBuy}
                     />
                     {doublesCount === 0 && (
-                        <Button
-                            title="Manage Properties"
-                            onPress={() => setShowPropertyManager(true)}
-                            color="#841584"
-                        />
+                      <Button
+                        title="Manage Properties"
+                        onPress={() => setShowPropertyManager(true)}
+                        color="#841584"
+                      />
                     )}
                     {doublesCount > 0 ? (
                       <Button title="Roll Again" onPress={onRollAgain} color="orange" />
@@ -217,11 +226,11 @@ export const Board: React.FC<Props> = ({
       {/* Property Manager Modal */}
       {currentPlayer && (
         <PropertyManager
-            visible={showPropertyManager}
-            player={currentPlayer}
-            onClose={() => setShowPropertyManager(false)}
-            onBuild={onBuild}
-            onSell={onSell}
+          visible={showPropertyManager}
+          player={currentPlayer}
+          onClose={() => setShowPropertyManager(false)}
+          onBuild={onBuild}
+          onSell={onSell}
         />
       )}
 
@@ -306,6 +315,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  topButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+    zIndex: 20,
   },
   statusPanel: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
