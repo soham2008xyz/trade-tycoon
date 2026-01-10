@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "client",
-    "slug": "client",
+    "name": "Trade Tycoon",
+    "slug": "trade-tycoon",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "client",
+    "scheme": "trade-tycoon",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
