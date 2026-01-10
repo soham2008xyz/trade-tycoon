@@ -1,5 +1,5 @@
 import React, { useReducer, useState } from 'react';
-import { View, StyleSheet, SafeAreaView, Text } from 'react-native';
+import { View, StyleSheet, SafeAreaView, Text, Alert, Platform } from 'react-native';
 import { Board } from '../components/Board';
 import { Toast } from '../components/ui/toast';
 import { GameSetup } from '../components/GameSetup';
@@ -92,7 +92,23 @@ export default function GameScreen() {
   };
 
   const handleRestart = () => {
-    setSetupVisible(true);
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Are you sure you want to restart the game?');
+      if (confirmed) {
+        setSetupVisible(true);
+      }
+    } else {
+      Alert.alert('Restart Game', 'Are you sure you want to restart the game?', [
+        {
+          text: 'No',
+          style: 'cancel',
+        },
+        {
+          text: 'Yes',
+          onPress: () => setSetupVisible(true),
+        },
+      ]);
+    }
   };
 
   if (!setupVisible && !currentPlayer) return <Text>Loading...</Text>;
