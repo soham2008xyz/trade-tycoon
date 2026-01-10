@@ -20,6 +20,8 @@ interface Props {
   onRollAgain: () => void;
   onBuild: (propertyId: string) => void;
   onSell: (propertyId: string) => void;
+  onRestart: () => void;
+  onShowLog: () => void;
 }
 
 export const Board: React.FC<Props> = ({
@@ -36,6 +38,8 @@ export const Board: React.FC<Props> = ({
   onRollAgain,
   onBuild,
   onSell,
+  onRestart,
+  onShowLog,
 }) => {
   const { width, height } = useWindowDimensions();
   const [showPropertyManager, setShowPropertyManager] = useState(false);
@@ -114,6 +118,11 @@ export const Board: React.FC<Props> = ({
     <View style={[styles.boardContainer, { width: size, height: size }]}>
       {/* Center Logo Area */}
       <View style={styles.center}>
+        <View style={styles.topButtons}>
+           <Button title="Restart Game" onPress={onRestart} color="#666" />
+           <Button title="Show Log" onPress={onShowLog} color="#666" />
+        </View>
+
         <View style={styles.statusPanel}>
           {currentPlayer && (
             <>
@@ -281,6 +290,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  topButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+    zIndex: 20,
   },
   statusPanel: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',

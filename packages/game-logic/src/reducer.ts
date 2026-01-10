@@ -39,6 +39,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         winner: null,
         errorMessage: undefined,
         toastMessage: undefined,
+        logs: [],
       };
     }
 
@@ -93,12 +94,14 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       const newPlayers = [...state.players];
       newPlayers[playerIndex] = newPlayer;
 
+      const toastMessage = 'Used a "Get Out of Jail Free" card!';
       return {
         ...state,
         players: newPlayers,
         // Stay in roll phase to allow movement
         errorMessage: undefined,
-        toastMessage: 'Used a "Get Out of Jail Free" card!',
+        toastMessage,
+        logs: [...state.logs, toastMessage],
       };
     }
 
@@ -115,12 +118,14 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       const newPlayers = [...state.players];
       newPlayers[playerIndex] = newPlayer;
 
+      const toastMessage = 'Paid $50 fine to get out of jail.';
       return {
         ...state,
         players: newPlayers,
         // Stay in roll phase to allow movement
         errorMessage: undefined,
-        toastMessage: 'Paid $50 fine to get out of jail.',
+        toastMessage,
+        logs: [...state.logs, toastMessage],
       };
     }
 
@@ -143,6 +148,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       if (newDoublesCount >= 3) {
         const newPlayers = [...state.players];
         newPlayers[playerIndex] = { ...player, position: 10, isInJail: true, jailTurns: 0 };
+        const toastMessage = 'Speeding! 3 doubles in a row. Go directly to Jail.';
         return {
           ...state,
           dice: [die1, die2],
@@ -150,7 +156,8 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
           players: newPlayers,
           phase: 'action',
           errorMessage: undefined,
-          toastMessage: 'Speeding! 3 doubles in a row. Go directly to Jail.',
+          toastMessage,
+          logs: [...state.logs, toastMessage],
         };
       }
 
@@ -170,6 +177,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
             // Stay in Jail
             const newPlayers = [...state.players];
             newPlayers[playerIndex] = { ...player, jailTurns: turns };
+            const toastMessage = 'Still in Jail.';
             return {
               ...state,
               dice: [die1, die2],
@@ -177,7 +185,8 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
               doublesCount: 0,
               phase: 'action',
               errorMessage: undefined,
-              toastMessage: 'Still in Jail.',
+              toastMessage,
+              logs: [...state.logs, toastMessage],
             };
           }
         }
@@ -348,6 +357,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         phase: 'action', // Move to action phase
         errorMessage: undefined,
         toastMessage,
+        logs: toastMessage ? [...state.logs, toastMessage] : state.logs,
       };
     }
 
@@ -376,12 +386,14 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       const newPlayers = [...state.players];
       newPlayers[playerIndex] = newPlayer;
 
+      const toastMessage = `Purchased ${tile.name} for $${tile.price}.`;
       return {
         ...state,
         players: newPlayers,
         // Stay in action phase until End Turn
         errorMessage: undefined,
-        toastMessage: `Purchased ${tile.name} for $${tile.price}.`,
+        toastMessage,
+        logs: [...state.logs, toastMessage],
       };
     }
 
@@ -423,11 +435,13 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       const newPlayers = [...state.players];
       newPlayers[playerIndex] = newPlayer;
 
+      const toastMessage = `Built a ${currentHouses === 4 ? 'Hotel' : 'House'} on ${tile.name}.`;
       return {
         ...state,
         players: newPlayers,
-        toastMessage: `Built a ${currentHouses === 4 ? 'Hotel' : 'House'} on ${tile.name}.`,
+        toastMessage,
         errorMessage: undefined,
+        logs: [...state.logs, toastMessage],
       };
     }
 
@@ -466,11 +480,13 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       const newPlayers = [...state.players];
       newPlayers[playerIndex] = newPlayer;
 
+      const toastMessage = `Sold a ${currentHouses === 5 ? 'Hotel' : 'House'} on ${tile.name} for $${refund}.`;
       return {
         ...state,
         players: newPlayers,
-        toastMessage: `Sold a ${currentHouses === 5 ? 'Hotel' : 'House'} on ${tile.name} for $${refund}.`,
+        toastMessage,
         errorMessage: undefined,
+        logs: [...state.logs, toastMessage],
       };
     }
 

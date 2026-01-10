@@ -59,4 +59,5 @@ export interface GameState {
   winner: string | null;
   errorMessage?: string;
   toastMessage?: string;
+  logs: string[];
 }
