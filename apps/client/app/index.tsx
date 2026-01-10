@@ -69,6 +69,18 @@ export default function GameScreen() {
     }
   };
 
+  const handlePayFine = () => {
+    if (state.currentPlayerId) {
+      dispatch({ type: 'PAY_FINE', playerId: state.currentPlayerId });
+    }
+  };
+
+  const handleUseGOOJCard = () => {
+    if (state.currentPlayerId) {
+      dispatch({ type: 'USE_GOOJ_CARD', playerId: state.currentPlayerId });
+    }
+  };
+
   const handleDismissError = () => {
     dispatch({ type: 'DISMISS_ERROR' });
   };
@@ -108,6 +120,8 @@ export default function GameScreen() {
           onRollAgain={handleRollAgain}
           onBuild={handleBuild}
           onSell={handleSell}
+          onPayFine={handlePayFine}
+          onUseGOOJCard={handleUseGOOJCard}
         />
       </View>
     </SafeAreaView>
