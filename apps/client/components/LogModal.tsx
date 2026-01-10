@@ -1,13 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, ScrollView, Button, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Modal, ScrollView, Button } from 'react-native';
+import { Player } from '@trade-tycoon/game-logic';
 
 interface Props {
   visible: boolean;
   logs: string[];
+  players: Player[];
   onClose: () => void;
 }
 
-export const LogModal: React.FC<Props> = ({ visible, logs, onClose }) => {
+export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose }) => {
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
       <View style={styles.modalContainer}>
@@ -18,11 +20,24 @@ export const LogModal: React.FC<Props> = ({ visible, logs, onClose }) => {
             {logs.length === 0 ? (
               <Text style={styles.emptyText}>No logs yet.</Text>
             ) : (
-              logs.map((log, index) => (
-                <View key={index} style={styles.logItem}>
-                  <Text style={styles.logText}>{log}</Text>
-                </View>
-              ))
+              logs.map((log, index) => {
+                const match = log.match(/^\[(.*?)\]/);
+                let color = 'transparent';
+                if (match) {
+                  const name = match[1];
+                  const player = players.find((p) => p.name === name);
+                  if (player) color = player.color;
+                }
+
+                return (
+                  <View key={index} style={styles.logItem}>
+                     {color !== 'transparent' && (
+                        <View style={[styles.playerColorIndicator, { backgroundColor: color }]} />
+                      )}
+                    <Text style={styles.logText}>{log}</Text>
+                  </View>
+                );
+              })
             )}
           </ScrollView>
 
@@ -64,9 +79,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  playerColorIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 2,
+    marginRight: 8,
   },
   logText: {
     fontSize: 16,
+    flexShrink: 1, // Allow text to wrap if it's too long
   },
   emptyText: {
     textAlign: 'center',
