@@ -101,7 +101,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         // Stay in roll phase to allow movement
         errorMessage: undefined,
         toastMessage,
-        logs: [...state.logs, toastMessage],
+        logs: [...state.logs, `[${player.name}] ${toastMessage}`],
       };
     }
 
@@ -125,7 +125,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         // Stay in roll phase to allow movement
         errorMessage: undefined,
         toastMessage,
-        logs: [...state.logs, toastMessage],
+        logs: [...state.logs, `[${player.name}] ${toastMessage}`],
       };
     }
 
@@ -157,7 +157,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
           phase: 'action',
           errorMessage: undefined,
           toastMessage,
-          logs: [...state.logs, toastMessage],
+          logs: [...state.logs, `[${player.name}] ${toastMessage}`],
         };
       }
 
@@ -186,7 +186,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
               phase: 'action',
               errorMessage: undefined,
               toastMessage,
-              logs: [...state.logs, toastMessage],
+              logs: [...state.logs, `[${player.name}] ${toastMessage}`],
             };
           }
         }
@@ -357,7 +357,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         phase: 'action', // Move to action phase
         errorMessage: undefined,
         toastMessage,
-        logs: toastMessage ? [...state.logs, toastMessage] : state.logs,
+        logs: toastMessage ? [...state.logs, `[${player.name}] ${toastMessage}`] : state.logs,
       };
     }
 
@@ -393,7 +393,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         // Stay in action phase until End Turn
         errorMessage: undefined,
         toastMessage,
-        logs: [...state.logs, toastMessage],
+        logs: [...state.logs, `[${player.name}] ${toastMessage}`],
       };
     }
 
@@ -441,7 +441,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         players: newPlayers,
         toastMessage,
         errorMessage: undefined,
-        logs: [...state.logs, toastMessage],
+        logs: [...state.logs, `[${player.name}] ${toastMessage}`],
       };
     }
 
@@ -486,7 +486,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         players: newPlayers,
         toastMessage,
         errorMessage: undefined,
-        logs: [...state.logs, toastMessage],
+        logs: [...state.logs, `[${player.name}] ${toastMessage}`],
       };
     }
 

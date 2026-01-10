@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "vercel-build": "expo export --platform web -c"
+    "vercel-build": "expo export --platform web -c && node ./scripts/generate-pwa-assets.js && node ./scripts/generate-sw.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -43,7 +43,9 @@
     "@types/react": "19.2.3",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
-    "typescript": "~5.9.2"
+    "sharp": "^0.34.5",
+    "typescript": "~5.9.2",
+    "workbox-build": "^7.4.0"
   },
   "private": true
 }

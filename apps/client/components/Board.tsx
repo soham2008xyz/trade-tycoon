@@ -20,6 +20,8 @@ interface Props {
   onRollAgain: () => void;
   onBuild: (propertyId: string) => void;
   onSell: (propertyId: string) => void;
+  onPayFine: () => void;
+  onUseGOOJCard: () => void;
   onRestart: () => void;
   onShowLog: () => void;
 }
@@ -38,6 +40,8 @@ export const Board: React.FC<Props> = ({
   onRollAgain,
   onBuild,
   onSell,
+  onPayFine,
+  onUseGOOJCard,
   onRestart,
   onShowLog,
 }) => {
@@ -169,7 +173,28 @@ export const Board: React.FC<Props> = ({
               </View>
 
               <View style={styles.actions}>
-                {phase === 'roll' && <Button title="Roll Dice" onPress={onRoll} />}
+                {phase === 'roll' && (
+                  <>
+                    <Button title="Roll Dice" onPress={onRoll} />
+                    {currentPlayer.isInJail && (
+                      <>
+                        <Button
+                          title="Pay Fine ($50)"
+                          onPress={onPayFine}
+                          disabled={currentPlayer.money < 50}
+                          color="#d9534f"
+                        />
+                        {currentPlayer.getOutOfJailCards > 0 && (
+                          <Button
+                            title={`Use Card (${currentPlayer.getOutOfJailCards})`}
+                            onPress={onUseGOOJCard}
+                            color="#5bc0de"
+                          />
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
 
                 {phase === 'action' && (
                   <>
