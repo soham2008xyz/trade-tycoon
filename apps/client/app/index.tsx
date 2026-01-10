@@ -25,9 +25,7 @@ export default function GameScreen() {
 
   const handleRoll = () => {
     if (state.currentPlayerId) {
-      const die1 = Math.floor(Math.random() * 6) + 1;
-      const die2 = Math.floor(Math.random() * 6) + 1;
-      dispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId, die1, die2 });
+      dispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId });
     }
   };
 
