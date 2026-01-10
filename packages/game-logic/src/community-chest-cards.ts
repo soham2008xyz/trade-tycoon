@@ -42,8 +42,8 @@ export const COMMUNITY_CHEST_CARDS: CommunityChestCard[] = [
   {
     id: 'cc15',
     text: 'You are assessed for street repairs. Pay $40 per house and $115 per hotel',
-    action: { type: 'MONEY', amount: -40 },
-  }, // Simplified to fixed amount for MVP
+    action: { type: 'REPAIRS', houseCost: 40, hotelCost: 115 },
+  },
   {
     id: 'cc16',
     text: 'You have won second prize in a beauty contest. Collect $10',
