@@ -205,6 +205,19 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         const { player: updatedPlayer, sentToJail } = processCardEffect(newPlayer, card);
         newPlayer = updatedPlayer;
 
+        if (card.action.type === 'COLLECT_FROM_ALL') {
+          const amount = card.action.amount;
+          let totalCollected = 0;
+          newPlayers.forEach((p, i) => {
+            if (p.id !== newPlayer.id) {
+              const newMoney = p.money - amount;
+              newPlayers[i] = { ...p, money: newMoney };
+              totalCollected += amount;
+            }
+          });
+          newPlayer.money += totalCollected;
+        }
+
         const effectMsg = `Chance: ${card.text}`;
         toastMessage = toastMessage ? `${toastMessage} ${effectMsg}` : effectMsg;
 
@@ -226,6 +239,19 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
         const { player: updatedPlayer, sentToJail } = processCardEffect(newPlayer, card);
         newPlayer = updatedPlayer;
+
+        if (card.action.type === 'COLLECT_FROM_ALL') {
+          const amount = card.action.amount;
+          let totalCollected = 0;
+          newPlayers.forEach((p, i) => {
+            if (p.id !== newPlayer.id) {
+              const newMoney = p.money - amount;
+              newPlayers[i] = { ...p, money: newMoney };
+              totalCollected += amount;
+            }
+          });
+          newPlayer.money += totalCollected;
+        }
 
         const effectMsg = `Community Chest: ${card.text}`;
         toastMessage = toastMessage ? `${toastMessage} ${effectMsg}` : effectMsg;
