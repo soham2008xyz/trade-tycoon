@@ -310,14 +310,27 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
           const owner = newPlayers[ownerIndex];
           let rent = 0;
 
-          if (targetTile.group === 'railroad' || targetTile.group === 'utility') {
-             // MVP: Simplified rent for RR/Utility if no specific logic implemented yet
-             // Spec says "MVP uses base rent" for RR/Utility, but let's check if we can do better or stick to base.
-             // Board data for RR has array [25, 50, 100, 200].
-             // Board data for Utility has no rent array (calculated by dice).
-             // Since this task is about House/Hotel workflow which applies to Streets,
-             // I will focus on Street rent logic improvements.
-             rent = targetTile.rent ? targetTile.rent[0] : 0;
+          if (targetTile.group === 'railroad') {
+            // Check board for railroads, but since BOARD is imported, we could use it.
+            // However, to be cleaner, we can use state.board if it was dynamic, but standard monopoly board is static.
+            // The reducer context provides state, but board data is usually static constant.
+            // Using BOARD constant is fine as it is imported.
+            // But let's check if state.board is available and use it if so to be more robust.
+            const boardToUse = state.board && state.board.length > 0 ? state.board : BOARD;
+
+            const ownedRailroads = boardToUse.filter(
+              (t) => t.group === 'railroad' && owner.properties.includes(t.id)
+            ).length;
+            // Rent is 25, 50, 100, 200 based on count (index 0-3)
+            const rentIndex = Math.max(0, ownedRailroads - 1);
+            rent = targetTile.rent ? targetTile.rent[rentIndex] : 25;
+          } else if (targetTile.group === 'utility') {
+            const boardToUse = state.board && state.board.length > 0 ? state.board : BOARD;
+            const ownedUtilities = boardToUse.filter(
+              (t) => t.group === 'utility' && owner.properties.includes(t.id)
+            ).length;
+            const multiplier = ownedUtilities === 2 ? 10 : 4;
+            rent = (die1 + die2) * multiplier;
           } else if (targetTile.type === 'street') {
             const houseCount = owner.houses[targetTile.id] || 0;
 
@@ -330,6 +343,11 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
             }
           } else {
             rent = targetTile.rent ? targetTile.rent[0] : 0;
+          }
+
+          // If property is mortgaged, rent is 0
+          if (owner.mortgaged.includes(targetTile.id)) {
+            rent = 0;
           }
 
           // Deduct from current player
