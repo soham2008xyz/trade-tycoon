@@ -7,7 +7,7 @@ import { COMMUNITY_CHEST_CARDS } from './community-chest-cards';
 
 export type Action =
   | { type: 'JOIN_GAME'; playerId: string; name: string }
-  | { type: 'ROLL_DICE'; playerId: string; die1: number; die2: number }
+  | { type: 'ROLL_DICE'; playerId: string; die1?: number; die2?: number }
   | { type: 'END_TURN'; playerId: string }
   | { type: 'BUY_PROPERTY'; playerId: string; propertyId: string }
   | { type: 'PAY_FINE'; playerId: string }
@@ -125,7 +125,9 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       if (state.currentPlayerId !== action.playerId) return state;
       if (state.phase !== 'roll') return state;
 
-      const { die1, die2 } = action;
+      const die1 = action.die1 ?? Math.floor(Math.random() * 6) + 1;
+      const die2 = action.die2 ?? Math.floor(Math.random() * 6) + 1;
+
       const isDouble = die1 === die2;
       let newDoublesCount = isDouble ? state.doublesCount + 1 : 0;
       let toastMessage: string | undefined;

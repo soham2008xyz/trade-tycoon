@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     bottom: `${CORNER_SIZE_PCT}%`,
     left: 0,
     width: `${CORNER_SIZE_PCT}%`,
-    flexDirection: 'column-reverse', // 11 is at bottom, 19 at top
+    flexDirection: 'column', // 11 is at bottom, 19 at top
   },
   colRight: {
     position: 'absolute',
