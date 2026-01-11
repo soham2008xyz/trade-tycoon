@@ -6,8 +6,9 @@
     "packages/*"
   ],
   "scripts": {
-    "start": "npm run start --workspace=apps/client",
+    "start": "npm run build && npm run start --workspace=apps/client",
     "server": "npm run dev --workspace=apps/server",
+    "web": "npm run web --workspace=apps/client",
     "build:game-logic": "npm run build --workspace=packages/game-logic",
     "build": "npm run build --workspaces --if-present",
     "vercel-build": "npm run vercel-build --workspace=apps/client",
@@ -21,7 +22,8 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "markdownlint-cli": "^0.47.0",
-    "prettier": "^3.7.4"
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.2"
   },
   "lint-staged": {
     "**/*.{js,jsx,ts,tsx,json,css,scss,md}": "prettier --write"
