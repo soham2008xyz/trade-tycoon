@@ -70,7 +70,7 @@ export const TradeModal: React.FC<Props> = ({
     return (
       <Modal visible={visible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, boardSize ? { width: boardSize } : undefined]}>
+          <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
             {' '}
             <Text style={styles.title}>Trade Proposal</Text>
             <Text style={styles.headerSubtitle}>
@@ -192,7 +192,7 @@ export const TradeModal: React.FC<Props> = ({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, boardSize ? { width: boardSize } : undefined]}>
+        <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
           {' '}
           <View style={styles.headerRow}>
             <Text style={styles.title}>Propose Trade to {target.name}</Text>
