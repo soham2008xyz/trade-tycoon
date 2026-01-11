@@ -254,9 +254,9 @@ export const TradeModal: React.FC<Props> = ({
         <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
           <View style={styles.headerRow}>
             <View style={styles.nameRow}>
-              <Text style={[styles.title, { flex: 0, marginRight: 8 }]}>Propose Trade to</Text>
+              <Text style={styles.title}>Propose Trade to</Text>
               <View style={[styles.playerColor, { backgroundColor: target.color }]} />
-              <Text style={[styles.title, { flex: 0 }]}>{target.name}</Text>
+              <Text style={styles.title}>{target.name}</Text>
             </View>
             <View style={styles.closeButtonContainer}>
               <CloseButton onPress={onClose} />
@@ -330,7 +330,7 @@ export const TradeModal: React.FC<Props> = ({
                         <View
                           style={[
                             styles.propertyColor,
-                            { backgroundColor: GROUP_COLORS[tile.group], marginLeft: 4 },
+                            { backgroundColor: GROUP_COLORS[tile.group] },
                           ]}
                         />
                       )}
@@ -409,7 +409,7 @@ export const TradeModal: React.FC<Props> = ({
                         <View
                           style={[
                             styles.propertyColor,
-                            { backgroundColor: GROUP_COLORS[tile.group], marginLeft: 4 },
+                            { backgroundColor: GROUP_COLORS[tile.group] },
                           ]}
                         />
                       )}
@@ -476,7 +476,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
-    flex: 1,
   },
   headerSubtitle: {
     fontSize: 16,
@@ -561,18 +560,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   playerColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 6,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginHorizontal: 8,
     borderWidth: 1,
     borderColor: '#ccc',
   },
   propertyColor: {
-    width: 12,
-    height: 12,
-    marginRight: 6,
-    borderRadius: 2,
+    width: 16,
+    height: 16,
+    marginHorizontal: 8,
+    borderRadius: 3,
     borderWidth: 1,
     borderColor: '#999',
   },
@@ -580,5 +579,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    flexWrap: 'wrap',
   },
 });
