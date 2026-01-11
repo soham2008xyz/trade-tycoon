@@ -24,16 +24,6 @@ const GROUP_COLORS: Record<string, string> = {
 };
 
 // Descriptions for special tiles
-const SPECIAL_TILE_DESCRIPTIONS: Partial<Record<TileType, string>> = {
-  go: "Collect $200 when you pass.",
-  community_chest: "Draw a Community Chest card.",
-  chance: "Draw a Chance card.",
-  tax: "Pay the tax amount shown.",
-  jail: "If you land here, you are just visiting. If sent here, you are in Jail.",
-  parking: "No action.",
-  go_to_jail: "Go directly to Jail. Do not pass GO, do not collect $200.",
-};
-
 export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }) => {
   if (!tile || !visible) return null;
 
@@ -114,7 +104,7 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
   };
 
   const renderDescription = () => {
-    const desc = SPECIAL_TILE_DESCRIPTIONS[tile.type];
+    const desc = tile.description;
     if (desc) {
       return (
         <View style={styles.section}>
