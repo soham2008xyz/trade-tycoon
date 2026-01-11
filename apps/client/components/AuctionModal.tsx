@@ -38,19 +38,26 @@ export const AuctionModal: React.FC<Props> = ({
         </View>
 
         <ScrollView style={styles.participantsList}>
-          {auction.participants.map((playerId) => {
+          {auction.participants.map((playerId, index) => {
             const player = players.find((p) => p.id === playerId);
             if (!player) return null;
 
             const isHighestBidder = auction.highestBidderId === playerId;
+            const isTurn = index === auction.currentBidderIndex;
             const canAffordBid = (amount: number) => player.money >= amount;
 
             return (
-              <View key={playerId} style={styles.playerRow}>
+              <View
+                key={playerId}
+                style={[
+                  styles.playerRow,
+                  isTurn ? styles.activePlayerRow : styles.inactivePlayerRow
+                ]}
+              >
                 <View style={styles.playerInfo}>
                   <View style={[styles.playerColor, { backgroundColor: player.color }]} />
-                  <Text style={styles.playerName}>
-                    {player.name} (${player.money})
+                  <Text style={[styles.playerName, isTurn && styles.activePlayerName]}>
+                    {player.name} (${player.money}) {isTurn && " (Your Turn)"}
                   </Text>
                 </View>
 
@@ -58,7 +65,12 @@ export const AuctionModal: React.FC<Props> = ({
                   <View style={styles.bidButtons}>
                     {increments.map((inc) => {
                       const bidAmount = auction.currentBid + inc;
-                      const disabled = !canAffordBid(bidAmount) || isHighestBidder;
+                      const disabled = !canAffordBid(bidAmount) || !isTurn;
+                      // Note: Standard rules don't strictly forbid bidding against yourself, but logic blocks it if not turn.
+                      // If I am high bidder, and it's my turn (e.g. everyone else folded?), I win immediately by logic.
+                      // But if there are others, it won't be my turn if I am high bidder (unless I outbid myself which is silly).
+                      // Actually, if I bid, turn passes. So I can't bid again immediately.
+
                       return (
                         <View key={inc} style={styles.buttonWrapper}>
                             <Button
@@ -75,7 +87,7 @@ export const AuctionModal: React.FC<Props> = ({
                         title="Fold"
                         onPress={() => onConcede(playerId)}
                         color="red"
-                        disabled={isHighestBidder}
+                        disabled={!isTurn || isHighestBidder}
                     />
                   </View>
                 </View>
@@ -126,6 +138,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  activePlayerRow: {
+    borderColor: '#007AFF',
+    backgroundColor: '#f0f8ff',
+  },
+  inactivePlayerRow: {
+    opacity: 0.6,
   },
   playerInfo: {
     flexDirection: 'row',
@@ -143,6 +164,10 @@ const styles = StyleSheet.create({
   playerName: {
     fontSize: 18,
     fontWeight: '600',
+  },
+  activePlayerName: {
+    color: '#007AFF',
+    fontWeight: 'bold',
   },
   controls: {
     gap: 10,

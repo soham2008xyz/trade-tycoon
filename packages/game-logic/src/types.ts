@@ -68,6 +68,7 @@ export interface AuctionState {
   currentBid: number;
   highestBidderId: string | null;
   participants: string[]; // List of player IDs still in the auction
+  currentBidderIndex: number;
 }
 
 export interface GameState {

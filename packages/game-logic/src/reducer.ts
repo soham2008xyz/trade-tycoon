@@ -449,7 +449,8 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
           propertyId: tile.id,
           currentBid: 0,
           highestBidderId: null,
-          participants
+          participants,
+          currentBidderIndex: 0,
         },
         toastMessage: `Auction started for ${tile.name}!`,
         logs: [...state.logs, `[Game] Auction started for ${tile.name}.`]
@@ -460,16 +461,25 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       if (state.phase !== 'auction' || !state.auction) return state;
       if (!state.auction.participants.includes(action.playerId)) return { ...state, errorMessage: 'You are not in this auction.' };
 
+      // Turn Check
+      const expectedBidderId = state.auction.participants[state.auction.currentBidderIndex];
+      if (action.playerId !== expectedBidderId) {
+        return { ...state, errorMessage: "It is not your turn to bid." };
+      }
+
       const player = state.players.find(p => p.id === action.playerId);
       if (!player) return state;
 
       if (action.amount <= state.auction.currentBid) return { ...state, errorMessage: 'Bid must be higher than current bid.' };
       if (player.money < action.amount) return { ...state, errorMessage: 'Insufficient funds.' };
 
+      const nextBidderIndex = (state.auction.currentBidderIndex + 1) % state.auction.participants.length;
+
       const updatedAuction = {
         ...state.auction,
         currentBid: action.amount,
-        highestBidderId: action.playerId
+        highestBidderId: action.playerId,
+        currentBidderIndex: nextBidderIndex,
       };
 
       // Check for immediate win (only 1 participant)
@@ -512,13 +522,29 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       if (state.phase !== 'auction' || !state.auction) return state;
       if (!state.auction.participants.includes(action.playerId)) return state;
 
+      // Turn Check
+      const expectedBidderId = state.auction.participants[state.auction.currentBidderIndex];
+      if (action.playerId !== expectedBidderId) {
+        return { ...state, errorMessage: "It is not your turn to fold." };
+      }
+
       // Cannot concede if you are the high bidder
       if (action.playerId === state.auction.highestBidderId) {
         return { ...state, errorMessage: "You cannot concede while you are the highest bidder." };
       }
 
+      // We remove the player.
+      // If the player removed was at index `i`, then the player who was at `i+1` is now at `i`.
+      // So if we keep `currentBidderIndex` as `i`, it correctly points to the next player.
+      // But we must wrap modulo new length.
+      let newBidderIndex = state.auction.currentBidderIndex; // Same index points to next player after shift
+
       const newParticipants = state.auction.participants.filter(id => id !== action.playerId);
       const player = state.players.find(p => p.id === action.playerId);
+
+      if (newParticipants.length > 0) {
+        newBidderIndex = newBidderIndex % newParticipants.length;
+      }
 
       // If no one left, auction ends with no sale
       if (newParticipants.length === 0) {
@@ -565,7 +591,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
       return {
         ...state,
-        auction: { ...state.auction, participants: newParticipants },
+        auction: { ...state.auction, participants: newParticipants, currentBidderIndex: newBidderIndex },
         toastMessage: `${player?.name} conceded.`,
         logs: [...state.logs, `[${player?.name}] Conceded auction.`]
       };

@@ -65,12 +65,37 @@ describe('Auction and Trade Logic', () => {
         currentBid: 0,
         highestBidderId: null,
         participants: ['p1', 'p2'],
+        currentBidderIndex: 0, // P1 starts
       };
 
-      const newState = gameReducer(state, { type: 'PLACE_BID', playerId: 'p2', amount: 10 });
-
+      // P1 bids
+      let newState = gameReducer(state, { type: 'PLACE_BID', playerId: 'p1', amount: 10 });
       expect(newState.auction?.currentBid).toBe(10);
+      expect(newState.auction?.highestBidderId).toBe('p1');
+      expect(newState.auction?.currentBidderIndex).toBe(1); // Turn passes to P2
+
+      // P2 bids
+      newState = gameReducer(newState, { type: 'PLACE_BID', playerId: 'p2', amount: 20 });
+      expect(newState.auction?.currentBid).toBe(20);
       expect(newState.auction?.highestBidderId).toBe('p2');
+      expect(newState.auction?.currentBidderIndex).toBe(0); // Turn passes back to P1
+    });
+
+    it('should enforce turn order', () => {
+      const state = createMockState([p1, p2]);
+      state.phase = 'auction';
+      state.auction = {
+        propertyId: 'mediterranean',
+        currentBid: 0,
+        highestBidderId: null,
+        participants: ['p1', 'p2'],
+        currentBidderIndex: 0, // P1 starts
+      };
+
+      // P2 tries to bid out of turn
+      const newState = gameReducer(state, { type: 'PLACE_BID', playerId: 'p2', amount: 10 });
+      expect(newState.errorMessage).toBe("It is not your turn to bid.");
+      expect(newState.auction?.currentBid).toBe(0);
     });
 
     it('should reject invalid bids', () => {
@@ -81,6 +106,7 @@ describe('Auction and Trade Logic', () => {
         currentBid: 50,
         highestBidderId: 'p2',
         participants: ['p1', 'p2'],
+        currentBidderIndex: 0, // P1 starts
       };
 
       // Bid too low
@@ -101,15 +127,19 @@ describe('Auction and Trade Logic', () => {
         currentBid: 0,
         highestBidderId: null,
         participants: ['p1', 'p2', 'p3'],
+        currentBidderIndex: 2, // P3 starts
       };
 
       // P3 concedes
       let newState = gameReducer(state, { type: 'CONCEDE_AUCTION', playerId: 'p3' });
       expect(newState.auction?.participants).toHaveLength(2);
       expect(newState.auction?.participants).not.toContain('p3');
+      // P3 was at index 2. Removed. Length is 2. 2 % 2 = 0. So next is P1 (index 0).
+      expect(newState.auction?.currentBidderIndex).toBe(0);
 
       // P1 bids
       newState = gameReducer(newState, { type: 'PLACE_BID', playerId: 'p1', amount: 10 });
+      expect(newState.auction?.currentBidderIndex).toBe(1); // P2
 
       // P2 concedes -> P1 wins immediately
       newState = gameReducer(newState, { type: 'CONCEDE_AUCTION', playerId: 'p2' });
@@ -131,12 +161,14 @@ describe('Auction and Trade Logic', () => {
         currentBid: 0,
         highestBidderId: null,
         participants: ['p1', 'p2'],
+        currentBidderIndex: 1, // P2 starts
       };
 
       let newState = gameReducer(state, { type: 'CONCEDE_AUCTION', playerId: 'p2' });
       // P1 is alone, not highest bidder yet.
       expect(newState.phase).toBe('auction');
       expect(newState.auction?.participants).toEqual(['p1']);
+      expect(newState.auction?.currentBidderIndex).toBe(0); // 1 % 1 = 0. Correct.
 
       // P1 bids 10 -> Wins immediately
       newState = gameReducer(newState, { type: 'PLACE_BID', playerId: 'p1', amount: 10 });
