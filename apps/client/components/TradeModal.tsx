@@ -12,6 +12,7 @@ import { Player, TradeOffer, TradeRequest, BOARD } from '@trade-tycoon/game-logi
 import { IconButton } from './ui/IconButton';
 import { CloseButton } from './ui/CloseButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
 
 const GROUP_COLORS: Record<string, string> = {
   brown: '#8B4513',
@@ -53,11 +54,11 @@ export const TradeModal: React.FC<Props> = ({
   onClose,
   boardSize,
 }) => {
-  const [offerMoney, setOfferMoney] = useState('0');
+  const [offerMoney, setOfferMoney] = useState(0);
   const [offerProps, setOfferProps] = useState<string[]>([]);
   const [offerCards, setOfferCards] = useState(0);
 
-  const [reqMoney, setReqMoney] = useState('0');
+  const [reqMoney, setReqMoney] = useState(0);
   const [reqProps, setReqProps] = useState<string[]>([]);
   const [reqCards, setReqCards] = useState(0);
 
@@ -88,10 +89,10 @@ export const TradeModal: React.FC<Props> = ({
   // Reset state when opening fresh
   useEffect(() => {
     if (visible && !activeTrade) {
-      setOfferMoney('0');
+      setOfferMoney(0);
       setOfferProps([]);
       setOfferCards(0);
-      setReqMoney('0');
+      setReqMoney(0);
       setReqProps([]);
       setReqCards(0);
     }
@@ -115,37 +116,17 @@ export const TradeModal: React.FC<Props> = ({
 
   const handlePropose = () => {
     if (!target) return;
-    const moneyOffer = parseInt(offerMoney) || 0;
-    const moneyReq = parseInt(reqMoney) || 0;
 
     const offer: TradeOffer = {
-      money: moneyOffer,
+      money: offerMoney,
       properties: offerProps,
       getOutOfJailCards: offerCards,
     };
     onPropose(target.id, offer, {
-      money: moneyReq,
+      money: reqMoney,
       properties: reqProps,
       getOutOfJailCards: reqCards,
     });
-  };
-
-  const setSafeOfferMoney = (text: string) => {
-    const val = parseInt(text) || 0;
-    if (initiator && val > initiator.money) {
-      setOfferMoney(initiator.money.toString());
-    } else {
-      setOfferMoney(text);
-    }
-  };
-
-  const setSafeReqMoney = (text: string) => {
-    const val = parseInt(text) || 0;
-    if (target && val > target.money) {
-      setReqMoney(target.money.toString());
-    } else {
-      setReqMoney(text);
-    }
   };
 
   const renderContent = () => {
@@ -272,13 +253,20 @@ export const TradeModal: React.FC<Props> = ({
                 </View>
 
                 <Text>Money (Max: ${initiator.money})</Text>
-                <TextInput
-                  style={styles.input}
-                  keyboardType="numeric"
-                  value={offerMoney}
-                  onChangeText={setSafeOfferMoney}
-                  placeholder="0"
-                />
+                <View style={styles.sliderRow}>
+                  <Text style={styles.moneyText}>${offerMoney}</Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={initiator.money}
+                    step={1}
+                    value={offerMoney}
+                    onValueChange={setOfferMoney}
+                    minimumTrackTintColor="#4CAF50"
+                    maximumTrackTintColor="#ccc"
+                    thumbTintColor="#4CAF50"
+                  />
+                </View>
 
                 {initiator.getOutOfJailCards > 0 && (
                   <View style={styles.row}>
@@ -351,13 +339,20 @@ export const TradeModal: React.FC<Props> = ({
                 </View>
 
                 <Text>Money (Max: ${target.money})</Text>
-                <TextInput
-                  style={styles.input}
-                  keyboardType="numeric"
-                  value={reqMoney}
-                  onChangeText={setSafeReqMoney}
-                  placeholder="0"
-                />
+                <View style={styles.sliderRow}>
+                  <Text style={styles.moneyText}>${reqMoney}</Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={target.money}
+                    step={1}
+                    value={reqMoney}
+                    onValueChange={setReqMoney}
+                    minimumTrackTintColor="#F44336"
+                    maximumTrackTintColor="#ccc"
+                    thumbTintColor="#F44336"
+                  />
+                </View>
 
                 {target.getOutOfJailCards > 0 && (
                   <View style={styles.row}>
@@ -580,5 +575,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexWrap: 'wrap',
+  },
+  sliderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  slider: {
+    flex: 1,
+    height: 40,
+  },
+  moneyText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 10,
+    width: 50, // Fixed width to prevent jumping
+    textAlign: 'right',
   },
 });
