@@ -133,6 +133,20 @@ export default function GameScreen() {
     }
   };
 
+  const handleDeclineBuy = () => {
+    if (state.currentPlayerId) {
+      dispatch({ type: 'DECLINE_BUY', playerId: state.currentPlayerId });
+    }
+  };
+
+  const handleBid = (playerId: string, amount: number) => {
+    dispatch({ type: 'PLACE_BID', playerId, amount });
+  };
+
+  const handleConcedeAuction = (playerId: string) => {
+    dispatch({ type: 'CONCEDE_AUCTION', playerId });
+  };
+
   const handleRestart = () => {
     if (Platform.OS === 'web') {
       const confirmed = window.confirm('Are you sure you want to restart the game?');
@@ -183,9 +197,13 @@ export default function GameScreen() {
           dice={state.dice}
           doublesCount={state.doublesCount}
           phase={state.phase}
+          auction={state.auction}
           canBuy={canBuy}
           onRoll={handleRoll}
           onBuy={handleBuy}
+          onDeclineBuy={handleDeclineBuy}
+          onBid={handleBid}
+          onConcedeAuction={handleConcedeAuction}
           onEndTurn={handleEndTurn}
           onRollAgain={handleRollAgain}
           onBuild={handleBuild}
