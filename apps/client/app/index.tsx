@@ -1,7 +1,7 @@
 import React, { useReducer, useState } from 'react';
 import { View, StyleSheet, SafeAreaView, Text, Alert, Platform } from 'react-native';
 import { Board } from '../components/Board';
-import { Toast } from '../components/ui/toast';
+import { Toast } from '../components/ui/Toast';
 import { CustomAlert, AlertButton, AlertOptions } from '../components/ui/Alert';
 import { GameSetup } from '../components/GameSetup';
 import { LogModal } from '../components/LogModal';
