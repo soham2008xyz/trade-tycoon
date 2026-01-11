@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Player, TradeOffer, TradeRequest, BOARD } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
+import { CloseButton } from './ui/CloseButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface Props {
@@ -197,15 +198,7 @@ export const TradeModal: React.FC<Props> = ({
           <View style={styles.headerRow}>
             <Text style={styles.title}>Propose Trade to {target.name}</Text>
             <View style={styles.closeButtonContainer}>
-              <IconButton
-                title=""
-                icon="close"
-                onPress={onClose}
-                color="transparent"
-                textColor="#333"
-                size="small"
-                style={{ elevation: 0, paddingHorizontal: 0, paddingVertical: 0 }}
-              />
+              <CloseButton onPress={onClose} />
             </View>
           </View>
           <ScrollView style={styles.scrollArea}>
