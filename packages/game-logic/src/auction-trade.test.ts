@@ -219,6 +219,25 @@ describe('Auction and Trade Logic', () => {
       expect(newState.errorMessage).toBe("You don't have enough money for this offer.");
     });
 
+    it('should validate target assets at proposal', () => {
+      const state = createMockState([p1, p2]);
+      // P2 has 1500, no props
+
+      const offer = { money: 0, properties: [], getOutOfJailCards: 0 };
+      const request = { money: 2000, properties: [], getOutOfJailCards: 0 };
+
+      const newState = gameReducer(state, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer,
+        request
+      });
+
+      expect(newState.activeTrade).toBeNull();
+      expect(newState.errorMessage).toBe("Target doesn't have enough money.");
+    });
+
     it('should execute trade on accept', () => {
       p1.money = 1000;
       p2.money = 1000;

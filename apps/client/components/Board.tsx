@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, useWindowDimensions, Text, Button } from 'react-native';
-import { BOARD, Player, Tile as TileType } from '@trade-tycoon/game-logic';
+import { BOARD, Player, Tile as TileType, TradeRequest, TradeOffer } from '@trade-tycoon/game-logic';
 import { Tile } from './Tile';
 import { PropertyManager } from './PropertyManager';
 import { AuctionModal } from './AuctionModal';
+import { TradeModal } from './TradeModal';
 
 const CORNER_SIZE_PCT = 14;
 
@@ -15,6 +16,7 @@ interface Props {
   doublesCount: number;
   phase: 'roll' | 'action' | 'end' | 'auction';
   auction?: import('@trade-tycoon/game-logic').AuctionState | null;
+  activeTrade?: TradeRequest | null;
   canBuy: boolean;
   canAuction: boolean;
   onRoll: () => void;
@@ -33,6 +35,10 @@ interface Props {
   onRestart: () => void;
   onShowLog: () => void;
   onDeclareBankruptcy: () => void;
+  onProposeTrade: (targetPlayerId: string, offer: TradeOffer, request: TradeOffer) => void;
+  onAcceptTrade: (tradeId: string) => void;
+  onRejectTrade: (tradeId: string) => void;
+  onCancelTrade: (tradeId: string) => void;
 }
 
 export const Board: React.FC<Props> = ({
@@ -43,6 +49,7 @@ export const Board: React.FC<Props> = ({
   doublesCount,
   phase,
   auction,
+  activeTrade,
   canBuy,
   canAuction,
   onRoll,
@@ -61,9 +68,14 @@ export const Board: React.FC<Props> = ({
   onRestart,
   onShowLog,
   onDeclareBankruptcy,
+  onProposeTrade,
+  onAcceptTrade,
+  onRejectTrade,
+  onCancelTrade,
 }) => {
   const { width, height } = useWindowDimensions();
   const [showPropertyManager, setShowPropertyManager] = useState(false);
+  const [tradeTargetId, setTradeTargetId] = useState<string | undefined>(undefined);
   const size = Math.min(width, height) - 20; // Padding
 
   // Slice the board into sections
@@ -160,6 +172,11 @@ export const Board: React.FC<Props> = ({
                     >
                       {player.name}: ${player.money}
                     </Text>
+                    {player.id !== currentPlayer.id && (
+                        <View style={{ marginLeft: 10 }}>
+                           <Button title="Trade" onPress={() => setTradeTargetId(player.id)} compact />
+                        </View>
+                    )}
                   </View>
                 ))}
               </View>
@@ -270,6 +287,27 @@ export const Board: React.FC<Props> = ({
         onBid={onBid}
         onConcede={onConcedeAuction}
       />
+
+      {currentPlayer && (
+        <TradeModal
+            visible={!!tradeTargetId || (!!activeTrade && (activeTrade.initiatorId === currentPlayer.id || activeTrade.targetPlayerId === currentPlayer.id))}
+            players={players}
+            currentPlayerId={currentPlayer.id}
+            targetPlayerId={tradeTargetId || activeTrade?.targetPlayerId}
+            activeTrade={activeTrade}
+            onPropose={(t, o, r) => {
+                onProposeTrade(t, o, r);
+                setTradeTargetId(undefined); // Close the proposal modal, but activeTrade will keep Pending modal open
+            }}
+            onAccept={onAcceptTrade}
+            onReject={onRejectTrade}
+            onCancel={(id) => {
+                onCancelTrade(id);
+                setTradeTargetId(undefined);
+            }}
+            onClose={() => setTradeTargetId(undefined)}
+        />
+      )}
 
       {/* Property Manager Modal */}
       {currentPlayer && (
