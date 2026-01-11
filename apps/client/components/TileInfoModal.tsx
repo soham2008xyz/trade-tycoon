@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, ScrollView } from 'react-native';
-import { Tile, Player } from '@trade-tycoon/game-logic';
+import { View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity } from 'react-native';
+import { Tile, Player, TileType } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 
 interface Props {
@@ -23,12 +23,24 @@ const GROUP_COLORS: Record<string, string> = {
   utility: '#A0A0A0',
 };
 
+// Descriptions for special tiles
+const SPECIAL_TILE_DESCRIPTIONS: Partial<Record<TileType, string>> = {
+  go: "Collect $200 when you pass.",
+  community_chest: "Draw a Community Chest card.",
+  chance: "Draw a Chance card.",
+  tax: "Pay the tax amount shown.",
+  jail: "If you land here, you are just visiting. If sent here, you are in Jail.",
+  parking: "No action.",
+  go_to_jail: "Go directly to Jail. Do not pass GO, do not collect $200.",
+};
+
 export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }) => {
   if (!tile || !visible) return null;
 
   const isStreet = tile.type === 'street';
   const isRailroad = tile.type === 'railroad';
   const isUtility = tile.type === 'utility';
+  const isTax = tile.type === 'tax';
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
   const textColor = ['brown', 'dark_blue', 'railroad'].includes(tile.group || '')
     ? '#fff'
@@ -101,10 +113,25 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
     return null;
   };
 
+  const renderDescription = () => {
+    const desc = SPECIAL_TILE_DESCRIPTIONS[tile.type];
+    if (desc) {
+      return (
+        <View style={styles.section}>
+          <Text style={styles.descriptionText}>{desc}</Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
+  // We are NOT using Modal here because of Z-Index issues on web with Board.
+  // Instead we are using an absolute positioned view which will overlay everything in Board
+  // because it is rendered LAST in the Board component.
   return (
-    <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+    <View style={styles.overlayContainer}>
+      <View style={styles.backdrop} onTouchEnd={onClose} />
+      <View style={styles.modalContent}>
           {/* Header Card */}
           <View style={[styles.header, { backgroundColor: color }]}>
             <Text style={[styles.title, { color: textColor }]}>{tile.name}</Text>
@@ -115,7 +142,11 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
              <View style={styles.section}>
                 {tile.price && (
                     <View style={styles.row}>
-                        <Text style={styles.text}>Price:</Text>
+                        {isTax ? (
+                          <Text style={styles.text}>Tax Amount:</Text>
+                        ) : (
+                          <Text style={styles.text}>Price:</Text>
+                        )}
                         <Text style={styles.text}>${tile.price}</Text>
                     </View>
                 )}
@@ -131,11 +162,16 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
                         )}
                     </>
                 ) : (
-                    tile.price ? (
+                    // Show "Unowned" only if it's buyable (has price and NOT tax)
+                    // Actually, taxes have price but aren't ownable.
+                    (tile.price && !isTax) ? (
                         <Text style={[styles.text, {fontStyle: 'italic', marginTop: 5}]}>Unowned</Text>
                     ) : null
                 )}
              </View>
+
+             {/* Special Tile Description */}
+             {renderDescription()}
 
             {/* Rent Details */}
             {renderRentDetails()}
@@ -162,17 +198,28 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
             <IconButton title="Close" icon="close" onPress={onClose} size="small" />
           </View>
         </View>
-      </View>
-    </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  overlayContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 99999, // Ensure it sits on top of everything in Board
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
     width: 300,
@@ -182,6 +229,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#000',
     overflow: 'hidden',
+    // No zIndex needed here relative to parent, but parent is high
+    elevation: 5,
   },
   header: {
     padding: 20,
@@ -212,6 +261,12 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 14,
     color: '#333',
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: '#333',
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   mortgagedText: {
       color: 'red',

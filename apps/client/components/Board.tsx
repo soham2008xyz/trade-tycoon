@@ -366,14 +366,6 @@ export const Board: React.FC<Props> = ({
         />
       )}
 
-      {/* Tile Info Modal */}
-      <TileInfoModal
-        visible={!!selectedTileId}
-        tile={selectedTileId ? BOARD.find(t => t.id === selectedTileId) || null : null}
-        owner={selectedTileId ? getOwner(selectedTileId) : undefined}
-        onClose={() => setSelectedTileId(null)}
-      />
-
       {/* Corners */}
       <View style={[styles.corner, styles.bottomRight]}>
         <Tile
@@ -460,6 +452,14 @@ export const Board: React.FC<Props> = ({
           />
         ))}
       </View>
+
+      {/* Tile Info Modal - moved to bottom to ensure z-index priority */}
+      <TileInfoModal
+        visible={!!selectedTileId}
+        tile={selectedTileId ? BOARD.find(t => t.id === selectedTileId) || null : null}
+        owner={selectedTileId ? getOwner(selectedTileId) : undefined}
+        onClose={() => setSelectedTileId(null)}
+      />
     </View>
   );
 };
@@ -479,6 +479,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    // Removed zIndex: 20 to allow modal to overlay.
+    // Ensure content inside is clickable by managing click events or assuming default zIndex behavior.
+    // If buttons become unclickable, we might need to be more careful.
+    // But since `TileInfoModal` is a sibling later in DOM, it should be on top.
+    // And `center` without z-index is auto (0).
+    // `corners` have zIndex: 10. `center` needs to be > 10 to be clickable if they overlap.
+    // BUT `TileInfoModal` needs to be > `center`.
+    zIndex: 20,
   },
   topButtons: {
     flexDirection: 'row',
