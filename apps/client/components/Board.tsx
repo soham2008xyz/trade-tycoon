@@ -340,6 +340,7 @@ export const Board: React.FC<Props> = ({
             setTradeTargetId(undefined);
           }}
           onClose={() => setTradeTargetId(undefined)}
+          boardSize={size}
         />
       )}
 

@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  Modal,
+  StyleSheet,
+  TextInput,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import { Player, TradeOffer, TradeRequest, BOARD } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -15,6 +23,7 @@ interface Props {
   onReject: (tradeId: string) => void;
   onCancel: (tradeId: string) => void;
   onClose: () => void;
+  boardSize?: number;
 }
 
 export const TradeModal: React.FC<Props> = ({
@@ -28,6 +37,7 @@ export const TradeModal: React.FC<Props> = ({
   onReject,
   onCancel,
   onClose,
+  boardSize,
 }) => {
   const [offerMoney, setOfferMoney] = useState('0');
   const [offerProps, setOfferProps] = useState<string[]>([]);
@@ -37,8 +47,8 @@ export const TradeModal: React.FC<Props> = ({
   const [reqProps, setReqProps] = useState<string[]>([]);
   const [reqCards, setReqCards] = useState(0);
 
-  const initiator = players.find(p => p.id === currentPlayerId);
-  const target = players.find(p => p.id === targetPlayerId);
+  const initiator = players.find((p) => p.id === currentPlayerId);
+  const target = players.find((p) => p.id === targetPlayerId);
 
   // Reset state when opening fresh
   useEffect(() => {
@@ -54,25 +64,31 @@ export const TradeModal: React.FC<Props> = ({
 
   // View: Show Offer (Accept/Reject)
   if (activeTrade) {
-    const tradeInitiator = players.find(p => p.id === activeTrade.initiatorId);
-    const tradeTarget = players.find(p => p.id === activeTrade.targetPlayerId);
+    const tradeInitiator = players.find((p) => p.id === activeTrade.initiatorId);
+    const tradeTarget = players.find((p) => p.id === activeTrade.targetPlayerId);
 
     return (
       <Modal visible={visible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, boardSize ? { width: boardSize } : undefined]}>
+            {' '}
             <Text style={styles.title}>Trade Proposal</Text>
-            <Text style={styles.headerSubtitle}>{tradeInitiator?.name} offers to {tradeTarget?.name}:</Text>
-
+            <Text style={styles.headerSubtitle}>
+              {tradeInitiator?.name} offers to {tradeTarget?.name}:
+            </Text>
             <View style={styles.columns}>
               <View style={styles.column}>
                 <Text style={styles.subtitle}>{tradeTarget?.name} Receives:</Text>
                 <Text>Money: ${activeTrade.offer.money}</Text>
                 <Text>GOOJ Cards: {activeTrade.offer.getOutOfJailCards}</Text>
                 <Text style={styles.propHeader}>Properties:</Text>
-                {activeTrade.offer.properties.map(id => {
-                  const tile = BOARD.find(t => t.id === id);
-                  return <Text key={id} style={styles.propItem}>• {tile?.name}</Text>;
+                {activeTrade.offer.properties.map((id) => {
+                  const tile = BOARD.find((t) => t.id === id);
+                  return (
+                    <Text key={id} style={styles.propItem}>
+                      • {tile?.name}
+                    </Text>
+                  );
                 })}
               </View>
 
@@ -81,13 +97,16 @@ export const TradeModal: React.FC<Props> = ({
                 <Text>Money: ${activeTrade.request.money}</Text>
                 <Text>GOOJ Cards: {activeTrade.request.getOutOfJailCards}</Text>
                 <Text style={styles.propHeader}>Properties:</Text>
-                {activeTrade.request.properties.map(id => {
-                   const tile = BOARD.find(t => t.id === id);
-                   return <Text key={id} style={styles.propItem}>• {tile?.name}</Text>;
+                {activeTrade.request.properties.map((id) => {
+                  const tile = BOARD.find((t) => t.id === id);
+                  return (
+                    <Text key={id} style={styles.propItem}>
+                      • {tile?.name}
+                    </Text>
+                  );
                 })}
               </View>
             </View>
-
             <View style={styles.buttonRow}>
               <IconButton
                 title="Accept"
@@ -102,14 +121,14 @@ export const TradeModal: React.FC<Props> = ({
                 color="red"
               />
             </View>
-             <View style={{ marginTop: 20, alignItems: 'center' }}>
-                <IconButton
-                  title={`Cancel (by ${tradeInitiator?.name})`}
-                  icon="close-circle"
-                  onPress={() => onCancel(activeTrade.id)}
-                  color="#666"
-                  size="small"
-                />
+            <View style={{ marginTop: 20, alignItems: 'center' }}>
+              <IconButton
+                title={`Cancel (by ${tradeInitiator?.name})`}
+                icon="close-circle"
+                onPress={() => onCancel(activeTrade.id)}
+                color="#666"
+                size="small"
+              />
             </View>
           </View>
         </View>
@@ -122,7 +141,7 @@ export const TradeModal: React.FC<Props> = ({
 
   const toggleOfferProp = (id: string) => {
     if (offerProps.includes(id)) {
-      setOfferProps(offerProps.filter(p => p !== id));
+      setOfferProps(offerProps.filter((p) => p !== id));
     } else {
       setOfferProps([...offerProps, id]);
     }
@@ -130,7 +149,7 @@ export const TradeModal: React.FC<Props> = ({
 
   const toggleReqProp = (id: string) => {
     if (reqProps.includes(id)) {
-      setReqProps(reqProps.filter(p => p !== id));
+      setReqProps(reqProps.filter((p) => p !== id));
     } else {
       setReqProps([...reqProps, id]);
     }
@@ -141,146 +160,193 @@ export const TradeModal: React.FC<Props> = ({
     const moneyReq = parseInt(reqMoney) || 0;
 
     const offer: TradeOffer = {
-        money: moneyOffer,
-        properties: offerProps,
-        getOutOfJailCards: offerCards
+      money: moneyOffer,
+      properties: offerProps,
+      getOutOfJailCards: offerCards,
     };
     onPropose(target.id, offer, {
-        money: moneyReq,
-        properties: reqProps,
-        getOutOfJailCards: reqCards
+      money: moneyReq,
+      properties: reqProps,
+      getOutOfJailCards: reqCards,
     });
   };
 
   const setSafeOfferMoney = (text: string) => {
-      const val = parseInt(text) || 0;
-      if (val > initiator.money) {
-          setOfferMoney(initiator.money.toString());
-      } else {
-          setOfferMoney(text);
-      }
+    const val = parseInt(text) || 0;
+    if (val > initiator.money) {
+      setOfferMoney(initiator.money.toString());
+    } else {
+      setOfferMoney(text);
+    }
   };
 
   const setSafeReqMoney = (text: string) => {
     const val = parseInt(text) || 0;
     if (val > target.money) {
-        setReqMoney(target.money.toString());
+      setReqMoney(target.money.toString());
     } else {
-        setReqMoney(text);
+      setReqMoney(text);
     }
   };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-            <View style={styles.headerRow}>
-                <Text style={styles.title}>Propose Trade to {target.name}</Text>
-                <IconButton
-                  title=""
-                  icon="close"
-                  onPress={onClose}
-                  color="transparent"
-                  textColor="#333"
-                  size="small"
-                  style={{ elevation: 0, paddingHorizontal: 0, paddingVertical: 0 }}
+        <View style={[styles.modalContent, boardSize ? { width: boardSize } : undefined]}>
+          {' '}
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>Propose Trade to {target.name}</Text>
+            <IconButton
+              title=""
+              icon="close"
+              onPress={onClose}
+              color="transparent"
+              textColor="#333"
+              size="small"
+              style={{ elevation: 0, paddingHorizontal: 0, paddingVertical: 0 }}
+            />
+          </View>
+          <ScrollView style={styles.scrollArea}>
+            <View style={styles.columns}>
+              {/* Left: You Offer */}
+              <View style={styles.column}>
+                <Text style={styles.subtitle}>You Offer</Text>
+
+                <Text>Money (Max: ${initiator.money})</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={offerMoney}
+                  onChangeText={setSafeOfferMoney}
+                  placeholder="0"
                 />
-            </View>
 
-            <ScrollView style={styles.scrollArea}>
-                <View style={styles.columns}>
-                    {/* Left: You Offer */}
-                    <View style={styles.column}>
-                        <Text style={styles.subtitle}>You Offer</Text>
-
-                        <Text>Money (Max: ${initiator.money})</Text>
-                        <TextInput
-                            style={styles.input}
-                            keyboardType="numeric"
-                            value={offerMoney}
-                            onChangeText={setSafeOfferMoney}
-                            placeholder="0"
-                        />
-
-                        {initiator.getOutOfJailCards > 0 && (
-                             <View style={styles.row}>
-                                <Text>GOOJ Cards ({offerCards}/{initiator.getOutOfJailCards})</Text>
-                                <View style={styles.stepper}>
-                                    <IconButton title="" icon="minus" onPress={() => setOfferCards(Math.max(0, offerCards - 1))} size="small" style={styles.stepperBtn} color="#eee" textColor="#333" />
-                                    <IconButton title="" icon="plus" onPress={() => setOfferCards(Math.min(initiator.getOutOfJailCards, offerCards + 1))} size="small" style={styles.stepperBtn} color="#eee" textColor="#333" />
-                                </View>
-                             </View>
-                        )}
-
-                        <Text style={styles.propHeader}>Properties:</Text>
-                        {initiator.properties.length === 0 && <Text style={styles.emptyText}>None</Text>}
-                        {initiator.properties.map(id => {
-                            const tile = BOARD.find(t => t.id === id);
-                            const isChecked = offerProps.includes(id);
-                            return (
-                                <TouchableOpacity key={id} onPress={() => toggleOfferProp(id)} style={styles.checkRow}>
-                                    <MaterialCommunityIcons
-                                        name={isChecked ? "checkbox-marked" : "checkbox-blank-outline"}
-                                        size={24}
-                                        color={isChecked ? "#4CAF50" : "#666"}
-                                    />
-                                    <Text style={styles.propText}>{tile?.name}</Text>
-                                </TouchableOpacity>
-                            );
-                        })}
+                {initiator.getOutOfJailCards > 0 && (
+                  <View style={styles.row}>
+                    <Text>
+                      GOOJ Cards ({offerCards}/{initiator.getOutOfJailCards})
+                    </Text>
+                    <View style={styles.stepper}>
+                      <IconButton
+                        title=""
+                        icon="minus"
+                        onPress={() => setOfferCards(Math.max(0, offerCards - 1))}
+                        size="small"
+                        style={styles.stepperBtn}
+                        color="#eee"
+                        textColor="#333"
+                      />
+                      <IconButton
+                        title=""
+                        icon="plus"
+                        onPress={() =>
+                          setOfferCards(Math.min(initiator.getOutOfJailCards, offerCards + 1))
+                        }
+                        size="small"
+                        style={styles.stepperBtn}
+                        color="#eee"
+                        textColor="#333"
+                      />
                     </View>
+                  </View>
+                )}
 
-                    {/* Divider */}
-                    <View style={styles.divider} />
+                <Text style={styles.propHeader}>Properties:</Text>
+                {initiator.properties.length === 0 && <Text style={styles.emptyText}>None</Text>}
+                {initiator.properties.map((id) => {
+                  const tile = BOARD.find((t) => t.id === id);
+                  const isChecked = offerProps.includes(id);
+                  return (
+                    <TouchableOpacity
+                      key={id}
+                      onPress={() => toggleOfferProp(id)}
+                      style={styles.checkRow}
+                    >
+                      <MaterialCommunityIcons
+                        name={isChecked ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                        size={24}
+                        color={isChecked ? '#4CAF50' : '#666'}
+                      />
+                      <Text style={styles.propText}>{tile?.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
-                    {/* Right: You Request */}
-                    <View style={styles.column}>
-                        <Text style={styles.subtitle}>You Request</Text>
+              {/* Divider */}
+              <View style={styles.divider} />
 
-                        <Text>Money (Max: ${target.money})</Text>
-                        <TextInput
-                            style={styles.input}
-                            keyboardType="numeric"
-                            value={reqMoney}
-                            onChangeText={setSafeReqMoney}
-                            placeholder="0"
-                        />
+              {/* Right: You Request */}
+              <View style={styles.column}>
+                <Text style={styles.subtitle}>You Request</Text>
 
-                         {target.getOutOfJailCards > 0 && (
-                             <View style={styles.row}>
-                                <Text>GOOJ Cards ({reqCards}/{target.getOutOfJailCards})</Text>
-                                <View style={styles.stepper}>
-                                    <IconButton title="" icon="minus" onPress={() => setReqCards(Math.max(0, reqCards - 1))} size="small" style={styles.stepperBtn} color="#eee" textColor="#333" />
-                                    <IconButton title="" icon="plus" onPress={() => setReqCards(Math.min(target.getOutOfJailCards, reqCards + 1))} size="small" style={styles.stepperBtn} color="#eee" textColor="#333" />
-                                </View>
-                             </View>
-                        )}
+                <Text>Money (Max: ${target.money})</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={reqMoney}
+                  onChangeText={setSafeReqMoney}
+                  placeholder="0"
+                />
 
-                        <Text style={styles.propHeader}>Properties:</Text>
-                        {target.properties.length === 0 && <Text style={styles.emptyText}>None</Text>}
-                        {target.properties.map(id => {
-                            const tile = BOARD.find(t => t.id === id);
-                            const isChecked = reqProps.includes(id);
-                            return (
-                                <TouchableOpacity key={id} onPress={() => toggleReqProp(id)} style={styles.checkRow}>
-                                    <MaterialCommunityIcons
-                                        name={isChecked ? "checkbox-marked" : "checkbox-blank-outline"}
-                                        size={24}
-                                        color={isChecked ? "#4CAF50" : "#666"}
-                                    />
-                                    <Text style={styles.propText}>{tile?.name}</Text>
-                                </TouchableOpacity>
-                            );
-                        })}
+                {target.getOutOfJailCards > 0 && (
+                  <View style={styles.row}>
+                    <Text>
+                      GOOJ Cards ({reqCards}/{target.getOutOfJailCards})
+                    </Text>
+                    <View style={styles.stepper}>
+                      <IconButton
+                        title=""
+                        icon="minus"
+                        onPress={() => setReqCards(Math.max(0, reqCards - 1))}
+                        size="small"
+                        style={styles.stepperBtn}
+                        color="#eee"
+                        textColor="#333"
+                      />
+                      <IconButton
+                        title=""
+                        icon="plus"
+                        onPress={() =>
+                          setReqCards(Math.min(target.getOutOfJailCards, reqCards + 1))
+                        }
+                        size="small"
+                        style={styles.stepperBtn}
+                        color="#eee"
+                        textColor="#333"
+                      />
                     </View>
-                </View>
-            </ScrollView>
+                  </View>
+                )}
 
-            <View style={styles.footer}>
-                <IconButton title="Propose" icon="handshake" onPress={handlePropose} />
-                <View style={{ width: 10 }} />
-                <IconButton title="Cancel" icon="close" onPress={onClose} color="#666" />
+                <Text style={styles.propHeader}>Properties:</Text>
+                {target.properties.length === 0 && <Text style={styles.emptyText}>None</Text>}
+                {target.properties.map((id) => {
+                  const tile = BOARD.find((t) => t.id === id);
+                  const isChecked = reqProps.includes(id);
+                  return (
+                    <TouchableOpacity
+                      key={id}
+                      onPress={() => toggleReqProp(id)}
+                      style={styles.checkRow}
+                    >
+                      <MaterialCommunityIcons
+                        name={isChecked ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                        size={24}
+                        color={isChecked ? '#4CAF50' : '#666'}
+                      />
+                      <Text style={styles.propText}>{tile?.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
+          </ScrollView>
+          <View style={styles.footer}>
+            <IconButton title="Propose" icon="handshake" onPress={handlePropose} />
+            <View style={{ width: 10 }} />
+            <IconButton title="Cancel" icon="close" onPress={onClose} color="#666" />
+          </View>
         </View>
       </View>
     </Modal>
