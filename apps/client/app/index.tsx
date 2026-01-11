@@ -170,13 +170,20 @@ export default function GameScreen() {
   if (!setupVisible && !currentPlayer && !state.winner) return <Text>Loading...</Text>;
 
   // Check buy availability
-  const canBuy =
+  const isPropertyUnowned =
     state.phase === 'action' &&
     !!currentPlayer &&
     !!currentTile &&
     isTileBuyable(currentTile) &&
-    !state.players.some((p) => p.properties.includes(currentTile.id)) &&
-    currentPlayer.money >= (currentTile.price || 0);
+    !state.players.some((p) => p.properties.includes(currentTile.id));
+
+  const canAfford =
+    currentPlayer && currentTile
+      ? currentPlayer.money >= (currentTile.price || 0)
+      : false;
+
+  const canBuy = isPropertyUnowned && canAfford;
+  const canAuction = isPropertyUnowned;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -187,8 +194,12 @@ export default function GameScreen() {
         players={state.players}
         onClose={() => setLogVisible(false)}
       />
-      {state.errorMessage && <Toast message={state.errorMessage} onDismiss={handleDismissError} />}
-      {state.toastMessage && <Toast message={state.toastMessage} onDismiss={handleDismissToast} />}
+      {state.errorMessage && (
+        <Toast message={state.errorMessage} onDismiss={handleDismissError} />
+      )}
+      {state.toastMessage && (
+        <Toast message={state.toastMessage} onDismiss={handleDismissToast} />
+      )}
       <View style={styles.boardArea}>
         <Board
           players={state.players}
@@ -199,6 +210,7 @@ export default function GameScreen() {
           phase={state.phase}
           auction={state.auction}
           canBuy={canBuy}
+          canAuction={canAuction}
           onRoll={handleRoll}
           onBuy={handleBuy}
           onDeclineBuy={handleDeclineBuy}

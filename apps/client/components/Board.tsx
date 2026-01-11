@@ -16,6 +16,7 @@ interface Props {
   phase: 'roll' | 'action' | 'end' | 'auction';
   auction?: import('@trade-tycoon/game-logic').AuctionState | null;
   canBuy: boolean;
+  canAuction: boolean;
   onRoll: () => void;
   onBuy: () => void;
   onDeclineBuy: () => void;
@@ -43,6 +44,7 @@ export const Board: React.FC<Props> = ({
   phase,
   auction,
   canBuy,
+  canAuction,
   onRoll,
   onBuy,
   onDeclineBuy,
@@ -220,18 +222,25 @@ export const Board: React.FC<Props> = ({
 
                 {phase === 'action' && (
                   <>
-                    <View style={{ flexDirection: 'row', gap: 5 }}>
-                      <Button
-                        title={`Buy ($${currentTile?.price || 0})`}
-                        onPress={onBuy}
-                        disabled={!canBuy}
-                      />
+                    <View
+                      style={{ flexDirection: 'row', gap: 5, width: '100%' }}
+                    >
                       {canBuy && (
-                        <Button
-                          title="Auction"
-                          onPress={onDeclineBuy}
-                          color="#f0ad4e"
-                        />
+                        <View style={{ flex: 1 }}>
+                          <Button
+                            title={`Buy ($${currentTile?.price || 0})`}
+                            onPress={onBuy}
+                          />
+                        </View>
+                      )}
+                      {canAuction && (
+                        <View style={{ flex: 1 }}>
+                          <Button
+                            title="Auction"
+                            onPress={onDeclineBuy}
+                            color="#f0ad4e"
+                          />
+                        </View>
                       )}
                     </View>
                     {doublesCount === 0 && (
