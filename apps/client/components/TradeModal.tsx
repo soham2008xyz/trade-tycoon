@@ -48,8 +48,29 @@ export const TradeModal: React.FC<Props> = ({
   const [reqProps, setReqProps] = useState<string[]>([]);
   const [reqCards, setReqCards] = useState(0);
 
+  // Cache the display props to persist content during exit animation
+  const [cachedState, setCachedState] = useState<{
+    activeTrade?: TradeRequest | null;
+    targetPlayerId?: string;
+  }>({
+    activeTrade,
+    targetPlayerId,
+  });
+
+  useEffect(() => {
+    if (visible) {
+      setCachedState({
+        activeTrade,
+        targetPlayerId,
+      });
+    }
+  }, [visible, activeTrade, targetPlayerId]);
+
+  const effectiveActiveTrade = visible ? activeTrade : cachedState.activeTrade;
+  const effectiveTargetId = visible ? targetPlayerId : cachedState.targetPlayerId;
+
   const initiator = players.find((p) => p.id === currentPlayerId);
-  const target = players.find((p) => p.id === targetPlayerId);
+  const target = players.find((p) => p.id === effectiveTargetId);
 
   // Reset state when opening fresh
   useEffect(() => {
@@ -115,9 +136,9 @@ export const TradeModal: React.FC<Props> = ({
   };
 
   const renderContent = () => {
-    if (activeTrade) {
-      const tradeInitiator = players.find((p) => p.id === activeTrade.initiatorId);
-      const tradeTarget = players.find((p) => p.id === activeTrade.targetPlayerId);
+    if (effectiveActiveTrade) {
+      const tradeInitiator = players.find((p) => p.id === effectiveActiveTrade.initiatorId);
+      const tradeTarget = players.find((p) => p.id === effectiveActiveTrade.targetPlayerId);
 
       return (
         <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
@@ -128,10 +149,10 @@ export const TradeModal: React.FC<Props> = ({
           <View style={styles.columns}>
             <View style={styles.column}>
               <Text style={styles.subtitle}>{tradeTarget?.name} Receives:</Text>
-              <Text>Money: ${activeTrade.offer.money}</Text>
-              <Text>GOOJ Cards: {activeTrade.offer.getOutOfJailCards}</Text>
+              <Text>Money: ${effectiveActiveTrade.offer.money}</Text>
+              <Text>GOOJ Cards: {effectiveActiveTrade.offer.getOutOfJailCards}</Text>
               <Text style={styles.propHeader}>Properties:</Text>
-              {activeTrade.offer.properties.map((id) => {
+              {effectiveActiveTrade.offer.properties.map((id) => {
                 const tile = BOARD.find((t) => t.id === id);
                 return (
                   <Text key={id} style={styles.propItem}>
@@ -143,10 +164,10 @@ export const TradeModal: React.FC<Props> = ({
 
             <View style={styles.column}>
               <Text style={styles.subtitle}>{tradeTarget?.name} Gives:</Text>
-              <Text>Money: ${activeTrade.request.money}</Text>
-              <Text>GOOJ Cards: {activeTrade.request.getOutOfJailCards}</Text>
+              <Text>Money: ${effectiveActiveTrade.request.money}</Text>
+              <Text>GOOJ Cards: {effectiveActiveTrade.request.getOutOfJailCards}</Text>
               <Text style={styles.propHeader}>Properties:</Text>
-              {activeTrade.request.properties.map((id) => {
+              {effectiveActiveTrade.request.properties.map((id) => {
                 const tile = BOARD.find((t) => t.id === id);
                 return (
                   <Text key={id} style={styles.propItem}>
@@ -160,13 +181,13 @@ export const TradeModal: React.FC<Props> = ({
             <IconButton
               title="Accept"
               icon="check"
-              onPress={() => onAccept(activeTrade.id)}
+              onPress={() => onAccept(effectiveActiveTrade.id)}
               color="green"
             />
             <IconButton
               title="Reject"
               icon="close"
-              onPress={() => onReject(activeTrade.id)}
+              onPress={() => onReject(effectiveActiveTrade.id)}
               color="red"
             />
           </View>
@@ -174,7 +195,7 @@ export const TradeModal: React.FC<Props> = ({
             <IconButton
               title={`Cancel (by ${tradeInitiator?.name})`}
               icon="close-circle"
-              onPress={() => onCancel(activeTrade.id)}
+              onPress={() => onCancel(effectiveActiveTrade.id)}
               color="#666"
               size="small"
             />
