@@ -17,7 +17,7 @@ export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose }) =
           <Text style={styles.title}>Game Log</Text>
 
           <ScrollView style={styles.logList}>
-            {logs.length === 0 ? (
+            {(!logs || logs.length === 0) ? (
               <Text style={styles.emptyText}>No logs yet.</Text>
             ) : (
               logs.map((log, index) => {
