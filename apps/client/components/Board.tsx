@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, useWindowDimensions, Text, Button } from 'react-native';
+import { View, StyleSheet, useWindowDimensions, Text } from 'react-native';
 import {
   BOARD,
   Player,
@@ -194,16 +194,20 @@ export const Board: React.FC<Props> = ({
                         {player.name} (${player.money})
                       </Text>
                     </View>
-                    {player.id !== currentPlayer.id && (
-                      <View style={{ marginLeft: 10 }}>
-                        <IconButton
-                          title="Trade"
-                          icon="handshake"
-                          onPress={() => setTradeTargetId(player.id)}
-                          size="small"
-                        />
-                      </View>
-                    )}
+                    <View
+                      style={{
+                        marginLeft: 10,
+                        opacity: player.id !== currentPlayer.id ? 1 : 0,
+                      }}
+                      pointerEvents={player.id !== currentPlayer.id ? 'auto' : 'none'}
+                    >
+                      <IconButton
+                        title="Trade"
+                        icon="handshake"
+                        onPress={() => setTradeTargetId(player.id)}
+                        size="small"
+                      />
+                    </View>
                   </View>
                 ))}
               </View>
