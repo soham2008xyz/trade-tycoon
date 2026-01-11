@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  Button,
   ScrollView,
   TouchableOpacity,
   Modal,
 } from 'react-native';
+import { IconButton } from './ui/IconButton';
 
 interface PlayerConfig {
   name: string;
@@ -116,7 +116,7 @@ export const GameSetup: React.FC<Props> = ({ visible, onStartGame }) => {
             ))}
           </ScrollView>
 
-          <Button title="Start Game" onPress={handleSubmit} />
+          <IconButton title="Start Game" icon="play" onPress={handleSubmit} />
         </View>
       </View>
     </Modal>

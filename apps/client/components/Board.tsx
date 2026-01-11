@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, useWindowDimensions, Text, Button } from 'react-native';
+import { View, StyleSheet, useWindowDimensions, Text } from 'react-native';
 import { BOARD, Player, Tile as TileType } from '@trade-tycoon/game-logic';
 import { Tile } from './Tile';
 import { PropertyManager } from './PropertyManager';
 import { AuctionModal } from './AuctionModal';
+import { IconButton } from './ui/IconButton';
+import { Dice } from './Dice';
 
 const CORNER_SIZE_PCT = 14;
 
@@ -140,8 +142,8 @@ export const Board: React.FC<Props> = ({
       {/* Center Logo Area */}
       <View style={styles.center}>
         <View style={styles.topButtons}>
-          <Button title="Restart Game" onPress={onRestart} color="#666" />
-          <Button title="Show Log" onPress={onShowLog} color="#666" />
+          <IconButton title="Restart" icon="restart" onPress={onRestart} color="#666" size="small" />
+          <IconButton title="Log" icon="script-text" onPress={onShowLog} color="#666" size="small" />
         </View>
 
         <View style={styles.statusPanel}>
@@ -183,27 +185,27 @@ export const Board: React.FC<Props> = ({
                   <Text style={styles.statusText}>{currentTile?.name}</Text>
                 </View>
                 {phase === 'action' && (
-                  <Text style={styles.statusText}>
-                    Dice: {dice[0]} + {dice[1]}
-                  </Text>
+                  <Dice value1={dice[0]} value2={dice[1]} />
                 )}
               </View>
 
               <View style={styles.actions}>
                 {phase === 'roll' && (
                   <>
-                    <Button title="Roll Dice" onPress={onRoll} />
+                    <IconButton title="Roll Dice" icon="dice-5" onPress={onRoll} />
                     {currentPlayer.isInJail && (
                       <>
-                        <Button
+                        <IconButton
                           title="Pay Fine ($50)"
+                          icon="cash-remove"
                           onPress={onPayFine}
                           disabled={currentPlayer.money < 50}
                           color="#d9534f"
                         />
                         {currentPlayer.getOutOfJailCards > 0 && (
-                          <Button
+                          <IconButton
                             title={`Use Card (${currentPlayer.getOutOfJailCards})`}
+                            icon="card-account-details"
                             onPress={onUseGOOJCard}
                             color="#5bc0de"
                           />
@@ -213,8 +215,9 @@ export const Board: React.FC<Props> = ({
                   </>
                 )}
                 {currentPlayer.money < 0 && (
-                  <Button
+                  <IconButton
                     title="Declare Bankruptcy"
+                    icon="alert-circle"
                     onPress={onDeclareBankruptcy}
                     color="#444"
                   />
@@ -227,16 +230,18 @@ export const Board: React.FC<Props> = ({
                     >
                       {canBuy && (
                         <View style={{ flex: 1 }}>
-                          <Button
+                          <IconButton
                             title={`Buy ($${currentTile?.price || 0})`}
+                            icon="cart"
                             onPress={onBuy}
                           />
                         </View>
                       )}
                       {canAuction && (
                         <View style={{ flex: 1 }}>
-                          <Button
+                          <IconButton
                             title="Auction"
+                            icon="gavel"
                             onPress={onDeclineBuy}
                             color="#f0ad4e"
                           />
@@ -244,16 +249,17 @@ export const Board: React.FC<Props> = ({
                       )}
                     </View>
                     {doublesCount === 0 && (
-                      <Button
+                      <IconButton
                         title="Manage Properties"
+                        icon="city"
                         onPress={() => setShowPropertyManager(true)}
                         color="#841584"
                       />
                     )}
                     {doublesCount > 0 ? (
-                      <Button title="Roll Again" onPress={onRollAgain} color="orange" />
+                      <IconButton title="Roll Again" icon="dice-multiple" onPress={onRollAgain} color="orange" />
                     ) : (
-                      <Button title="End Turn" onPress={onEndTurn} color="red" />
+                      <IconButton title="End Turn" icon="check" onPress={onEndTurn} color="#d9534f" />
                     )}
                   </>
                 )}
