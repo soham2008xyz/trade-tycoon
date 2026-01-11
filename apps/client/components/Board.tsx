@@ -183,15 +183,17 @@ export const Board: React.FC<Props> = ({
                 <Text style={styles.sectionTitle}>Players</Text>
                 {players.map((player) => (
                   <View key={player.id} style={styles.playerRow}>
-                    <View style={[styles.playerColor, { backgroundColor: player.color }]} />
-                    <Text
-                      style={[
-                        styles.playerText,
-                        currentPlayer.id === player.id && styles.activePlayerText,
-                      ]}
-                    >
-                      {player.name}: ${player.money}
-                    </Text>
+                    <View style={styles.playerInfo}>
+                      <View style={[styles.playerColor, { backgroundColor: player.color }]} />
+                      <Text
+                        style={[
+                          styles.playerText,
+                          currentPlayer.id === player.id && styles.activePlayerText,
+                        ]}
+                      >
+                        {player.name} (${player.money})
+                      </Text>
+                    </View>
                     {player.id !== currentPlayer.id && (
                       <View style={{ marginLeft: 10 }}>
                         <IconButton
@@ -467,8 +469,12 @@ const styles = StyleSheet.create({
   playerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
-    justifyContent: 'center',
+    marginBottom: 4,
+    justifyContent: 'space-between',
+  },
+  playerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   playerColor: {
     width: 12,
