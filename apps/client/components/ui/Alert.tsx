@@ -24,12 +24,7 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({ visible, options, onCl
   if (!visible || !options) return null;
 
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.alertBox}>
           <Text style={styles.title}>{options.title}</Text>
@@ -45,7 +40,13 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({ visible, options, onCl
                   }
                   onClose();
                 }}
-                color={btn.style === 'destructive' ? '#f44336' : btn.style === 'cancel' ? '#9e9e9e' : '#2196F3'}
+                color={
+                  btn.style === 'destructive'
+                    ? '#f44336'
+                    : btn.style === 'cancel'
+                      ? '#9e9e9e'
+                      : '#2196F3'
+                }
                 style={styles.button}
                 size="medium"
               />
@@ -72,10 +73,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
   },
   title: {
     fontSize: 20,
