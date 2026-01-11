@@ -3,6 +3,7 @@ import { View, StyleSheet, useWindowDimensions, Text, Button } from 'react-nativ
 import { BOARD, Player, Tile as TileType } from '@trade-tycoon/game-logic';
 import { Tile } from './Tile';
 import { PropertyManager } from './PropertyManager';
+import { AuctionModal } from './AuctionModal';
 
 const CORNER_SIZE_PCT = 14;
 
@@ -12,10 +13,14 @@ interface Props {
   currentTile: TileType | null;
   dice: [number, number];
   doublesCount: number;
-  phase: 'roll' | 'action' | 'end';
+  phase: 'roll' | 'action' | 'end' | 'auction';
+  auction?: import('@trade-tycoon/game-logic').AuctionState | null;
   canBuy: boolean;
   onRoll: () => void;
   onBuy: () => void;
+  onDeclineBuy: () => void;
+  onBid: (playerId: string, amount: number) => void;
+  onConcedeAuction: (playerId: string) => void;
   onEndTurn: () => void;
   onRollAgain: () => void;
   onBuild: (propertyId: string) => void;
@@ -36,9 +41,13 @@ export const Board: React.FC<Props> = ({
   dice,
   doublesCount,
   phase,
+  auction,
   canBuy,
   onRoll,
   onBuy,
+  onDeclineBuy,
+  onBid,
+  onConcedeAuction,
   onEndTurn,
   onRollAgain,
   onBuild,
@@ -211,11 +220,20 @@ export const Board: React.FC<Props> = ({
 
                 {phase === 'action' && (
                   <>
-                    <Button
-                      title={`Buy ($${currentTile?.price || 0})`}
-                      onPress={onBuy}
-                      disabled={!canBuy}
-                    />
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                      <Button
+                        title={`Buy ($${currentTile?.price || 0})`}
+                        onPress={onBuy}
+                        disabled={!canBuy}
+                      />
+                      {canBuy && (
+                        <Button
+                          title="Auction"
+                          onPress={onDeclineBuy}
+                          color="#f0ad4e"
+                        />
+                      )}
+                    </View>
                     {doublesCount === 0 && (
                       <Button
                         title="Manage Properties"
@@ -235,6 +253,14 @@ export const Board: React.FC<Props> = ({
           )}
         </View>
       </View>
+
+      <AuctionModal
+        visible={phase === 'auction'}
+        auction={auction || null}
+        players={players}
+        onBid={onBid}
+        onConcede={onConcedeAuction}
+      />
 
       {/* Property Manager Modal */}
       {currentPlayer && (
