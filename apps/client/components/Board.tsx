@@ -225,29 +225,21 @@ export const Board: React.FC<Props> = ({
 
                 {phase === 'action' && (
                   <>
-                    <View
-                      style={{ flexDirection: 'row', gap: 5, width: '100%' }}
-                    >
-                      {canBuy && (
-                        <View style={{ flex: 1 }}>
-                          <IconButton
-                            title={`Buy ($${currentTile?.price || 0})`}
-                            icon="cart"
-                            onPress={onBuy}
-                          />
-                        </View>
-                      )}
-                      {canAuction && (
-                        <View style={{ flex: 1 }}>
-                          <IconButton
-                            title="Auction"
-                            icon="gavel"
-                            onPress={onDeclineBuy}
-                            color="#f0ad4e"
-                          />
-                        </View>
-                      )}
-                    </View>
+                    {canBuy && (
+                      <IconButton
+                        title={`Buy ($${currentTile?.price || 0})`}
+                        icon="cart"
+                        onPress={onBuy}
+                      />
+                    )}
+                    {canAuction && (
+                      <IconButton
+                        title="Auction"
+                        icon="gavel"
+                        onPress={onDeclineBuy}
+                        color="#f0ad4e"
+                      />
+                    )}
                     {doublesCount === 0 && (
                       <IconButton
                         title="Manage Properties"
