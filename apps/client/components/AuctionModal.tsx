@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     width: '95%',
     maxHeight: '90%',
     backgroundColor: 'white',
-    borderRadius: 10,
+    borderRadius: 12,
     boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
     elevation: 5,
     overflow: 'hidden', // Ensure content doesn't spill out of rounded corners

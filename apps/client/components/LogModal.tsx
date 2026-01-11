@@ -64,10 +64,12 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 600,
     backgroundColor: 'white',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 20,
-    maxHeight: '80%',
-    flex: 1,
+    maxHeight: '90%',
+    flex: 0, // Changed from flex: 1 to allow it to shrink
+    elevation: 5,
+    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
   },
   header: {
     flexDirection: 'row',

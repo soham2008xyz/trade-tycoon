@@ -134,9 +134,11 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 500,
     backgroundColor: 'white',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 20,
-    maxHeight: '80%',
+    maxHeight: '90%',
+    elevation: 5,
+    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
   },
   title: {
     fontSize: 24,

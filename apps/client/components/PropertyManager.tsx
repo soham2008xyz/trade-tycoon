@@ -214,11 +214,13 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: 'white',
-    borderRadius: 10,
+    borderRadius: 12,
     width: '100%',
     maxWidth: 500,
-    maxHeight: '80%',
+    maxHeight: '90%',
     padding: 20,
+    elevation: 5,
+    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
   },
   header: {
     flexDirection: 'row',
