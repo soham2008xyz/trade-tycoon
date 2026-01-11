@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, Button, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Modal, ScrollView } from 'react-native';
 import { Player, BOARD, Tile, ownsCompleteGroup, getPropertiesInGroup, PropertyGroup } from '@trade-tycoon/game-logic';
+import { IconButton } from './ui/IconButton';
 
 interface Props {
   visible: boolean;
@@ -120,38 +121,44 @@ export const PropertyManager: React.FC<Props> = ({
                               {/* Build/Sell Houses (Only for Streets) */}
                               {tile.type === 'street' && !isMortgaged && (
                                 <>
-                                  <Button
-                                    title={`Build ($${houseCost})`}
+                                  <IconButton
+                                    title={`Build House ($${houseCost})`}
+                                    icon="home-plus"
                                     onPress={() => onBuild(tile.id)}
                                     disabled={
                                       player.money < houseCost || houses >= 5 || !hasCompleteGroup
                                     }
+                                    size="small"
                                   />
-                                  <View style={{ width: 8 }} />
-                                  <Button
-                                    title={`Sell ($${houseCost / 2})`}
+                                  <IconButton
+                                    title={`Sell House ($${houseCost / 2})`}
+                                    icon="home-minus"
                                     onPress={() => onSell(tile.id)}
                                     color="orange"
                                     disabled={houses <= 0}
+                                    size="small"
                                   />
-                                  <View style={{ width: 8 }} />
                                 </>
                               )}
 
                               {/* Mortgage/Unmortgage */}
                               {!isMortgaged ? (
-                                <Button
+                                <IconButton
                                   title={`Mortgage ($${mortgageValue})`}
+                                  icon="bank-minus"
                                   onPress={() => onMortgage(tile.id)}
-                                  color="red"
+                                  color="#d9534f"
                                   disabled={houses > 0 || groupHasHouses}
+                                  size="small"
                                 />
                               ) : (
-                                <Button
+                                <IconButton
                                   title={`Unmortgage ($${unmortgageCost})`}
+                                  icon="bank-plus"
                                   onPress={() => onUnmortgage(tile.id)}
-                                  color="green"
+                                  color="#5cb85c"
                                   disabled={player.money < unmortgageCost}
+                                  size="small"
                                 />
                               )}
                             </View>
@@ -165,7 +172,7 @@ export const PropertyManager: React.FC<Props> = ({
           </ScrollView>
 
           <View style={styles.footer}>
-            <Button title="Close" onPress={onClose} />
+            <IconButton title="Close" icon="close" onPress={onClose} color="#666" />
           </View>
         </View>
       </View>
@@ -238,6 +245,7 @@ const styles = StyleSheet.create({
   },
   propertyInfo: {
     flex: 1,
+    marginRight: 10,
   },
   propertyName: {
     fontSize: 14,
@@ -252,7 +260,9 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   buttons: {
-    flexDirection: 'row',
+    flexDirection: 'column',
+    gap: 5,
+    minWidth: 140,
   },
   footer: {
     marginTop: 10,

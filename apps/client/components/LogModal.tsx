@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, ScrollView, Button } from 'react-native';
+import { View, Text, StyleSheet, Modal, ScrollView } from 'react-native';
 import { Player } from '@trade-tycoon/game-logic';
+import { IconButton } from './ui/IconButton';
 
 interface Props {
   visible: boolean;
@@ -42,7 +43,7 @@ export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose }) =
           </ScrollView>
 
           <View style={styles.footer}>
-            <Button title="Close" onPress={onClose} />
+            <IconButton title="Close" icon="close" onPress={onClose} />
           </View>
         </View>
       </View>

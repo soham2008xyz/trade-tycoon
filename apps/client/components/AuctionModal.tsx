@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, Button, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Modal, ScrollView, SafeAreaView } from 'react-native';
 import { AuctionState, Player, BOARD } from '@trade-tycoon/game-logic';
+import { IconButton } from './ui/IconButton';
 
 interface Props {
   visible: boolean;
@@ -73,21 +74,25 @@ export const AuctionModal: React.FC<Props> = ({
 
                       return (
                         <View key={inc} style={styles.buttonWrapper}>
-                            <Button
-                            title={`+${inc}`}
-                            onPress={() => onBid(playerId, bidAmount)}
-                            disabled={disabled}
+                            <IconButton
+                              title={`+${inc}`}
+                              icon="arrow-up-bold"
+                              onPress={() => onBid(playerId, bidAmount)}
+                              disabled={disabled}
+                              size="small"
                             />
                         </View>
                       );
                     })}
                   </View>
                   <View style={styles.foldButton}>
-                    <Button
+                    <IconButton
                         title="Fold"
+                        icon="close-circle"
                         onPress={() => onConcede(playerId)}
-                        color="red"
+                        color="#d9534f"
                         disabled={!isTurn || isHighestBidder}
+                        size="small"
                     />
                   </View>
                 </View>
