@@ -194,7 +194,12 @@ export const Board: React.FC<Props> = ({
                     </Text>
                     {player.id !== currentPlayer.id && (
                       <View style={{ marginLeft: 10 }}>
-                        <Button title="Trade" onPress={() => setTradeTargetId(player.id)} compact />
+                        <IconButton
+                          title="Trade"
+                          icon="handshake"
+                          onPress={() => setTradeTargetId(player.id)}
+                          size="small"
+                        />
                       </View>
                     )}
                   </View>

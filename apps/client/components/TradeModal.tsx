@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, StyleSheet, TextInput, ScrollView, Button, TouchableOpacity } from 'react-native';
+import { View, Text, Modal, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { Player, TradeOffer, TradeRequest, BOARD } from '@trade-tycoon/game-logic';
+import { IconButton } from './ui/IconButton';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface Props {
   visible: boolean;
@@ -51,16 +53,9 @@ export const TradeModal: React.FC<Props> = ({
   }, [visible, activeTrade]);
 
   // View: Show Offer (Accept/Reject)
-  // Since this is local multiplayer, we show this immediately to "pass the device"
   if (activeTrade) {
     const tradeInitiator = players.find(p => p.id === activeTrade.initiatorId);
     const tradeTarget = players.find(p => p.id === activeTrade.targetPlayerId);
-
-    // If I am the initiator looking at my own pending trade, I can Cancel.
-    // But typically in hotseat, we show the Target view immediately.
-    // However, let's offer a Cancel button if for some reason we are stuck or it's just "Active Trade" status.
-    // Actually, simply showing the Accept/Reject screen to the Target is the best "Pass N Play" flow.
-    // We add a "Cancel (Initiator)" button just in case.
 
     return (
       <Modal visible={visible} transparent animationType="slide">
@@ -94,11 +89,27 @@ export const TradeModal: React.FC<Props> = ({
             </View>
 
             <View style={styles.buttonRow}>
-              <Button title="Accept Trade" onPress={() => onAccept(activeTrade.id)} color="green" />
-              <Button title="Reject Trade" onPress={() => onReject(activeTrade.id)} color="red" />
+              <IconButton
+                title="Accept"
+                icon="check"
+                onPress={() => onAccept(activeTrade.id)}
+                color="green"
+              />
+              <IconButton
+                title="Reject"
+                icon="close"
+                onPress={() => onReject(activeTrade.id)}
+                color="red"
+              />
             </View>
-             <View style={{ marginTop: 20 }}>
-                <Button title={`Cancel (by ${tradeInitiator?.name})`} onPress={() => onCancel(activeTrade.id)} color="gray" />
+             <View style={{ marginTop: 20, alignItems: 'center' }}>
+                <IconButton
+                  title={`Cancel (by ${tradeInitiator?.name})`}
+                  icon="close-circle"
+                  onPress={() => onCancel(activeTrade.id)}
+                  color="#666"
+                  size="small"
+                />
             </View>
           </View>
         </View>
@@ -107,7 +118,7 @@ export const TradeModal: React.FC<Props> = ({
   }
 
   // View: Propose New Trade
-  if (!initiator || !target) return null; // Should not happen if visible is true
+  if (!initiator || !target) return null;
 
   const toggleOfferProp = (id: string) => {
     if (offerProps.includes(id)) {
@@ -134,8 +145,6 @@ export const TradeModal: React.FC<Props> = ({
         properties: offerProps,
         getOutOfJailCards: offerCards
     };
-    // Note: onPropose signature in props asks for (targetId, offer, requestBody)
-    // where requestBody is TradeOffer type.
     onPropose(target.id, offer, {
         money: moneyReq,
         properties: reqProps,
@@ -143,7 +152,6 @@ export const TradeModal: React.FC<Props> = ({
     });
   };
 
-  // Safe Input Helpers (Preventative)
   const setSafeOfferMoney = (text: string) => {
       const val = parseInt(text) || 0;
       if (val > initiator.money) {
@@ -168,7 +176,15 @@ export const TradeModal: React.FC<Props> = ({
         <View style={styles.modalContent}>
             <View style={styles.headerRow}>
                 <Text style={styles.title}>Propose Trade to {target.name}</Text>
-                <TouchableOpacity onPress={onClose}><Text style={styles.closeBtn}>X</Text></TouchableOpacity>
+                <IconButton
+                  title=""
+                  icon="close"
+                  onPress={onClose}
+                  color="transparent"
+                  textColor="#333"
+                  size="small"
+                  style={{ elevation: 0, paddingHorizontal: 0, paddingVertical: 0 }}
+                />
             </View>
 
             <ScrollView style={styles.scrollArea}>
@@ -190,8 +206,8 @@ export const TradeModal: React.FC<Props> = ({
                              <View style={styles.row}>
                                 <Text>GOOJ Cards ({offerCards}/{initiator.getOutOfJailCards})</Text>
                                 <View style={styles.stepper}>
-                                    <Button title="-" onPress={() => setOfferCards(Math.max(0, offerCards - 1))} />
-                                    <Button title="+" onPress={() => setOfferCards(Math.min(initiator.getOutOfJailCards, offerCards + 1))} />
+                                    <IconButton title="" icon="minus" onPress={() => setOfferCards(Math.max(0, offerCards - 1))} size="small" style={styles.stepperBtn} color="#eee" textColor="#333" />
+                                    <IconButton title="" icon="plus" onPress={() => setOfferCards(Math.min(initiator.getOutOfJailCards, offerCards + 1))} size="small" style={styles.stepperBtn} color="#eee" textColor="#333" />
                                 </View>
                              </View>
                         )}
@@ -200,10 +216,15 @@ export const TradeModal: React.FC<Props> = ({
                         {initiator.properties.length === 0 && <Text style={styles.emptyText}>None</Text>}
                         {initiator.properties.map(id => {
                             const tile = BOARD.find(t => t.id === id);
+                            const isChecked = offerProps.includes(id);
                             return (
                                 <TouchableOpacity key={id} onPress={() => toggleOfferProp(id)} style={styles.checkRow}>
-                                    <View style={[styles.checkbox, offerProps.includes(id) && styles.checked]} />
-                                    <Text>{tile?.name}</Text>
+                                    <MaterialCommunityIcons
+                                        name={isChecked ? "checkbox-marked" : "checkbox-blank-outline"}
+                                        size={24}
+                                        color={isChecked ? "#4CAF50" : "#666"}
+                                    />
+                                    <Text style={styles.propText}>{tile?.name}</Text>
                                 </TouchableOpacity>
                             );
                         })}
@@ -229,8 +250,8 @@ export const TradeModal: React.FC<Props> = ({
                              <View style={styles.row}>
                                 <Text>GOOJ Cards ({reqCards}/{target.getOutOfJailCards})</Text>
                                 <View style={styles.stepper}>
-                                    <Button title="-" onPress={() => setReqCards(Math.max(0, reqCards - 1))} />
-                                    <Button title="+" onPress={() => setReqCards(Math.min(target.getOutOfJailCards, reqCards + 1))} />
+                                    <IconButton title="" icon="minus" onPress={() => setReqCards(Math.max(0, reqCards - 1))} size="small" style={styles.stepperBtn} color="#eee" textColor="#333" />
+                                    <IconButton title="" icon="plus" onPress={() => setReqCards(Math.min(target.getOutOfJailCards, reqCards + 1))} size="small" style={styles.stepperBtn} color="#eee" textColor="#333" />
                                 </View>
                              </View>
                         )}
@@ -239,10 +260,15 @@ export const TradeModal: React.FC<Props> = ({
                         {target.properties.length === 0 && <Text style={styles.emptyText}>None</Text>}
                         {target.properties.map(id => {
                             const tile = BOARD.find(t => t.id === id);
+                            const isChecked = reqProps.includes(id);
                             return (
                                 <TouchableOpacity key={id} onPress={() => toggleReqProp(id)} style={styles.checkRow}>
-                                    <View style={[styles.checkbox, reqProps.includes(id) && styles.checked]} />
-                                    <Text>{tile?.name}</Text>
+                                    <MaterialCommunityIcons
+                                        name={isChecked ? "checkbox-marked" : "checkbox-blank-outline"}
+                                        size={24}
+                                        color={isChecked ? "#4CAF50" : "#666"}
+                                    />
+                                    <Text style={styles.propText}>{tile?.name}</Text>
                                 </TouchableOpacity>
                             );
                         })}
@@ -251,9 +277,9 @@ export const TradeModal: React.FC<Props> = ({
             </ScrollView>
 
             <View style={styles.footer}>
-                <Button title="Propose Trade" onPress={handlePropose} />
+                <IconButton title="Propose" icon="handshake" onPress={handlePropose} />
                 <View style={{ width: 10 }} />
-                <Button title="Cancel" onPress={onClose} color="gray" />
+                <IconButton title="Cancel" icon="close" onPress={onClose} color="#666" />
             </View>
         </View>
       </View>
@@ -269,8 +295,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    width: '90%',
-    maxHeight: '80%',
+    width: '95%',
+    maxHeight: '90%',
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 20,
@@ -290,17 +316,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
+    flex: 1,
   },
   headerSubtitle: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 10,
     fontStyle: 'italic',
-  },
-  closeBtn: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#666',
   },
   scrollArea: {
     flexGrow: 0,
@@ -339,8 +361,14 @@ const styles = StyleSheet.create({
   stepper: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: 80,
+    width: 90,
     marginTop: 5,
+  },
+  stepperBtn: {
+    width: 40,
+    height: 30,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   propHeader: {
     fontWeight: 'bold',
@@ -357,18 +385,11 @@ const styles = StyleSheet.create({
   checkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: 8,
   },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
-    borderColor: '#333',
-    marginRight: 10,
-    backgroundColor: 'white',
-  },
-  checked: {
-    backgroundColor: '#4CAF50',
+  propText: {
+    marginLeft: 8,
+    flexShrink: 1,
   },
   buttonRow: {
     flexDirection: 'row',
