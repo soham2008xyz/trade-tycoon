@@ -130,7 +130,6 @@ export const PropertyManager: React.FC<Props> = ({
                                     }
                                     size="small"
                                   />
-                                  <View style={{ width: 8 }} />
                                   <IconButton
                                     title={`Sell House ($${houseCost / 2})`}
                                     icon="home-minus"
@@ -139,7 +138,6 @@ export const PropertyManager: React.FC<Props> = ({
                                     disabled={houses <= 0}
                                     size="small"
                                   />
-                                  <View style={{ width: 8 }} />
                                 </>
                               )}
 
@@ -247,6 +245,7 @@ const styles = StyleSheet.create({
   },
   propertyInfo: {
     flex: 1,
+    marginRight: 10,
   },
   propertyName: {
     fontSize: 14,
@@ -261,7 +260,9 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   buttons: {
-    flexDirection: 'row',
+    flexDirection: 'column',
+    gap: 5,
+    minWidth: 140,
   },
   footer: {
     marginTop: 10,
