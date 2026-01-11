@@ -13,7 +13,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 - [x] **Player Registration**: Support for 2-8 players with custom names (via GameSetup modal).
 - [x] **Token Selection**: Players can select distinct colors/tokens.
 - [x] **Starting Balance**: Each player starts with $1500.
-- [~] **Turn Order**: Sequential based on registration order (Randomization not implemented).
+- [ ] **Turn Order**: Sequential based on registration order (Randomization not implemented).
 
 ## 2. Board & Tokens
 
@@ -34,26 +34,26 @@ This document tracks the implementation status of features for the Trade Tycoon 
 ## 4. Property Management
 
 - [x] **Buying**: Buy unowned properties at listed price.
-- [ ] **Auctions**: Auction unowned properties if declined by landing player.
-- [~] **Rent**:
+- [x] **Auctions**: Auction unowned properties if declined by landing player.
+- [x] **Rent**:
   - [x] Pay rent to owner upon landing.
-  - [ ] Double rent for complete color sets (unimproved).
-  - [~] Railroad/Utility rent calculation logic (MVP uses base rent).
-- [ ] **Building**:
-  - [ ] Build Houses (up to 4) on complete color sets.
-  - [ ] Build Hotels (after 4 houses).
-- [ ] **Mortgages**:
-  - [ ] **Action**: Mortgage owned property for 50% of its value during player's turn.
-  - [ ] **Restriction**: Cannot mortgage if buildings exist on the property (must sell buildings first).
-  - [ ] **Effect**: No rent can be collected on mortgaged properties.
-  - [ ] **Visuals**: Mortgaged properties appear visually distinct (e.g., grayed out or flipped).
-  - [ ] **Unmortgage**: Lift mortgage by paying mortgage value + 10% interest.
-- [ ] **Trading**:
-  - [ ] **Offer**: Initiate trade with another player during turn.
-  - [ ] **Content**: Trade combination of Cash and Properties.
-  - [ ] **Flow**:
+  - [x] Double rent for complete color sets (unimproved).
+  - [x] Railroad/Utility rent calculation logic.
+- [x] **Building**:
+  - [x] Build Houses (up to 4) on complete color sets.
+  - [x] Build Hotels (after 4 houses).
+- [x] **Mortgages**:
+  - [x] **Action**: Mortgage owned property for 50% of its value during player's turn.
+  - [x] **Restriction**: Cannot mortgage if buildings exist on the property (must sell buildings first).
+  - [x] **Effect**: No rent can be collected on mortgaged properties.
+  - [x] **Visuals**: Mortgaged properties appear visually distinct (e.g., grayed out or flipped).
+  - [x] **Unmortgage**: Lift mortgage by paying mortgage value + 10% interest.
+- [x] **Trading**:
+  - [x] **Offer**: Initiate trade with another player during turn.
+  - [x] **Content**: Trade combination of Cash and Properties.
+  - [x] **Flow**:
     - Propose trade -> Counter-party reviews -> Accept/Decline.
-  - [ ] **Validation**: Ensure trade is valid (assets owned, sufficient funds).
+  - [x] **Validation**: Ensure trade is valid (assets owned, sufficient funds).
 
 ## 5. Special Spaces & Cards
 
@@ -73,7 +73,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 
 ## 6. End Game
 
-- [~] **Bankruptcy**:
-  - [~] Handle insufficient funds (Money goes negative, logic incomplete).
-  - [ ] Transfer assets to creditor or bank.
-- [ ] **Winner Declaration**: Last player remaining wins.
+- [x] **Bankruptcy**:
+  - [x] Handle insufficient funds (Money goes negative, assets forfeited).
+  - [x] Transfer assets to bank.
+- [x] **Winner Declaration**: Last player remaining wins.
