@@ -47,7 +47,7 @@ describe('processCardEffect', () => {
   });
 
   it('should handle no houses/hotels correctly (0 cost)', () => {
-     const playerNoHouses: Player = {
+    const playerNoHouses: Player = {
       ...mockPlayer,
       houses: {},
     };

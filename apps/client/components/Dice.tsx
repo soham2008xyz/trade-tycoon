@@ -7,7 +7,7 @@ import Animated, {
   withSequence,
   withTiming,
   withSpring,
-  Easing
+  Easing,
 } from 'react-native-reanimated';
 
 interface DiceProps {
@@ -20,17 +20,29 @@ interface DiceProps {
 // Map numbers to dice icon names
 const getDiceIconName = (value: number): keyof typeof MaterialCommunityIcons.glyphMap => {
   switch (value) {
-    case 1: return 'dice-1';
-    case 2: return 'dice-2';
-    case 3: return 'dice-3';
-    case 4: return 'dice-4';
-    case 5: return 'dice-5';
-    case 6: return 'dice-6';
-    default: return 'dice-multiple'; // Fallback
+    case 1:
+      return 'dice-1';
+    case 2:
+      return 'dice-2';
+    case 3:
+      return 'dice-3';
+    case 4:
+      return 'dice-4';
+    case 5:
+      return 'dice-5';
+    case 6:
+      return 'dice-6';
+    default:
+      return 'dice-multiple'; // Fallback
   }
 };
 
-const Die: React.FC<{ value: number; size: number; color: string; delay?: number }> = ({ value, size, color, delay = 0 }) => {
+const Die: React.FC<{ value: number; size: number; color: string; delay?: number }> = ({
+  value,
+  size,
+  color,
+  delay = 0,
+}) => {
   const rotation = useSharedValue(0);
   const scale = useSharedValue(1);
 
@@ -41,20 +53,14 @@ const Die: React.FC<{ value: number; size: number; color: string; delay?: number
 
     // Animate
     rotation.value = withSequence(
-      withTiming(360, { duration: 500, easing: Easing.out(Easing.cubic) }),
+      withTiming(360, { duration: 500, easing: Easing.out(Easing.cubic) })
     );
-    scale.value = withSequence(
-      withTiming(1.2, { duration: 250 }),
-      withSpring(1)
-    );
+    scale.value = withSequence(withTiming(1.2, { duration: 250 }), withSpring(1));
   }, [value]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [
-        { rotate: `${rotation.value}deg` },
-        { scale: scale.value }
-      ],
+      transform: [{ rotate: `${rotation.value}deg` }, { scale: scale.value }],
     };
   });
 

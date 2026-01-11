@@ -5,9 +5,7 @@ const buildSW = async () => {
   try {
     const { count, size, warnings } = await workboxBuild.generateSW({
       globDirectory: 'dist',
-      globPatterns: [
-        '**/*.{html,json,js,css,png,jpg,svg}'
-      ],
+      globPatterns: ['**/*.{html,json,js,css,png,jpg,svg}'],
       swDest: 'dist/sw.js',
       // Skip precaching files that are too big
       maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
@@ -22,7 +20,9 @@ const buildSW = async () => {
       console.warn('Warnings encountered while generating SW:', warnings.join('\n'));
     }
 
-    console.log(`Generated service worker, which will precache ${count} files, totaling ${size} bytes.`);
+    console.log(
+      `Generated service worker, which will precache ${count} files, totaling ${size} bytes.`
+    );
   } catch (error) {
     console.error('Error generating service worker:', error);
     process.exit(1);

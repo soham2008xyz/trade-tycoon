@@ -39,7 +39,7 @@ export const processCardEffect = (
         }
       });
 
-      const totalCost = (houses * card.action.houseCost) + (hotels * card.action.hotelCost);
+      const totalCost = houses * card.action.houseCost + hotels * card.action.hotelCost;
       newPlayer.money -= totalCost;
       break;
     }

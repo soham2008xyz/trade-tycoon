@@ -94,7 +94,7 @@ describe('Auction and Trade Logic', () => {
 
       // P2 tries to bid out of turn
       const newState = gameReducer(state, { type: 'PLACE_BID', playerId: 'p2', amount: 10 });
-      expect(newState.errorMessage).toBe("It is not your turn to bid.");
+      expect(newState.errorMessage).toBe('It is not your turn to bid.');
       expect(newState.auction?.currentBid).toBe(0);
     });
 
@@ -151,9 +151,9 @@ describe('Auction and Trade Logic', () => {
     });
 
     it('should allow last player to win by bidding if they were alone', () => {
-       // Scenario: P1, P2. P2 concedes immediately without bidding.
-       // P1 is left alone but hasn't bid.
-       // P1 should be able to bid to win.
+      // Scenario: P1, P2. P2 concedes immediately without bidding.
+      // P1 is left alone but hasn't bid.
+      // P1 should be able to bid to win.
       const state = createMockState([p1, p2]);
       state.phase = 'auction';
       state.auction = {
@@ -192,7 +192,7 @@ describe('Auction and Trade Logic', () => {
         playerId: 'p1',
         targetPlayerId: 'p2',
         offer,
-        request
+        request,
       });
 
       expect(newState.activeTrade).not.toBeNull();
@@ -212,7 +212,7 @@ describe('Auction and Trade Logic', () => {
         playerId: 'p1',
         targetPlayerId: 'p2',
         offer,
-        request
+        request,
       });
 
       expect(newState.activeTrade).toBeNull();
@@ -231,7 +231,7 @@ describe('Auction and Trade Logic', () => {
         playerId: 'p1',
         targetPlayerId: 'p2',
         offer,
-        request
+        request,
       });
 
       expect(newState.activeTrade).toBeNull();
@@ -255,7 +255,7 @@ describe('Auction and Trade Logic', () => {
         targetPlayerId: 'p2',
         offer,
         request,
-        status: 'pending'
+        status: 'pending',
       };
 
       const newState = gameReducer(state, { type: 'ACCEPT_TRADE', playerId: 'p2' });
@@ -274,68 +274,68 @@ describe('Auction and Trade Logic', () => {
     });
 
     it('should transfer mortgaged status correctly during trade', () => {
-        p1.money = 1000;
-        p2.money = 1000;
-        p1.properties = ['mediterranean'];
-        p1.mortgaged = ['mediterranean']; // Mortgaged
-        const state = createMockState([p1, p2]);
+      p1.money = 1000;
+      p2.money = 1000;
+      p1.properties = ['mediterranean'];
+      p1.mortgaged = ['mediterranean']; // Mortgaged
+      const state = createMockState([p1, p2]);
 
-        const offer = { money: 0, properties: ['mediterranean'], getOutOfJailCards: 0 };
-        const request = { money: 0, properties: [], getOutOfJailCards: 0 };
+      const offer = { money: 0, properties: ['mediterranean'], getOutOfJailCards: 0 };
+      const request = { money: 0, properties: [], getOutOfJailCards: 0 };
 
-        // Set active trade manually
-        state.activeTrade = {
-          id: 'test',
-          initiatorId: 'p1',
-          targetPlayerId: 'p2',
-          offer,
-          request,
-          status: 'pending'
-        };
+      // Set active trade manually
+      state.activeTrade = {
+        id: 'test',
+        initiatorId: 'p1',
+        targetPlayerId: 'p2',
+        offer,
+        request,
+        status: 'pending',
+      };
 
-        const newState = gameReducer(state, { type: 'ACCEPT_TRADE', playerId: 'p2' });
+      const newState = gameReducer(state, { type: 'ACCEPT_TRADE', playerId: 'p2' });
 
-        expect(newState.activeTrade).toBeNull();
+      expect(newState.activeTrade).toBeNull();
 
-        // P1 should not have it
-        expect(newState.players[0].properties).not.toContain('mediterranean');
-        expect(newState.players[0].mortgaged).not.toContain('mediterranean');
+      // P1 should not have it
+      expect(newState.players[0].properties).not.toContain('mediterranean');
+      expect(newState.players[0].mortgaged).not.toContain('mediterranean');
 
-        // P2 should have it and it should be mortgaged
-        expect(newState.players[1].properties).toContain('mediterranean');
-        expect(newState.players[1].mortgaged).toContain('mediterranean');
+      // P2 should have it and it should be mortgaged
+      expect(newState.players[1].properties).toContain('mediterranean');
+      expect(newState.players[1].mortgaged).toContain('mediterranean');
     });
 
     it('should cancel trade', () => {
-        const state = createMockState([p1, p2]);
-        state.activeTrade = {
-            id: 'test',
-            initiatorId: 'p1',
-            targetPlayerId: 'p2',
-            offer: { money: 0, properties: [], getOutOfJailCards: 0 },
-            request: { money: 0, properties: [], getOutOfJailCards: 0 },
-            status: 'pending'
-        };
+      const state = createMockState([p1, p2]);
+      state.activeTrade = {
+        id: 'test',
+        initiatorId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+        status: 'pending',
+      };
 
-        const newState = gameReducer(state, { type: 'CANCEL_TRADE', playerId: 'p1' });
-        expect(newState.activeTrade).toBeNull();
-        expect(newState.toastMessage).toBe('Trade cancelled.');
+      const newState = gameReducer(state, { type: 'CANCEL_TRADE', playerId: 'p1' });
+      expect(newState.activeTrade).toBeNull();
+      expect(newState.toastMessage).toBe('Trade cancelled.');
     });
 
     it('should reject trade', () => {
-        const state = createMockState([p1, p2]);
-        state.activeTrade = {
-            id: 'test',
-            initiatorId: 'p1',
-            targetPlayerId: 'p2',
-            offer: { money: 0, properties: [], getOutOfJailCards: 0 },
-            request: { money: 0, properties: [], getOutOfJailCards: 0 },
-            status: 'pending'
-        };
+      const state = createMockState([p1, p2]);
+      state.activeTrade = {
+        id: 'test',
+        initiatorId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+        status: 'pending',
+      };
 
-        const newState = gameReducer(state, { type: 'REJECT_TRADE', playerId: 'p2' });
-        expect(newState.activeTrade).toBeNull();
-        expect(newState.toastMessage).toBe('Trade rejected.');
+      const newState = gameReducer(state, { type: 'REJECT_TRADE', playerId: 'p2' });
+      expect(newState.activeTrade).toBeNull();
+      expect(newState.toastMessage).toBe('Trade rejected.');
     });
   });
 });

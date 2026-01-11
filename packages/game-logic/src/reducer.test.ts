@@ -358,7 +358,7 @@ describe('Game Reducer', () => {
       });
       expect(newState.players[0].money).toBe(1450); // 1500 - 50
 
-       // p2 owns 4 RRs
+      // p2 owns 4 RRs
       rentState.players[1].properties = ['reading_rr', 'penn_rr', 'bo_rr', 'short_rr'];
       rentState.players[0].money = 1500;
       newState = gameReducer(rentState, {
@@ -418,95 +418,95 @@ describe('Game Reducer', () => {
     let buildState: GameState;
 
     beforeEach(() => {
-        buildState = createInitialState();
-        const p1 = createPlayer('p1', 'Player 1');
-        p1.properties = ['mediterranean', 'baltic']; // Owns brown group
-        p1.money = 1500;
-        buildState.players = [p1];
-        buildState.currentPlayerId = 'p1';
-        buildState.phase = 'action';
+      buildState = createInitialState();
+      const p1 = createPlayer('p1', 'Player 1');
+      p1.properties = ['mediterranean', 'baltic']; // Owns brown group
+      p1.money = 1500;
+      buildState.players = [p1];
+      buildState.currentPlayerId = 'p1';
+      buildState.phase = 'action';
     });
 
     it('should allow building a house if criteria met', () => {
-        // Mediterranean house cost 50
-        const newState = gameReducer(buildState, {
-            type: 'BUILD_HOUSE',
-            playerId: 'p1',
-            propertyId: 'mediterranean',
-        });
+      // Mediterranean house cost 50
+      const newState = gameReducer(buildState, {
+        type: 'BUILD_HOUSE',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
 
-        expect(newState.players[0].houses['mediterranean']).toBe(1);
-        expect(newState.players[0].money).toBe(1450);
-        expect(newState.errorMessage).toBeUndefined();
+      expect(newState.players[0].houses['mediterranean']).toBe(1);
+      expect(newState.players[0].money).toBe(1450);
+      expect(newState.errorMessage).toBeUndefined();
     });
 
     it('should fail if not owner', () => {
-        buildState.players[0].properties = [];
-        const newState = gameReducer(buildState, {
-            type: 'BUILD_HOUSE',
-            playerId: 'p1',
-            propertyId: 'mediterranean',
-        });
-        expect(newState.players[0].houses['mediterranean']).toBeUndefined();
-        expect(newState.errorMessage).toMatch(/own/);
+      buildState.players[0].properties = [];
+      const newState = gameReducer(buildState, {
+        type: 'BUILD_HOUSE',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(newState.players[0].houses['mediterranean']).toBeUndefined();
+      expect(newState.errorMessage).toMatch(/own/);
     });
 
     it('should fail if incomplete group', () => {
-        buildState.players[0].properties = ['mediterranean']; // Missing Baltic
-        const newState = gameReducer(buildState, {
-            type: 'BUILD_HOUSE',
-            playerId: 'p1',
-            propertyId: 'mediterranean',
-        });
-        expect(newState.players[0].houses['mediterranean']).toBeUndefined();
-        expect(newState.errorMessage).toMatch(/complete color group/);
+      buildState.players[0].properties = ['mediterranean']; // Missing Baltic
+      const newState = gameReducer(buildState, {
+        type: 'BUILD_HOUSE',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(newState.players[0].houses['mediterranean']).toBeUndefined();
+      expect(newState.errorMessage).toMatch(/complete color group/);
     });
 
     it('should fail if insufficient funds', () => {
-        buildState.players[0].money = 10;
-        const newState = gameReducer(buildState, {
-            type: 'BUILD_HOUSE',
-            playerId: 'p1',
-            propertyId: 'mediterranean',
-        });
-        expect(newState.players[0].houses['mediterranean']).toBeUndefined();
-        expect(newState.errorMessage).toMatch(/funds/);
+      buildState.players[0].money = 10;
+      const newState = gameReducer(buildState, {
+        type: 'BUILD_HOUSE',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(newState.players[0].houses['mediterranean']).toBeUndefined();
+      expect(newState.errorMessage).toMatch(/funds/);
     });
 
     it('should fail if trying to build unevenly', () => {
-        // Build one on Med
-        buildState.players[0].houses['mediterranean'] = 1;
-        // Try to build another on Med without building on Baltic (Bal=0)
-        const newState = gameReducer(buildState, {
-            type: 'BUILD_HOUSE',
-            playerId: 'p1',
-            propertyId: 'mediterranean',
-        });
-        expect(newState.players[0].houses['mediterranean']).toBe(1);
-        expect(newState.errorMessage).toMatch(/evenly/);
+      // Build one on Med
+      buildState.players[0].houses['mediterranean'] = 1;
+      // Try to build another on Med without building on Baltic (Bal=0)
+      const newState = gameReducer(buildState, {
+        type: 'BUILD_HOUSE',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(newState.players[0].houses['mediterranean']).toBe(1);
+      expect(newState.errorMessage).toMatch(/evenly/);
     });
 
     it('should succeed building evenly', () => {
-        // Build one on Med
-        buildState.players[0].houses['mediterranean'] = 1;
-        // Now build on Baltic
-        const newState = gameReducer(buildState, {
-            type: 'BUILD_HOUSE',
-            playerId: 'p1',
-            propertyId: 'baltic',
-        });
-        expect(newState.players[0].houses['baltic']).toBe(1);
-        expect(newState.errorMessage).toBeUndefined();
+      // Build one on Med
+      buildState.players[0].houses['mediterranean'] = 1;
+      // Now build on Baltic
+      const newState = gameReducer(buildState, {
+        type: 'BUILD_HOUSE',
+        playerId: 'p1',
+        propertyId: 'baltic',
+      });
+      expect(newState.players[0].houses['baltic']).toBe(1);
+      expect(newState.errorMessage).toBeUndefined();
     });
 
     it('should fail if doubles pending', () => {
-        buildState.doublesCount = 1;
-        const newState = gameReducer(buildState, {
-            type: 'BUILD_HOUSE',
-            playerId: 'p1',
-            propertyId: 'mediterranean',
-        });
-        expect(newState.errorMessage).toMatch(/pending double roll/);
+      buildState.doublesCount = 1;
+      const newState = gameReducer(buildState, {
+        type: 'BUILD_HOUSE',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(newState.errorMessage).toMatch(/pending double roll/);
     });
   });
 
@@ -514,50 +514,50 @@ describe('Game Reducer', () => {
     let sellState: GameState;
 
     beforeEach(() => {
-        sellState = createInitialState();
-        const p1 = createPlayer('p1', 'Player 1');
-        p1.properties = ['mediterranean', 'baltic'];
-        p1.houses = { mediterranean: 1, baltic: 1 };
-        sellState.players = [p1];
-        sellState.currentPlayerId = 'p1';
-        sellState.phase = 'action';
+      sellState = createInitialState();
+      const p1 = createPlayer('p1', 'Player 1');
+      p1.properties = ['mediterranean', 'baltic'];
+      p1.houses = { mediterranean: 1, baltic: 1 };
+      sellState.players = [p1];
+      sellState.currentPlayerId = 'p1';
+      sellState.phase = 'action';
     });
 
     it('should sell house for half price', () => {
-        const newState = gameReducer(sellState, {
-            type: 'SELL_HOUSE',
-            playerId: 'p1',
-            propertyId: 'mediterranean',
-        });
+      const newState = gameReducer(sellState, {
+        type: 'SELL_HOUSE',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
 
-        expect(newState.players[0].houses['mediterranean']).toBe(0);
-        expect(newState.players[0].money).toBe(1525); // 1500 + 25 (50/2)
+      expect(newState.players[0].houses['mediterranean']).toBe(0);
+      expect(newState.players[0].money).toBe(1525); // 1500 + 25 (50/2)
     });
 
     it('should fail if no houses', () => {
-        sellState.players[0].houses['mediterranean'] = 0;
-        const newState = gameReducer(sellState, {
-            type: 'SELL_HOUSE',
-            playerId: 'p1',
-            propertyId: 'mediterranean',
-        });
-        expect(newState.errorMessage).toMatch(/No buildings/);
+      sellState.players[0].houses['mediterranean'] = 0;
+      const newState = gameReducer(sellState, {
+        type: 'SELL_HOUSE',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(newState.errorMessage).toMatch(/No buildings/);
     });
 
     it('should fail if selling unevenly', () => {
-        // Med=1, Bal=2. Cannot sell Med because Bal > Med (Wait, Rule is: "You cannot sell a house from a property if any other property in that group has more houses.")
-        // So if Med=1, Bal=2. I want to sell Med. Bal has 2. 2 > 1. Fail.
-        // I must sell Bal first.
-        sellState.players[0].houses['baltic'] = 2;
+      // Med=1, Bal=2. Cannot sell Med because Bal > Med (Wait, Rule is: "You cannot sell a house from a property if any other property in that group has more houses.")
+      // So if Med=1, Bal=2. I want to sell Med. Bal has 2. 2 > 1. Fail.
+      // I must sell Bal first.
+      sellState.players[0].houses['baltic'] = 2;
 
-        const newState = gameReducer(sellState, {
-            type: 'SELL_HOUSE',
-            playerId: 'p1',
-            propertyId: 'mediterranean',
-        });
+      const newState = gameReducer(sellState, {
+        type: 'SELL_HOUSE',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
 
-        expect(newState.players[0].houses['mediterranean']).toBe(1);
-        expect(newState.errorMessage).toMatch(/evenly/);
+      expect(newState.players[0].houses['mediterranean']).toBe(1);
+      expect(newState.errorMessage).toMatch(/evenly/);
     });
   });
 
@@ -1197,139 +1197,138 @@ describe('Game Reducer', () => {
 
     // --- NEW CHEST TESTS ---
     it('should collect money from all players', () => {
-        // Add more players
-        const p2 = createPlayer('p2', 'Player 2');
-        const p3 = createPlayer('p3', 'Player 3');
-        chestState.players = [chestState.players[0], p2, p3];
+      // Add more players
+      const p2 = createPlayer('p2', 'Player 2');
+      const p3 = createPlayer('p3', 'Player 3');
+      chestState.players = [chestState.players[0], p2, p3];
 
-        // Roll 2 (1+1) -> Community Chest (Index 2)
-        // Card Index 6 (Grand Opera, Collect $50 from every player)
-        // 6 / 16 = 0.375
-        const randomSpy = vi.spyOn(Math, 'random');
-        randomSpy.mockReturnValueOnce(0.38);
+      // Roll 2 (1+1) -> Community Chest (Index 2)
+      // Card Index 6 (Grand Opera, Collect $50 from every player)
+      // 6 / 16 = 0.375
+      const randomSpy = vi.spyOn(Math, 'random');
+      randomSpy.mockReturnValueOnce(0.38);
 
-        const newState = gameReducer(chestState, {
-            type: 'ROLL_DICE',
-            playerId: 'p1',
-            die1: 1,
-            die2: 1,
-        });
+      const newState = gameReducer(chestState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 1,
+      });
 
-        // Player 1 collects 50 from p2 and p3 (Total +100)
-        expect(newState.players[0].money).toBe(1600);
-        expect(newState.players[1].money).toBe(1450);
-        expect(newState.players[2].money).toBe(1450);
+      // Player 1 collects 50 from p2 and p3 (Total +100)
+      expect(newState.players[0].money).toBe(1600);
+      expect(newState.players[1].money).toBe(1450);
+      expect(newState.players[2].money).toBe(1450);
 
-        randomSpy.mockRestore();
+      randomSpy.mockRestore();
     });
   });
 
   // --- NEW BANKRUPTCY TEST ---
   describe('Bankruptcy Logic', () => {
-      let brokeState: GameState;
-      beforeEach(() => {
-          brokeState = createInitialState();
-          const p1 = createPlayer('p1', 'Player 1');
-          const p2 = createPlayer('p2', 'Player 2');
-          p1.money = 10; // Very poor
-          p2.properties = ['boardwalk'];
-          p2.houses = { boardwalk: 5 }; // Hotel! Rent is 2000
+    let brokeState: GameState;
+    beforeEach(() => {
+      brokeState = createInitialState();
+      const p1 = createPlayer('p1', 'Player 1');
+      const p2 = createPlayer('p2', 'Player 2');
+      p1.money = 10; // Very poor
+      p2.properties = ['boardwalk'];
+      p2.houses = { boardwalk: 5 }; // Hotel! Rent is 2000
 
-          brokeState.players = [p1, p2];
-          brokeState.currentPlayerId = 'p1';
-          brokeState.phase = 'roll';
+      brokeState.players = [p1, p2];
+      brokeState.currentPlayerId = 'p1';
+      brokeState.phase = 'roll';
+    });
+
+    it('should allow money to go negative', () => {
+      // Player 1 lands on Boardwalk (39).
+      // Start at 30 (Go To Jail), roll 9 (4+5) -> 39
+      brokeState.players[0].position = 30;
+
+      const newState = gameReducer(brokeState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 4,
+        die2: 5,
       });
 
-      it('should allow money to go negative', () => {
-          // Player 1 lands on Boardwalk (39).
-          // Start at 30 (Go To Jail), roll 9 (4+5) -> 39
-          brokeState.players[0].position = 30;
+      // Rent is 2000
+      expect(newState.players[0].money).toBe(10 - 2000); // -1990
+      expect(newState.players[1].money).toBe(1500 + 2000); // 3500
+    });
 
-          const newState = gameReducer(brokeState, {
-              type: 'ROLL_DICE',
-              playerId: 'p1',
-              die1: 4,
-              die2: 5,
-          });
+    it('should block END_TURN if money is negative', () => {
+      brokeState.players[0].money = -500;
+      brokeState.phase = 'action';
 
-          // Rent is 2000
-          expect(newState.players[0].money).toBe(10 - 2000); // -1990
-          expect(newState.players[1].money).toBe(1500 + 2000); // 3500
+      const newState = gameReducer(brokeState, {
+        type: 'END_TURN',
+        playerId: 'p1',
       });
 
-      it('should block END_TURN if money is negative', () => {
-          brokeState.players[0].money = -500;
-          brokeState.phase = 'action';
+      expect(newState.currentPlayerId).toBe('p1'); // Turn did not change
+      expect(newState.errorMessage).toMatch(/negative funds/);
+    });
 
-          const newState = gameReducer(brokeState, {
-              type: 'END_TURN',
-              playerId: 'p1',
-          });
+    it('should remove player and return assets when declaring bankruptcy', () => {
+      // Setup: p1 has negative money, some properties, some houses
+      brokeState.players[0].money = -500;
+      brokeState.players[0].properties = ['mediterranean', 'baltic'];
+      brokeState.players[0].houses = { mediterranean: 1 };
+      brokeState.players[0].mortgaged = ['baltic'];
 
-          expect(newState.currentPlayerId).toBe('p1'); // Turn did not change
-          expect(newState.errorMessage).toMatch(/negative funds/);
+      const newState = gameReducer(brokeState, {
+        type: 'DECLARE_BANKRUPTCY',
+        playerId: 'p1',
       });
 
-      it('should remove player and return assets when declaring bankruptcy', () => {
-          // Setup: p1 has negative money, some properties, some houses
-          brokeState.players[0].money = -500;
-          brokeState.players[0].properties = ['mediterranean', 'baltic'];
-          brokeState.players[0].houses = { mediterranean: 1 };
-          brokeState.players[0].mortgaged = ['baltic'];
+      // Player removed
+      expect(newState.players.length).toBe(1);
+      expect(newState.players[0].id).toBe('p2');
 
-          const newState = gameReducer(brokeState, {
-              type: 'DECLARE_BANKRUPTCY',
-              playerId: 'p1',
-          });
+      // Winner declared (since only 1 left)
+      expect(newState.winner).toBe('p2');
+      expect(newState.currentPlayerId).toBe('p2');
+    });
 
-          // Player removed
-          expect(newState.players.length).toBe(1);
-          expect(newState.players[0].id).toBe('p2');
+    it('should pass turn correctly if multiple players remain', () => {
+      // Add a 3rd player
+      const p3 = createPlayer('p3', 'Player 3');
+      brokeState.players = [brokeState.players[0], brokeState.players[1], p3];
+      // Order: p1, p2, p3
 
-          // Winner declared (since only 1 left)
-          expect(newState.winner).toBe('p2');
-          expect(newState.currentPlayerId).toBe('p2');
+      brokeState.players[0].money = -500;
+
+      const newState = gameReducer(brokeState, {
+        type: 'DECLARE_BANKRUPTCY',
+        playerId: 'p1',
       });
 
-      it('should pass turn correctly if multiple players remain', () => {
-          // Add a 3rd player
-          const p3 = createPlayer('p3', 'Player 3');
-          brokeState.players = [brokeState.players[0], brokeState.players[1], p3];
-          // Order: p1, p2, p3
+      expect(newState.players.length).toBe(2);
+      // New order: p2, p3
+      expect(newState.players[0].id).toBe('p2');
+      expect(newState.players[1].id).toBe('p3');
 
-          brokeState.players[0].money = -500;
+      // Should be p2's turn now
+      expect(newState.currentPlayerId).toBe('p2');
+      expect(newState.winner).toBeNull();
+    });
 
-          const newState = gameReducer(brokeState, {
-              type: 'DECLARE_BANKRUPTCY',
-              playerId: 'p1',
-          });
+    it('should pass turn correctly if non-current player goes bankrupt (rare but possible via card)', () => {
+      // p1 current. p2 goes bankrupt.
+      const p3 = createPlayer('p3', 'Player 3');
+      brokeState.players = [brokeState.players[0], brokeState.players[1], p3];
+      brokeState.currentPlayerId = 'p1';
 
-          expect(newState.players.length).toBe(2);
-          // New order: p2, p3
-          expect(newState.players[0].id).toBe('p2');
-          expect(newState.players[1].id).toBe('p3');
-
-          // Should be p2's turn now
-          expect(newState.currentPlayerId).toBe('p2');
-          expect(newState.winner).toBeNull();
+      // p2 goes bankrupt
+      const newState = gameReducer(brokeState, {
+        type: 'DECLARE_BANKRUPTCY',
+        playerId: 'p2',
       });
 
-      it('should pass turn correctly if non-current player goes bankrupt (rare but possible via card)', () => {
-          // p1 current. p2 goes bankrupt.
-          const p3 = createPlayer('p3', 'Player 3');
-          brokeState.players = [brokeState.players[0], brokeState.players[1], p3];
-          brokeState.currentPlayerId = 'p1';
-
-          // p2 goes bankrupt
-          const newState = gameReducer(brokeState, {
-              type: 'DECLARE_BANKRUPTCY',
-              playerId: 'p2',
-          });
-
-          expect(newState.players.length).toBe(2);
-          // Remaining: p1, p3
-          expect(newState.currentPlayerId).toBe('p1'); // Still p1's turn
-      });
+      expect(newState.players.length).toBe(2);
+      // Remaining: p1, p3
+      expect(newState.currentPlayerId).toBe('p1'); // Still p1's turn
+    });
   });
-
 });

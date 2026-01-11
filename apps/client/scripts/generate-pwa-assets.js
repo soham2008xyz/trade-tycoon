@@ -12,14 +12,10 @@ async function generateAssets() {
   }
 
   // Generate Icons
-  await sharp(INPUT_ICON)
-    .resize(192, 192)
-    .toFile(path.join(PUBLIC_DIR, 'icon-192.png'));
+  await sharp(INPUT_ICON).resize(192, 192).toFile(path.join(PUBLIC_DIR, 'icon-192.png'));
   console.log('Generated icon-192.png');
 
-  await sharp(INPUT_ICON)
-    .resize(512, 512)
-    .toFile(path.join(PUBLIC_DIR, 'icon-512.png'));
+  await sharp(INPUT_ICON).resize(512, 512).toFile(path.join(PUBLIC_DIR, 'icon-512.png'));
   console.log('Generated icon-512.png');
 
   // Resize splash icon for composite
@@ -34,30 +30,30 @@ async function generateAssets() {
       width: 1280,
       height: 720,
       channels: 4,
-      background: { r: 230, g: 244, b: 254, alpha: 1 } // #E6F4FE
-    }
+      background: { r: 230, g: 244, b: 254, alpha: 1 }, // #E6F4FE
+    },
   })
-  .composite([{ input: resizedSplash, gravity: 'center' }])
-  .png()
-  .toFile(path.join(PUBLIC_DIR, 'screenshot-wide.png'));
+    .composite([{ input: resizedSplash, gravity: 'center' }])
+    .png()
+    .toFile(path.join(PUBLIC_DIR, 'screenshot-wide.png'));
   console.log('Generated screenshot-wide.png');
 
-    // Mobile screenshot (e.g. 750x1334)
+  // Mobile screenshot (e.g. 750x1334)
   await sharp({
     create: {
       width: 750,
       height: 1334,
       channels: 4,
-      background: { r: 230, g: 244, b: 254, alpha: 1 } // #E6F4FE
-    }
+      background: { r: 230, g: 244, b: 254, alpha: 1 }, // #E6F4FE
+    },
   })
-  .composite([{ input: resizedSplash, gravity: 'center' }])
-  .png()
-  .toFile(path.join(PUBLIC_DIR, 'screenshot-mobile.png'));
+    .composite([{ input: resizedSplash, gravity: 'center' }])
+    .png()
+    .toFile(path.join(PUBLIC_DIR, 'screenshot-mobile.png'));
   console.log('Generated screenshot-mobile.png');
 }
 
-generateAssets().catch(err => {
+generateAssets().catch((err) => {
   console.error(err);
   process.exit(1);
 });
