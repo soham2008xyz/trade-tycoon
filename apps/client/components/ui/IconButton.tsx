@@ -1,5 +1,14 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, View, TouchableOpacityProps, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  View,
+  TouchableOpacityProps,
+  StyleProp,
+  ViewStyle,
+  TextStyle,
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface IconButtonProps extends TouchableOpacityProps {
@@ -25,36 +34,40 @@ export const IconButton: React.FC<IconButtonProps> = ({
 }) => {
   const getPadding = () => {
     switch (size) {
-      case 'small': return { paddingVertical: 6, paddingHorizontal: 12 };
-      case 'large': return { paddingVertical: 12, paddingHorizontal: 24 };
-      default: return { paddingVertical: 10, paddingHorizontal: 20 };
+      case 'small':
+        return { paddingVertical: 6, paddingHorizontal: 12 };
+      case 'large':
+        return { paddingVertical: 12, paddingHorizontal: 24 };
+      default:
+        return { paddingVertical: 10, paddingHorizontal: 20 };
     }
   };
 
   const getFontSize = () => {
     switch (size) {
-      case 'small': return 12;
-      case 'large': return 18;
-      default: return 14;
+      case 'small':
+        return 12;
+      case 'large':
+        return 18;
+      default:
+        return 14;
     }
   };
 
   const getIconSize = () => {
     switch (size) {
-      case 'small': return 16;
-      case 'large': return 24;
-      default: return 20;
+      case 'small':
+        return 16;
+      case 'large':
+        return 24;
+      default:
+        return 20;
     }
   };
 
   return (
     <TouchableOpacity
-      style={[
-        styles.button,
-        { backgroundColor: disabled ? '#ccc' : color },
-        getPadding(),
-        style,
-      ]}
+      style={[styles.button, { backgroundColor: disabled ? '#ccc' : color }, getPadding(), style]}
       disabled={disabled}
       activeOpacity={0.8}
       {...props}
@@ -65,7 +78,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
             name={icon}
             size={getIconSize()}
             color={disabled ? '#888' : textColor}
-            style={styles.icon}
+            style={title ? styles.icon : undefined}
           />
         )}
         <Text

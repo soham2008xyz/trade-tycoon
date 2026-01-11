@@ -196,15 +196,17 @@ export const TradeModal: React.FC<Props> = ({
           {' '}
           <View style={styles.headerRow}>
             <Text style={styles.title}>Propose Trade to {target.name}</Text>
-            <IconButton
-              title=""
-              icon="close"
-              onPress={onClose}
-              color="transparent"
-              textColor="#333"
-              size="small"
-              style={{ elevation: 0, paddingHorizontal: 0, paddingVertical: 0 }}
-            />
+            <View style={styles.closeButtonContainer}>
+              <IconButton
+                title=""
+                icon="close"
+                onPress={onClose}
+                color="transparent"
+                textColor="#333"
+                size="small"
+                style={{ elevation: 0, paddingHorizontal: 0, paddingVertical: 0 }}
+              />
+            </View>
           </View>
           <ScrollView style={styles.scrollArea}>
             <View style={styles.columns}>
@@ -373,10 +375,18 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    minHeight: 30,
+  },
+  closeButtonContainer: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   title: {
     fontSize: 20,
