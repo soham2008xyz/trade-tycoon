@@ -63,83 +63,6 @@ export const TradeModal: React.FC<Props> = ({
     }
   }, [visible, activeTrade]);
 
-  // View: Show Offer (Accept/Reject)
-  if (activeTrade) {
-    const tradeInitiator = players.find((p) => p.id === activeTrade.initiatorId);
-    const tradeTarget = players.find((p) => p.id === activeTrade.targetPlayerId);
-
-    return (
-      <Modal visible={visible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
-            {' '}
-            <Text style={styles.title}>Trade Proposal</Text>
-            <Text style={styles.headerSubtitle}>
-              {tradeInitiator?.name} offers to {tradeTarget?.name}:
-            </Text>
-            <View style={styles.columns}>
-              <View style={styles.column}>
-                <Text style={styles.subtitle}>{tradeTarget?.name} Receives:</Text>
-                <Text>Money: ${activeTrade.offer.money}</Text>
-                <Text>GOOJ Cards: {activeTrade.offer.getOutOfJailCards}</Text>
-                <Text style={styles.propHeader}>Properties:</Text>
-                {activeTrade.offer.properties.map((id) => {
-                  const tile = BOARD.find((t) => t.id === id);
-                  return (
-                    <Text key={id} style={styles.propItem}>
-                      • {tile?.name}
-                    </Text>
-                  );
-                })}
-              </View>
-
-              <View style={styles.column}>
-                <Text style={styles.subtitle}>{tradeTarget?.name} Gives:</Text>
-                <Text>Money: ${activeTrade.request.money}</Text>
-                <Text>GOOJ Cards: {activeTrade.request.getOutOfJailCards}</Text>
-                <Text style={styles.propHeader}>Properties:</Text>
-                {activeTrade.request.properties.map((id) => {
-                  const tile = BOARD.find((t) => t.id === id);
-                  return (
-                    <Text key={id} style={styles.propItem}>
-                      • {tile?.name}
-                    </Text>
-                  );
-                })}
-              </View>
-            </View>
-            <View style={styles.buttonRow}>
-              <IconButton
-                title="Accept"
-                icon="check"
-                onPress={() => onAccept(activeTrade.id)}
-                color="green"
-              />
-              <IconButton
-                title="Reject"
-                icon="close"
-                onPress={() => onReject(activeTrade.id)}
-                color="red"
-              />
-            </View>
-            <View style={{ marginTop: 20, alignItems: 'center' }}>
-              <IconButton
-                title={`Cancel (by ${tradeInitiator?.name})`}
-                icon="close-circle"
-                onPress={() => onCancel(activeTrade.id)}
-                color="#666"
-                size="small"
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
-    );
-  }
-
-  // View: Propose New Trade
-  if (!initiator || !target) return null;
-
   const toggleOfferProp = (id: string) => {
     if (offerProps.includes(id)) {
       setOfferProps(offerProps.filter((p) => p !== id));
@@ -157,6 +80,7 @@ export const TradeModal: React.FC<Props> = ({
   };
 
   const handlePropose = () => {
+    if (!target) return;
     const moneyOffer = parseInt(offerMoney) || 0;
     const moneyReq = parseInt(reqMoney) || 0;
 
@@ -174,7 +98,7 @@ export const TradeModal: React.FC<Props> = ({
 
   const setSafeOfferMoney = (text: string) => {
     const val = parseInt(text) || 0;
-    if (val > initiator.money) {
+    if (initiator && val > initiator.money) {
       setOfferMoney(initiator.money.toString());
     } else {
       setOfferMoney(text);
@@ -183,18 +107,85 @@ export const TradeModal: React.FC<Props> = ({
 
   const setSafeReqMoney = (text: string) => {
     const val = parseInt(text) || 0;
-    if (val > target.money) {
+    if (target && val > target.money) {
       setReqMoney(target.money.toString());
     } else {
       setReqMoney(text);
     }
   };
 
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+  const renderContent = () => {
+    if (activeTrade) {
+      const tradeInitiator = players.find((p) => p.id === activeTrade.initiatorId);
+      const tradeTarget = players.find((p) => p.id === activeTrade.targetPlayerId);
+
+      return (
         <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
-          {' '}
+          <Text style={styles.title}>Trade Proposal</Text>
+          <Text style={styles.headerSubtitle}>
+            {tradeInitiator?.name} offers to {tradeTarget?.name}:
+          </Text>
+          <View style={styles.columns}>
+            <View style={styles.column}>
+              <Text style={styles.subtitle}>{tradeTarget?.name} Receives:</Text>
+              <Text>Money: ${activeTrade.offer.money}</Text>
+              <Text>GOOJ Cards: {activeTrade.offer.getOutOfJailCards}</Text>
+              <Text style={styles.propHeader}>Properties:</Text>
+              {activeTrade.offer.properties.map((id) => {
+                const tile = BOARD.find((t) => t.id === id);
+                return (
+                  <Text key={id} style={styles.propItem}>
+                    • {tile?.name}
+                  </Text>
+                );
+              })}
+            </View>
+
+            <View style={styles.column}>
+              <Text style={styles.subtitle}>{tradeTarget?.name} Gives:</Text>
+              <Text>Money: ${activeTrade.request.money}</Text>
+              <Text>GOOJ Cards: {activeTrade.request.getOutOfJailCards}</Text>
+              <Text style={styles.propHeader}>Properties:</Text>
+              {activeTrade.request.properties.map((id) => {
+                const tile = BOARD.find((t) => t.id === id);
+                return (
+                  <Text key={id} style={styles.propItem}>
+                    • {tile?.name}
+                  </Text>
+                );
+              })}
+            </View>
+          </View>
+          <View style={styles.buttonRow}>
+            <IconButton
+              title="Accept"
+              icon="check"
+              onPress={() => onAccept(activeTrade.id)}
+              color="green"
+            />
+            <IconButton
+              title="Reject"
+              icon="close"
+              onPress={() => onReject(activeTrade.id)}
+              color="red"
+            />
+          </View>
+          <View style={{ marginTop: 20, alignItems: 'center' }}>
+            <IconButton
+              title={`Cancel (by ${tradeInitiator?.name})`}
+              icon="close-circle"
+              onPress={() => onCancel(activeTrade.id)}
+              color="#666"
+              size="small"
+            />
+          </View>
+        </View>
+      );
+    }
+
+    if (initiator && target) {
+      return (
+        <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Propose Trade to {target.name}</Text>
             <View style={styles.closeButtonContainer}>
@@ -343,7 +334,15 @@ export const TradeModal: React.FC<Props> = ({
             <IconButton title="Cancel" icon="close" onPress={onClose} color="#666" />
           </View>
         </View>
-      </View>
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>{renderContent()}</View>
     </Modal>
   );
 };
