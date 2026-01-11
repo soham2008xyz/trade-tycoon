@@ -1256,6 +1256,80 @@ describe('Game Reducer', () => {
           expect(newState.players[0].money).toBe(10 - 2000); // -1990
           expect(newState.players[1].money).toBe(1500 + 2000); // 3500
       });
+
+      it('should block END_TURN if money is negative', () => {
+          brokeState.players[0].money = -500;
+          brokeState.phase = 'action';
+
+          const newState = gameReducer(brokeState, {
+              type: 'END_TURN',
+              playerId: 'p1',
+          });
+
+          expect(newState.currentPlayerId).toBe('p1'); // Turn did not change
+          expect(newState.errorMessage).toMatch(/negative funds/);
+      });
+
+      it('should remove player and return assets when declaring bankruptcy', () => {
+          // Setup: p1 has negative money, some properties, some houses
+          brokeState.players[0].money = -500;
+          brokeState.players[0].properties = ['mediterranean', 'baltic'];
+          brokeState.players[0].houses = { mediterranean: 1 };
+          brokeState.players[0].mortgaged = ['baltic'];
+
+          const newState = gameReducer(brokeState, {
+              type: 'DECLARE_BANKRUPTCY',
+              playerId: 'p1',
+          });
+
+          // Player removed
+          expect(newState.players.length).toBe(1);
+          expect(newState.players[0].id).toBe('p2');
+
+          // Winner declared (since only 1 left)
+          expect(newState.winner).toBe('p2');
+          expect(newState.currentPlayerId).toBe('p2');
+      });
+
+      it('should pass turn correctly if multiple players remain', () => {
+          // Add a 3rd player
+          const p3 = createPlayer('p3', 'Player 3');
+          brokeState.players = [brokeState.players[0], brokeState.players[1], p3];
+          // Order: p1, p2, p3
+
+          brokeState.players[0].money = -500;
+
+          const newState = gameReducer(brokeState, {
+              type: 'DECLARE_BANKRUPTCY',
+              playerId: 'p1',
+          });
+
+          expect(newState.players.length).toBe(2);
+          // New order: p2, p3
+          expect(newState.players[0].id).toBe('p2');
+          expect(newState.players[1].id).toBe('p3');
+
+          // Should be p2's turn now
+          expect(newState.currentPlayerId).toBe('p2');
+          expect(newState.winner).toBeNull();
+      });
+
+      it('should pass turn correctly if non-current player goes bankrupt (rare but possible via card)', () => {
+          // p1 current. p2 goes bankrupt.
+          const p3 = createPlayer('p3', 'Player 3');
+          brokeState.players = [brokeState.players[0], brokeState.players[1], p3];
+          brokeState.currentPlayerId = 'p1';
+
+          // p2 goes bankrupt
+          const newState = gameReducer(brokeState, {
+              type: 'DECLARE_BANKRUPTCY',
+              playerId: 'p2',
+          });
+
+          expect(newState.players.length).toBe(2);
+          // Remaining: p1, p3
+          expect(newState.currentPlayerId).toBe('p1'); // Still p1's turn
+      });
   });
 
 });

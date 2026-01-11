@@ -20,7 +20,8 @@ export type Action =
   | { type: 'BUILD_HOUSE'; playerId: string; propertyId: string }
   | { type: 'SELL_HOUSE'; playerId: string; propertyId: string }
   | { type: 'MORTGAGE_PROPERTY'; playerId: string; propertyId: string }
-  | { type: 'UNMORTGAGE_PROPERTY'; playerId: string; propertyId: string };
+  | { type: 'UNMORTGAGE_PROPERTY'; playerId: string; propertyId: string }
+  | { type: 'DECLARE_BANKRUPTCY'; playerId: string };
 
 export const gameReducer = (state: GameState, action: Action): GameState => {
   switch (action.type) {
@@ -595,8 +596,68 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       };
     }
 
+    case 'DECLARE_BANKRUPTCY': {
+      const playerIndex = state.players.findIndex((p) => p.id === action.playerId);
+      if (playerIndex === -1) return state;
+      const player = state.players[playerIndex];
+
+      // Determine next player ID before removing the current one
+      let nextPlayerId = state.currentPlayerId;
+      let phase = state.phase;
+      let doublesCount = state.doublesCount;
+
+      if (state.currentPlayerId === action.playerId) {
+        // If it's the bankrupt player's turn, pass turn to next player
+        const nextIndex = (playerIndex + 1) % state.players.length;
+        // If they are the only player left (should be caught by win condition, but logic holds),
+        // next is them (but they are being removed).
+        // Since we check length later, just get the ID.
+        nextPlayerId = state.players[nextIndex].id;
+        phase = 'roll';
+        doublesCount = 0;
+      }
+
+      const newPlayers = state.players.filter((p) => p.id !== action.playerId);
+
+      if (newPlayers.length === 0) {
+        // Should not happen in normal game with >1 player, but handled
+        return { ...state, players: [], winner: null };
+      }
+
+      if (newPlayers.length === 1) {
+        return {
+          ...state,
+          players: newPlayers,
+          winner: newPlayers[0].id,
+          currentPlayerId: newPlayers[0].id,
+          errorMessage: undefined,
+          toastMessage: `${player.name} went bankrupt! ${newPlayers[0].name} wins!`,
+          logs: [...state.logs, `[${player.name}] Declared Bankruptcy.`, `[Game] ${newPlayers[0].name} wins!`],
+        };
+      }
+
+      return {
+        ...state,
+        players: newPlayers,
+        currentPlayerId: nextPlayerId,
+        phase,
+        doublesCount,
+        errorMessage: undefined,
+        toastMessage: `${player.name} went bankrupt.`,
+        logs: [...state.logs, `[${player.name}] Declared Bankruptcy.`],
+      };
+    }
+
     case 'END_TURN': {
       if (state.currentPlayerId !== action.playerId) return state;
+
+      const player = state.players.find((p) => p.id === action.playerId);
+      if (player && player.money < 0) {
+        return {
+          ...state,
+          errorMessage: 'You cannot end your turn with negative funds. Sell, mortgage, or declare bankruptcy.',
+        };
+      }
 
       // Next player
       const currentIndex = state.players.findIndex((p) => p.id === state.currentPlayerId);
