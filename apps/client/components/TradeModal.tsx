@@ -13,6 +13,19 @@ import { IconButton } from './ui/IconButton';
 import { CloseButton } from './ui/CloseButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+const GROUP_COLORS: Record<string, string> = {
+  brown: '#8B4513',
+  light_blue: '#87CEEB',
+  pink: '#FF69B4',
+  orange: '#FFA500',
+  red: '#FF0000',
+  yellow: '#FFFF00',
+  green: '#008000',
+  dark_blue: '#00008B',
+  railroad: '#000000',
+  utility: '#D3D3D3',
+};
+
 interface Props {
   visible: boolean;
   players: Player[];
@@ -143,36 +156,68 @@ export const TradeModal: React.FC<Props> = ({
       return (
         <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
           <Text style={styles.title}>Trade Proposal</Text>
-          <Text style={styles.headerSubtitle}>
-            {tradeInitiator?.name} offers to {tradeTarget?.name}:
-          </Text>
+          <View style={[styles.headerSubtitle, styles.nameRow, { flexWrap: 'wrap' }]}>
+            <View style={[styles.playerColor, { backgroundColor: tradeInitiator?.color }]} />
+            <Text>{tradeInitiator?.name}</Text>
+            <Text> offers to </Text>
+            <View style={[styles.playerColor, { backgroundColor: tradeTarget?.color }]} />
+            <Text>{tradeTarget?.name}:</Text>
+          </View>
           <View style={styles.columns}>
             <View style={styles.column}>
-              <Text style={styles.subtitle}>{tradeTarget?.name} Receives:</Text>
+              <View style={styles.nameRow}>
+                <View style={[styles.playerColor, { backgroundColor: tradeTarget?.color }]} />
+                <Text style={styles.subtitle}>{tradeTarget?.name} Receives:</Text>
+              </View>
               <Text>Money: ${effectiveActiveTrade.offer.money}</Text>
               <Text>GOOJ Cards: {effectiveActiveTrade.offer.getOutOfJailCards}</Text>
               <Text style={styles.propHeader}>Properties:</Text>
               {effectiveActiveTrade.offer.properties.map((id) => {
                 const tile = BOARD.find((t) => t.id === id);
                 return (
-                  <Text key={id} style={styles.propItem}>
-                    • {tile?.name}
-                  </Text>
+                  <View
+                    key={id}
+                    style={[styles.propItem, styles.nameRow, { justifyContent: 'flex-start' }]}
+                  >
+                    {tile?.group && GROUP_COLORS[tile.group] && (
+                      <View
+                        style={[
+                          styles.propertyColor,
+                          { backgroundColor: GROUP_COLORS[tile.group] },
+                        ]}
+                      />
+                    )}
+                    <Text>• {tile?.name}</Text>
+                  </View>
                 );
               })}
             </View>
 
             <View style={styles.column}>
-              <Text style={styles.subtitle}>{tradeTarget?.name} Gives:</Text>
+              <View style={styles.nameRow}>
+                <View style={[styles.playerColor, { backgroundColor: tradeTarget?.color }]} />
+                <Text style={styles.subtitle}>{tradeTarget?.name} Gives:</Text>
+              </View>
               <Text>Money: ${effectiveActiveTrade.request.money}</Text>
               <Text>GOOJ Cards: {effectiveActiveTrade.request.getOutOfJailCards}</Text>
               <Text style={styles.propHeader}>Properties:</Text>
               {effectiveActiveTrade.request.properties.map((id) => {
                 const tile = BOARD.find((t) => t.id === id);
                 return (
-                  <Text key={id} style={styles.propItem}>
-                    • {tile?.name}
-                  </Text>
+                  <View
+                    key={id}
+                    style={[styles.propItem, styles.nameRow, { justifyContent: 'flex-start' }]}
+                  >
+                    {tile?.group && GROUP_COLORS[tile.group] && (
+                      <View
+                        style={[
+                          styles.propertyColor,
+                          { backgroundColor: GROUP_COLORS[tile.group] },
+                        ]}
+                      />
+                    )}
+                    <Text>• {tile?.name}</Text>
+                  </View>
                 );
               })}
             </View>
@@ -208,7 +253,11 @@ export const TradeModal: React.FC<Props> = ({
       return (
         <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>Propose Trade to {target.name}</Text>
+            <View style={styles.nameRow}>
+              <Text style={[styles.title, { flex: 0, marginRight: 8 }]}>Propose Trade to</Text>
+              <View style={[styles.playerColor, { backgroundColor: target.color }]} />
+              <Text style={[styles.title, { flex: 0 }]}>{target.name}</Text>
+            </View>
             <View style={styles.closeButtonContainer}>
               <CloseButton onPress={onClose} />
             </View>
@@ -217,7 +266,10 @@ export const TradeModal: React.FC<Props> = ({
             <View style={styles.columns}>
               {/* Left: You Offer */}
               <View style={styles.column}>
-                <Text style={styles.subtitle}>You Offer</Text>
+                <View style={styles.nameRow}>
+                  <View style={[styles.playerColor, { backgroundColor: initiator.color }]} />
+                  <Text style={styles.subtitle}>You Offer</Text>
+                </View>
 
                 <Text>Money (Max: ${initiator.money})</Text>
                 <TextInput
@@ -274,6 +326,14 @@ export const TradeModal: React.FC<Props> = ({
                         size={24}
                         color={isChecked ? '#4CAF50' : '#666'}
                       />
+                      {tile?.group && GROUP_COLORS[tile.group] && (
+                        <View
+                          style={[
+                            styles.propertyColor,
+                            { backgroundColor: GROUP_COLORS[tile.group], marginLeft: 4 },
+                          ]}
+                        />
+                      )}
                       <Text style={styles.propText}>{tile?.name}</Text>
                     </TouchableOpacity>
                   );
@@ -285,7 +345,10 @@ export const TradeModal: React.FC<Props> = ({
 
               {/* Right: You Request */}
               <View style={styles.column}>
-                <Text style={styles.subtitle}>You Request</Text>
+                <View style={styles.nameRow}>
+                  <View style={[styles.playerColor, { backgroundColor: target.color }]} />
+                  <Text style={styles.subtitle}>You Request</Text>
+                </View>
 
                 <Text>Money (Max: ${target.money})</Text>
                 <TextInput
@@ -342,6 +405,14 @@ export const TradeModal: React.FC<Props> = ({
                         size={24}
                         color={isChecked ? '#4CAF50' : '#666'}
                       />
+                      {tile?.group && GROUP_COLORS[tile.group] && (
+                        <View
+                          style={[
+                            styles.propertyColor,
+                            { backgroundColor: GROUP_COLORS[tile.group], marginLeft: 4 },
+                          ]}
+                        />
+                      )}
                       <Text style={styles.propText}>{tile?.name}</Text>
                     </TouchableOpacity>
                   );
@@ -487,6 +558,27 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  playerColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  propertyColor: {
+    width: 12,
+    height: 12,
+    marginRight: 6,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: '#999',
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
   },
 });
