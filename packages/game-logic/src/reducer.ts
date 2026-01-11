@@ -614,8 +614,14 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       if (!hasProps) return { ...state, errorMessage: "You don't own all offered properties." };
       if (!hasCards) return { ...state, errorMessage: "You don't have enough GOOJ cards." };
 
-      // We don't strictly validate target holdings yet, as they might change or user might just reject.
-      // But typically UI should filter.
+      // Validate Target (Request)
+      const targetHasMoney = target.money >= action.request.money;
+      const targetHasProps = action.request.properties.every(propId => target.properties.includes(propId));
+      const targetHasCards = target.getOutOfJailCards >= action.request.getOutOfJailCards;
+
+      if (!targetHasMoney) return { ...state, errorMessage: "Target doesn't have enough money." };
+      if (!targetHasProps) return { ...state, errorMessage: "Target doesn't own all requested properties." };
+      if (!targetHasCards) return { ...state, errorMessage: "Target doesn't have enough GOOJ cards." };
 
       const tradeRequest: TradeRequest = {
         id: Date.now().toString(),

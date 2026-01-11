@@ -4,7 +4,7 @@ import { Board } from '../components/Board';
 import { Toast } from '../components/ui/toast';
 import { GameSetup } from '../components/GameSetup';
 import { LogModal } from '../components/LogModal';
-import { createInitialState, gameReducer, BOARD, isTileBuyable } from '@trade-tycoon/game-logic';
+import { createInitialState, gameReducer, BOARD, isTileBuyable, TradeOffer } from '@trade-tycoon/game-logic';
 
 export default function GameScreen() {
   const [state, dispatch] = useReducer(gameReducer, createInitialState());
@@ -147,6 +147,38 @@ export default function GameScreen() {
     dispatch({ type: 'CONCEDE_AUCTION', playerId });
   };
 
+  const handleProposeTrade = (targetPlayerId: string, offer: TradeOffer, request: TradeOffer) => {
+    if (state.currentPlayerId) {
+      dispatch({
+        type: 'PROPOSE_TRADE',
+        playerId: state.currentPlayerId,
+        targetPlayerId,
+        offer,
+        request
+      });
+    }
+  };
+
+  const handleAcceptTrade = (tradeId: string) => {
+    if (state.activeTrade && state.activeTrade.id === tradeId) {
+      // In local multiplayer, we assume the target player is clicking Accept
+      dispatch({ type: 'ACCEPT_TRADE', playerId: state.activeTrade.targetPlayerId });
+    }
+  };
+
+  const handleRejectTrade = (tradeId: string) => {
+    if (state.activeTrade && state.activeTrade.id === tradeId) {
+       // In local multiplayer, we assume the target player is clicking Reject
+       dispatch({ type: 'REJECT_TRADE', playerId: state.activeTrade.targetPlayerId });
+    }
+  };
+
+  const handleCancelTrade = (tradeId: string) => {
+    if (state.currentPlayerId) {
+       dispatch({ type: 'CANCEL_TRADE', playerId: state.currentPlayerId });
+    }
+  };
+
   const handleRestart = () => {
     if (Platform.OS === 'web') {
       const confirmed = window.confirm('Are you sure you want to restart the game?');
@@ -209,6 +241,7 @@ export default function GameScreen() {
           doublesCount={state.doublesCount}
           phase={state.phase}
           auction={state.auction}
+          activeTrade={state.activeTrade}
           canBuy={canBuy}
           canAuction={canAuction}
           onRoll={handleRoll}
@@ -217,6 +250,10 @@ export default function GameScreen() {
           onBid={handleBid}
           onConcedeAuction={handleConcedeAuction}
           onEndTurn={handleEndTurn}
+          onProposeTrade={handleProposeTrade}
+          onAcceptTrade={handleAcceptTrade}
+          onRejectTrade={handleRejectTrade}
+          onCancelTrade={handleCancelTrade}
           onRollAgain={handleRollAgain}
           onBuild={handleBuild}
           onSell={handleSell}
