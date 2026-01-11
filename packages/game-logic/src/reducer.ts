@@ -1,4 +1,4 @@
-import { GameState, Player } from './types';
+import { GameState, Player, TradeOffer, TradeRequest } from './types';
 import { BOARD, isTileBuyable } from './board-data';
 import { createPlayer } from './game-setup';
 import { processCardEffect } from './cards';
@@ -21,7 +21,14 @@ export type Action =
   | { type: 'SELL_HOUSE'; playerId: string; propertyId: string }
   | { type: 'MORTGAGE_PROPERTY'; playerId: string; propertyId: string }
   | { type: 'UNMORTGAGE_PROPERTY'; playerId: string; propertyId: string }
-  | { type: 'DECLARE_BANKRUPTCY'; playerId: string };
+  | { type: 'DECLARE_BANKRUPTCY'; playerId: string }
+  | { type: 'DECLINE_BUY'; playerId: string }
+  | { type: 'PLACE_BID'; playerId: string; amount: number }
+  | { type: 'CONCEDE_AUCTION'; playerId: string }
+  | { type: 'PROPOSE_TRADE'; playerId: string; targetPlayerId: string; offer: TradeOffer; request: TradeOffer }
+  | { type: 'ACCEPT_TRADE'; playerId: string }
+  | { type: 'REJECT_TRADE'; playerId: string }
+  | { type: 'CANCEL_TRADE'; playerId: string };
 
 export const gameReducer = (state: GameState, action: Action): GameState => {
   switch (action.type) {
@@ -40,6 +47,8 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         doublesCount: 0,
         phase: 'roll',
         winner: null,
+        auction: null,
+        activeTrade: null,
         errorMessage: undefined,
         toastMessage: undefined,
         logs: [],
@@ -314,11 +323,6 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
           let rent = 0;
 
           if (targetTile.group === 'railroad') {
-            // Check board for railroads, but since BOARD is imported, we could use it.
-            // However, to be cleaner, we can use state.board if it was dynamic, but standard monopoly board is static.
-            // The reducer context provides state, but board data is usually static constant.
-            // Using BOARD constant is fine as it is imported.
-            // But let's check if state.board is available and use it if so to be more robust.
             const boardToUse = state.board && state.board.length > 0 ? state.board : BOARD;
 
             const ownedRailroads = boardToUse.filter(
@@ -415,6 +419,287 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
         errorMessage: undefined,
         toastMessage,
         logs: [...state.logs, `[${player.name}] ${toastMessage}`],
+      };
+    }
+
+    case 'DECLINE_BUY': {
+      // Validate phase and turn
+      if (state.currentPlayerId !== action.playerId) return state;
+      if (state.phase !== 'action') return state;
+
+      // Identify property player is on
+      const player = state.players.find(p => p.id === action.playerId);
+      if (!player) return state;
+
+      const boardToUse = state.board && state.board.length > 0 ? state.board : BOARD;
+      const tile = boardToUse[player.position];
+
+      // Verify buyable
+      if (!isTileBuyable(tile)) return { ...state, errorMessage: 'Nothing to buy here.' };
+      // Check ownership
+      const isOwned = state.players.some(p => p.properties.includes(tile.id));
+      if (isOwned) return { ...state, errorMessage: 'Property is already owned.' };
+
+      // Start Auction
+      const participants = state.players.map(p => p.id);
+      return {
+        ...state,
+        phase: 'auction',
+        auction: {
+          propertyId: tile.id,
+          currentBid: 0,
+          highestBidderId: null,
+          participants
+        },
+        toastMessage: `Auction started for ${tile.name}!`,
+        logs: [...state.logs, `[Game] Auction started for ${tile.name}.`]
+      };
+    }
+
+    case 'PLACE_BID': {
+      if (state.phase !== 'auction' || !state.auction) return state;
+      if (!state.auction.participants.includes(action.playerId)) return { ...state, errorMessage: 'You are not in this auction.' };
+
+      const player = state.players.find(p => p.id === action.playerId);
+      if (!player) return state;
+
+      if (action.amount <= state.auction.currentBid) return { ...state, errorMessage: 'Bid must be higher than current bid.' };
+      if (player.money < action.amount) return { ...state, errorMessage: 'Insufficient funds.' };
+
+      const updatedAuction = {
+        ...state.auction,
+        currentBid: action.amount,
+        highestBidderId: action.playerId
+      };
+
+      // Check for immediate win (only 1 participant)
+      if (updatedAuction.participants.length === 1) {
+        const winnerId = action.playerId;
+        const cost = action.amount;
+        const tileId = state.auction.propertyId;
+        const tile = BOARD.find(t => t.id === tileId);
+
+        const winnerIndex = state.players.findIndex(p => p.id === winnerId);
+        const winnerPlayer = state.players[winnerIndex];
+
+        const newPlayer = {
+          ...winnerPlayer,
+          money: winnerPlayer.money - cost,
+          properties: [...winnerPlayer.properties, tileId]
+        };
+        const newPlayers = [...state.players];
+        newPlayers[winnerIndex] = newPlayer;
+
+        return {
+          ...state,
+          players: newPlayers,
+          phase: 'action',
+          auction: null,
+          toastMessage: `${winnerPlayer.name} won the auction for $${cost}!`,
+          logs: [...state.logs, `[${winnerPlayer.name}] Won auction for ${tile?.name} at $${cost}.`]
+        };
+      }
+
+      return {
+        ...state,
+        auction: updatedAuction,
+        toastMessage: `${player.name} bid $${action.amount}.`,
+        logs: [...state.logs, `[${player.name}] Bid $${action.amount}.`]
+      };
+    }
+
+    case 'CONCEDE_AUCTION': {
+      if (state.phase !== 'auction' || !state.auction) return state;
+      if (!state.auction.participants.includes(action.playerId)) return state;
+
+      // Cannot concede if you are the high bidder
+      if (action.playerId === state.auction.highestBidderId) {
+        return { ...state, errorMessage: "You cannot concede while you are the highest bidder." };
+      }
+
+      const newParticipants = state.auction.participants.filter(id => id !== action.playerId);
+      const player = state.players.find(p => p.id === action.playerId);
+
+      // If no one left, auction ends with no sale
+      if (newParticipants.length === 0) {
+        return {
+          ...state,
+          phase: 'action',
+          auction: null,
+          toastMessage: 'Auction cancelled. No bidders.',
+          logs: [...state.logs, `[Game] Auction cancelled.`]
+        };
+      }
+
+      // If 1 left
+      if (newParticipants.length === 1) {
+        const remainingId = newParticipants[0];
+        // If the remaining player is the highest bidder, they win immediately
+        if (remainingId === state.auction.highestBidderId) {
+          const cost = state.auction.currentBid;
+          const tileId = state.auction.propertyId;
+          const tile = BOARD.find(t => t.id === tileId);
+
+          const winnerIndex = state.players.findIndex(p => p.id === remainingId);
+          const winnerPlayer = state.players[winnerIndex];
+
+          const newPlayer = {
+            ...winnerPlayer,
+            money: winnerPlayer.money - cost,
+            properties: [...winnerPlayer.properties, tileId]
+          };
+          const newPlayers = [...state.players];
+          newPlayers[winnerIndex] = newPlayer;
+
+          return {
+            ...state,
+            players: newPlayers,
+            phase: 'action',
+            auction: null,
+            toastMessage: `${winnerPlayer.name} won the auction for $${cost}!`,
+            logs: [...state.logs, `[${winnerPlayer.name}] Won auction for ${tile?.name} at $${cost}.`]
+          };
+        }
+        // If remaining player is NOT high bidder (e.g. no bids yet), they stay in auction alone until they bid or concede
+      }
+
+      return {
+        ...state,
+        auction: { ...state.auction, participants: newParticipants },
+        toastMessage: `${player?.name} conceded.`,
+        logs: [...state.logs, `[${player?.name}] Conceded auction.`]
+      };
+    }
+
+    case 'PROPOSE_TRADE': {
+      // Basic validation
+      const initiator = state.players.find(p => p.id === action.playerId);
+      const target = state.players.find(p => p.id === action.targetPlayerId);
+      if (!initiator || !target) return state;
+
+      if (state.phase === 'auction') return { ...state, errorMessage: "Cannot trade during auction." };
+
+      // Validate Initiator has offered items
+      const hasMoney = initiator.money >= action.offer.money;
+      const hasProps = action.offer.properties.every(propId => initiator.properties.includes(propId));
+      const hasCards = initiator.getOutOfJailCards >= action.offer.getOutOfJailCards;
+
+      if (!hasMoney) return { ...state, errorMessage: "You don't have enough money for this offer." };
+      if (!hasProps) return { ...state, errorMessage: "You don't own all offered properties." };
+      if (!hasCards) return { ...state, errorMessage: "You don't have enough GOOJ cards." };
+
+      // We don't strictly validate target holdings yet, as they might change or user might just reject.
+      // But typically UI should filter.
+
+      const tradeRequest: TradeRequest = {
+        id: Date.now().toString(),
+        initiatorId: action.playerId,
+        targetPlayerId: action.targetPlayerId,
+        offer: action.offer,
+        request: action.request,
+        status: 'pending'
+      };
+
+      return {
+        ...state,
+        activeTrade: tradeRequest,
+        toastMessage: `${initiator.name} proposed a trade to ${target.name}.`,
+        logs: [...state.logs, `[${initiator.name}] Proposed trade to ${target.name}.`]
+      };
+    }
+
+    case 'ACCEPT_TRADE': {
+      if (!state.activeTrade) return state;
+      if (state.activeTrade.targetPlayerId !== action.playerId) return { ...state, errorMessage: "This trade is not for you." };
+
+      const trade = state.activeTrade;
+      const initiatorIndex = state.players.findIndex(p => p.id === trade.initiatorId);
+      const targetIndex = state.players.findIndex(p => p.id === trade.targetPlayerId);
+      if (initiatorIndex === -1 || targetIndex === -1) return { ...state, activeTrade: null };
+
+      const initiator = state.players[initiatorIndex];
+      const target = state.players[targetIndex];
+
+      // Final Validation
+      // Initiator (Offer)
+      if (initiator.money < trade.offer.money) return { ...state, errorMessage: "Initiator no longer has funds." };
+      if (!trade.offer.properties.every(id => initiator.properties.includes(id))) return { ...state, errorMessage: "Initiator no longer owns properties." };
+      if (initiator.getOutOfJailCards < trade.offer.getOutOfJailCards) return { ...state, errorMessage: "Initiator no longer has GOOJ cards." };
+
+      // Target (Request)
+      if (target.money < trade.request.money) return { ...state, errorMessage: "You don't have enough funds." };
+      if (!trade.request.properties.every(id => target.properties.includes(id))) return { ...state, errorMessage: "You don't own requested properties." };
+      if (target.getOutOfJailCards < trade.request.getOutOfJailCards) return { ...state, errorMessage: "You don't have enough GOOJ cards." };
+
+      // Execute Trade
+      let newInitiator = { ...initiator };
+      let newTarget = { ...target };
+
+      // Money
+      newInitiator.money = newInitiator.money - trade.offer.money + trade.request.money;
+      newTarget.money = newTarget.money - trade.request.money + trade.offer.money;
+
+      // Properties Transfer
+      // Offer (Initiator -> Target)
+      newInitiator.properties = newInitiator.properties.filter(id => !trade.offer.properties.includes(id));
+      newTarget.properties = [...newTarget.properties, ...trade.offer.properties];
+
+      trade.offer.properties.forEach(propId => {
+        if (newInitiator.mortgaged.includes(propId)) {
+          newInitiator.mortgaged = newInitiator.mortgaged.filter(id => id !== propId);
+          newTarget.mortgaged = [...newTarget.mortgaged, propId];
+        }
+      });
+
+      // Request (Target -> Initiator)
+      newTarget.properties = newTarget.properties.filter(id => !trade.request.properties.includes(id));
+      newInitiator.properties = [...newInitiator.properties, ...trade.request.properties];
+
+      trade.request.properties.forEach(propId => {
+        if (newTarget.mortgaged.includes(propId)) {
+            newTarget.mortgaged = newTarget.mortgaged.filter(id => id !== propId);
+            newInitiator.mortgaged = [...newInitiator.mortgaged, propId];
+        }
+      });
+
+      // GOOJ Cards
+      newInitiator.getOutOfJailCards = newInitiator.getOutOfJailCards - trade.offer.getOutOfJailCards + trade.request.getOutOfJailCards;
+      newTarget.getOutOfJailCards = newTarget.getOutOfJailCards - trade.request.getOutOfJailCards + trade.offer.getOutOfJailCards;
+
+      const newPlayers = [...state.players];
+      newPlayers[initiatorIndex] = newInitiator;
+      newPlayers[targetIndex] = newTarget;
+
+      return {
+        ...state,
+        players: newPlayers,
+        activeTrade: null,
+        toastMessage: "Trade completed!",
+        logs: [...state.logs, `[Game] Trade completed between ${initiator.name} and ${target.name}.`]
+      };
+    }
+
+    case 'REJECT_TRADE': {
+      if (!state.activeTrade) return state;
+      if (state.activeTrade.targetPlayerId !== action.playerId) return state; // Only target can reject
+
+      return {
+        ...state,
+        activeTrade: null,
+        toastMessage: "Trade rejected.",
+        logs: [...state.logs, `[${state.players.find(p => p.id === action.playerId)?.name}] Rejected trade.`]
+      };
+    }
+
+    case 'CANCEL_TRADE': {
+      if (!state.activeTrade) return state;
+      if (state.activeTrade.initiatorId !== action.playerId) return state; // Only initiator can cancel
+
+      return {
+        ...state,
+        activeTrade: null,
+        toastMessage: "Trade cancelled.",
+        logs: [...state.logs, `[${state.players.find(p => p.id === action.playerId)?.name}] Cancelled trade.`]
       };
     }
 

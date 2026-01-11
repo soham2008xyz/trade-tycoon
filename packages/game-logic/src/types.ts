@@ -48,15 +48,39 @@ export interface Player {
   getOutOfJailCards: number;
 }
 
+export interface TradeOffer {
+  money: number;
+  properties: string[];
+  getOutOfJailCards: number;
+}
+
+export interface TradeRequest {
+  id: string;
+  initiatorId: string;
+  targetPlayerId: string;
+  offer: TradeOffer;
+  request: TradeOffer;
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+}
+
+export interface AuctionState {
+  propertyId: string;
+  currentBid: number;
+  highestBidderId: string | null;
+  participants: string[]; // List of player IDs still in the auction
+}
+
 export interface GameState {
   players: Player[];
   currentPlayerId: string;
   dice: [number, number];
   lastDiceRoll?: [number, number]; // To show history
   doublesCount: number; // To track speeding (3 doubles = jail)
-  phase: 'roll' | 'action' | 'end'; // Game phase
+  phase: 'roll' | 'action' | 'auction' | 'end'; // Game phase
   board: Tile[]; // Static board data, but good to have accessible
   winner: string | null;
+  auction: AuctionState | null;
+  activeTrade: TradeRequest | null;
   errorMessage?: string;
   toastMessage?: string;
   logs: string[];
