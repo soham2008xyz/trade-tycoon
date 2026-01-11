@@ -2,14 +2,32 @@ import React, { useReducer, useState } from 'react';
 import { View, StyleSheet, SafeAreaView, Text, Alert, Platform } from 'react-native';
 import { Board } from '../components/Board';
 import { Toast } from '../components/ui/toast';
+import { CustomAlert, AlertButton, AlertOptions } from '../components/ui/Alert';
 import { GameSetup } from '../components/GameSetup';
 import { LogModal } from '../components/LogModal';
-import { createInitialState, gameReducer, BOARD, isTileBuyable, TradeOffer } from '@trade-tycoon/game-logic';
+import {
+  createInitialState,
+  gameReducer,
+  BOARD,
+  isTileBuyable,
+  TradeOffer,
+} from '@trade-tycoon/game-logic';
 
 export default function GameScreen() {
   const [state, dispatch] = useReducer(gameReducer, createInitialState());
   const [setupVisible, setSetupVisible] = useState(true);
   const [logVisible, setLogVisible] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertOptions, setAlertOptions] = useState<AlertOptions | null>(null);
+
+  const showAlert = (title: string, message: string, buttons: AlertButton[]) => {
+    if (Platform.OS === 'web') {
+      setAlertOptions({ title, message, buttons });
+      setAlertVisible(true);
+    } else {
+      Alert.alert(title, message, buttons);
+    }
+  };
 
   const handleStartGame = (players: { name: string; color: string }[]) => {
     const playersWithIds = players.map((p, index) => ({
@@ -113,23 +131,28 @@ export default function GameScreen() {
 
   const handleDeclareBankruptcy = () => {
     if (state.currentPlayerId) {
-      if (Platform.OS === 'web') {
-        const confirmed = window.confirm('Are you sure you want to declare bankruptcy? You will be removed from the game.');
-        if (confirmed) {
-          dispatch({ type: 'DECLARE_BANKRUPTCY', playerId: state.currentPlayerId });
-        }
-      } else {
-        Alert.alert('Declare Bankruptcy', 'Are you sure you want to declare bankruptcy? You will be removed from the game.', [
+      showAlert(
+        'Declare Bankruptcy',
+
+        'Are you sure you want to declare bankruptcy? You will be removed from the game.',
+
+        [
           {
             text: 'Cancel',
+
             style: 'cancel',
           },
+
           {
             text: 'Yes',
-            onPress: () => dispatch({ type: 'DECLARE_BANKRUPTCY', playerId: state.currentPlayerId! }),
+
+            style: 'destructive',
+
+            onPress: () =>
+              dispatch({ type: 'DECLARE_BANKRUPTCY', playerId: state.currentPlayerId! }),
           },
-        ]);
-      }
+        ]
+      );
     }
   };
 
@@ -154,7 +177,7 @@ export default function GameScreen() {
         playerId: state.currentPlayerId,
         targetPlayerId,
         offer,
-        request
+        request,
       });
     }
   };
@@ -168,35 +191,28 @@ export default function GameScreen() {
 
   const handleRejectTrade = (tradeId: string) => {
     if (state.activeTrade && state.activeTrade.id === tradeId) {
-       // In local multiplayer, we assume the target player is clicking Reject
-       dispatch({ type: 'REJECT_TRADE', playerId: state.activeTrade.targetPlayerId });
+      // In local multiplayer, we assume the target player is clicking Reject
+      dispatch({ type: 'REJECT_TRADE', playerId: state.activeTrade.targetPlayerId });
     }
   };
 
   const handleCancelTrade = (tradeId: string) => {
     if (state.currentPlayerId) {
-       dispatch({ type: 'CANCEL_TRADE', playerId: state.currentPlayerId });
+      dispatch({ type: 'CANCEL_TRADE', playerId: state.currentPlayerId });
     }
   };
 
   const handleRestart = () => {
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm('Are you sure you want to restart the game?');
-      if (confirmed) {
-        setSetupVisible(true);
-      }
-    } else {
-      Alert.alert('Restart Game', 'Are you sure you want to restart the game?', [
-        {
-          text: 'No',
-          style: 'cancel',
-        },
-        {
-          text: 'Yes',
-          onPress: () => setSetupVisible(true),
-        },
-      ]);
-    }
+    showAlert('Restart Game', 'Are you sure you want to restart the game?', [
+      {
+        text: 'No',
+        style: 'cancel',
+      },
+      {
+        text: 'Yes',
+        onPress: () => setSetupVisible(true),
+      },
+    ]);
   };
 
   if (!setupVisible && !currentPlayer && !state.winner) return <Text>Loading...</Text>;
@@ -210,9 +226,7 @@ export default function GameScreen() {
     !state.players.some((p) => p.properties.includes(currentTile.id));
 
   const canAfford =
-    currentPlayer && currentTile
-      ? currentPlayer.money >= (currentTile.price || 0)
-      : false;
+    currentPlayer && currentTile ? currentPlayer.money >= (currentTile.price || 0) : false;
 
   const canBuy = isPropertyUnowned && canAfford;
   const canAuction = isPropertyUnowned;
@@ -226,12 +240,12 @@ export default function GameScreen() {
         players={state.players}
         onClose={() => setLogVisible(false)}
       />
-      {state.errorMessage && (
-        <Toast message={state.errorMessage} onDismiss={handleDismissError} />
-      )}
-      {state.toastMessage && (
-        <Toast message={state.toastMessage} onDismiss={handleDismissToast} />
-      )}
+      {state.toastMessage && <Toast message={state.toastMessage} onDismiss={handleDismissToast} />}
+      <CustomAlert
+        visible={alertVisible}
+        options={alertOptions}
+        onClose={() => setAlertVisible(false)}
+      />
       <View style={styles.boardArea}>
         <Board
           players={state.players}
