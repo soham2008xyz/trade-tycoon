@@ -11,6 +11,7 @@ import { Tile } from './Tile';
 import { PropertyManager } from './PropertyManager';
 import { AuctionModal } from './AuctionModal';
 import { TradeModal } from './TradeModal';
+import { TileInfoModal } from './TileInfoModal';
 import { IconButton } from './ui/IconButton';
 import { Dice } from './Dice';
 
@@ -84,6 +85,7 @@ export const Board: React.FC<Props> = ({
   const { width, height } = useWindowDimensions();
   const [showPropertyManager, setShowPropertyManager] = useState(false);
   const [tradeTargetId, setTradeTargetId] = useState<string | undefined>(undefined);
+  const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const size = Math.min(width, height) - 20; // Padding
 
   // Slice the board into sections
@@ -366,16 +368,36 @@ export const Board: React.FC<Props> = ({
 
       {/* Corners */}
       <View style={[styles.corner, styles.bottomRight]}>
-        <Tile tile={corners.go} orientation="corner" players={getPlayersOnTile(0)} />
+        <Tile
+          tile={corners.go}
+          orientation="corner"
+          players={getPlayersOnTile(0)}
+          onPress={() => setSelectedTileId(corners.go.id)}
+        />
       </View>
       <View style={[styles.corner, styles.bottomLeft]}>
-        <Tile tile={corners.jail} orientation="corner" players={getPlayersOnTile(10)} />
+        <Tile
+          tile={corners.jail}
+          orientation="corner"
+          players={getPlayersOnTile(10)}
+          onPress={() => setSelectedTileId(corners.jail.id)}
+        />
       </View>
       <View style={[styles.corner, styles.topLeft]}>
-        <Tile tile={corners.parking} orientation="corner" players={getPlayersOnTile(20)} />
+        <Tile
+          tile={corners.parking}
+          orientation="corner"
+          players={getPlayersOnTile(20)}
+          onPress={() => setSelectedTileId(corners.parking.id)}
+        />
       </View>
       <View style={[styles.corner, styles.topRight]}>
-        <Tile tile={corners.gotojail} orientation="corner" players={getPlayersOnTile(30)} />
+        <Tile
+          tile={corners.gotojail}
+          orientation="corner"
+          players={getPlayersOnTile(30)}
+          onPress={() => setSelectedTileId(corners.gotojail.id)}
+        />
       </View>
 
       {/* Rows */}
@@ -387,6 +409,7 @@ export const Board: React.FC<Props> = ({
             orientation="bottom"
             players={getPlayersOnTile(t.index)}
             owner={getOwner(t.id)}
+            onPress={() => setSelectedTileId(t.id)}
           />
         ))}
       </View>
@@ -399,6 +422,7 @@ export const Board: React.FC<Props> = ({
             orientation="left"
             players={getPlayersOnTile(t.index)}
             owner={getOwner(t.id)}
+            onPress={() => setSelectedTileId(t.id)}
           />
         ))}
       </View>
@@ -411,6 +435,7 @@ export const Board: React.FC<Props> = ({
             orientation="top"
             players={getPlayersOnTile(t.index)}
             owner={getOwner(t.id)}
+            onPress={() => setSelectedTileId(t.id)}
           />
         ))}
       </View>
@@ -423,9 +448,18 @@ export const Board: React.FC<Props> = ({
             orientation="right"
             players={getPlayersOnTile(t.index)}
             owner={getOwner(t.id)}
+            onPress={() => setSelectedTileId(t.id)}
           />
         ))}
       </View>
+
+      {/* Tile Info Modal - moved to bottom to ensure z-index priority */}
+      <TileInfoModal
+        visible={!!selectedTileId}
+        tile={selectedTileId ? BOARD.find(t => t.id === selectedTileId) || null : null}
+        owner={selectedTileId ? getOwner(selectedTileId) : undefined}
+        onClose={() => setSelectedTileId(null)}
+      />
     </View>
   );
 };
@@ -445,6 +479,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    // Removed zIndex: 20 to allow modal to overlay.
+    // Ensure content inside is clickable by managing click events or assuming default zIndex behavior.
+    // If buttons become unclickable, we might need to be more careful.
+    // But since `TileInfoModal` is a sibling later in DOM, it should be on top.
+    // And `center` without z-index is auto (0).
+    // `corners` have zIndex: 10. `center` needs to be > 10 to be clickable if they overlap.
+    // BUT `TileInfoModal` needs to be > `center`.
+    zIndex: 20,
   },
   topButtons: {
     flexDirection: 'row',
