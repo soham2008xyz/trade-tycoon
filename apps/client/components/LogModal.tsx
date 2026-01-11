@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     maxHeight: '90%',
-    flex: 0, // Changed from flex: 1 to allow it to shrink
+    flex: 1,
     elevation: 5,
     boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
   },
