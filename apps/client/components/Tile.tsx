@@ -24,6 +24,8 @@ const GROUP_COLORS: Record<string, string> = {
   utility: '#D3D3D3',
 };
 
+const STRIPES = Array.from({ length: 40 });
+
 export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], owner, onPress }) => {
   const isStreet = tile.type === 'street';
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
@@ -69,13 +71,13 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], 
     >
       {isMortgaged && (
         <View style={styles.mortgagedOverlay}>
-          {Array.from({ length: 15 }).map((_, i) => (
+          {STRIPES.map((_, i) => (
             <View
               key={i}
               style={[
                 styles.stripe,
                 {
-                  left: i * 10 - 50,
+                  left: i * 10 - 100,
                 },
               ]}
             />
@@ -204,8 +206,8 @@ const styles = StyleSheet.create({
   },
   stripe: {
     position: 'absolute',
-    top: -50,
-    bottom: -50,
+    top: -100,
+    bottom: -100,
     width: 4,
     backgroundColor: 'rgba(255, 0, 0, 0.2)',
     transform: [{ rotate: '45deg' }],
