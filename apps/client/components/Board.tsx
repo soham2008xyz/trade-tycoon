@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, useWindowDimensions, Text } from 'react-native';
-import { BOARD, Player, Tile as TileType, TradeRequest, TradeOffer } from '@trade-tycoon/game-logic';
+import { View, StyleSheet, useWindowDimensions, Text, Button } from 'react-native';
+import {
+  BOARD,
+  Player,
+  Tile as TileType,
+  TradeRequest,
+  TradeOffer,
+} from '@trade-tycoon/game-logic';
 import { Tile } from './Tile';
 import { PropertyManager } from './PropertyManager';
 import { AuctionModal } from './AuctionModal';
@@ -154,8 +160,20 @@ export const Board: React.FC<Props> = ({
       {/* Center Logo Area */}
       <View style={styles.center}>
         <View style={styles.topButtons}>
-          <IconButton title="Restart" icon="restart" onPress={onRestart} color="#666" size="small" />
-          <IconButton title="Log" icon="script-text" onPress={onShowLog} color="#666" size="small" />
+          <IconButton
+            title="Restart"
+            icon="restart"
+            onPress={onRestart}
+            color="#666"
+            size="small"
+          />
+          <IconButton
+            title="Log"
+            icon="script-text"
+            onPress={onShowLog}
+            color="#666"
+            size="small"
+          />
         </View>
 
         <View style={styles.statusPanel}>
@@ -175,9 +193,9 @@ export const Board: React.FC<Props> = ({
                       {player.name}: ${player.money}
                     </Text>
                     {player.id !== currentPlayer.id && (
-                        <View style={{ marginLeft: 10 }}>
-                           <Button title="Trade" onPress={() => setTradeTargetId(player.id)} compact />
-                        </View>
+                      <View style={{ marginLeft: 10 }}>
+                        <Button title="Trade" onPress={() => setTradeTargetId(player.id)} compact />
+                      </View>
                     )}
                   </View>
                 ))}
@@ -201,9 +219,7 @@ export const Board: React.FC<Props> = ({
                   )}
                   <Text style={styles.statusText}>{currentTile?.name}</Text>
                 </View>
-                {phase === 'action' && (
-                  <Dice value1={dice[0]} value2={dice[1]} />
-                )}
+                {phase === 'action' && <Dice value1={dice[0]} value2={dice[1]} />}
               </View>
 
               <View style={styles.actions}>
@@ -266,9 +282,19 @@ export const Board: React.FC<Props> = ({
                       />
                     )}
                     {doublesCount > 0 ? (
-                      <IconButton title="Roll Again" icon="dice-multiple" onPress={onRollAgain} color="orange" />
+                      <IconButton
+                        title="Roll Again"
+                        icon="dice-multiple"
+                        onPress={onRollAgain}
+                        color="orange"
+                      />
                     ) : (
-                      <IconButton title="End Turn" icon="check" onPress={onEndTurn} color="#d9534f" />
+                      <IconButton
+                        title="End Turn"
+                        icon="check"
+                        onPress={onEndTurn}
+                        color="#d9534f"
+                      />
                     )}
                   </>
                 )}
@@ -288,22 +314,27 @@ export const Board: React.FC<Props> = ({
 
       {currentPlayer && (
         <TradeModal
-            visible={!!tradeTargetId || (!!activeTrade && (activeTrade.initiatorId === currentPlayer.id || activeTrade.targetPlayerId === currentPlayer.id))}
-            players={players}
-            currentPlayerId={currentPlayer.id}
-            targetPlayerId={tradeTargetId || activeTrade?.targetPlayerId}
-            activeTrade={activeTrade}
-            onPropose={(t, o, r) => {
-                onProposeTrade(t, o, r);
-                setTradeTargetId(undefined); // Close the proposal modal, but activeTrade will keep Pending modal open
-            }}
-            onAccept={onAcceptTrade}
-            onReject={onRejectTrade}
-            onCancel={(id) => {
-                onCancelTrade(id);
-                setTradeTargetId(undefined);
-            }}
-            onClose={() => setTradeTargetId(undefined)}
+          visible={
+            !!tradeTargetId ||
+            (!!activeTrade &&
+              (activeTrade.initiatorId === currentPlayer.id ||
+                activeTrade.targetPlayerId === currentPlayer.id))
+          }
+          players={players}
+          currentPlayerId={currentPlayer.id}
+          targetPlayerId={tradeTargetId || activeTrade?.targetPlayerId}
+          activeTrade={activeTrade}
+          onPropose={(t, o, r) => {
+            onProposeTrade(t, o, r);
+            setTradeTargetId(undefined); // Close the proposal modal, but activeTrade will keep Pending modal open
+          }}
+          onAccept={onAcceptTrade}
+          onReject={onRejectTrade}
+          onCancel={(id) => {
+            onCancelTrade(id);
+            setTradeTargetId(undefined);
+          }}
+          onClose={() => setTradeTargetId(undefined)}
         />
       )}
 
