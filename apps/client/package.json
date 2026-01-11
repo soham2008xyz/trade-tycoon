@@ -9,7 +9,10 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "vercel-build": "expo export --platform web -c && node ./scripts/generate-pwa-assets.js && node ./scripts/generate-sw.js"
+    "build": "npm run build:web",
+    "build:web": "expo export --platform web",
+    "generate:pwa": "node ./scripts/generate-pwa-assets.js && node ./scripts/generate-sw.js",
+    "vercel-build": "npm run build:web && npm run generate:pwa"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

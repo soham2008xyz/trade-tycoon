@@ -8,7 +8,9 @@
   "scripts": {
     "start": "npm run start --workspace=apps/client",
     "server": "npm run dev --workspace=apps/server",
-    "build": "npm run build --workspace=packages/game-logic",
+    "build:game-logic": "npm run build --workspace=packages/game-logic",
+    "build": "npm run build --workspaces --if-present",
+    "vercel-build": "npm run vercel-build --workspace=apps/client",
     "export": "npm run vercel-build --workspace=apps/client",
     "test": "npm test --workspaces --if-present",
     "lint": "npm run lint --workspace=apps/client",
