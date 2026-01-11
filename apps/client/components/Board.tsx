@@ -315,6 +315,7 @@ export const Board: React.FC<Props> = ({
         players={players}
         onBid={onBid}
         onConcede={onConcedeAuction}
+        boardSize={size}
       />
 
       {currentPlayer && (

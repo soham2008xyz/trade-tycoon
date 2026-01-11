@@ -9,6 +9,7 @@ interface Props {
   players: Player[];
   onBid: (playerId: string, amount: number) => void;
   onConcede: (playerId: string) => void;
+  boardSize?: number;
 }
 
 export const AuctionModal: React.FC<Props> = ({
@@ -17,6 +18,7 @@ export const AuctionModal: React.FC<Props> = ({
   players,
   onBid,
   onConcede,
+  boardSize,
 }) => {
   if (!auction) return null;
 
@@ -28,52 +30,53 @@ export const AuctionModal: React.FC<Props> = ({
   const increments = [1, 10, 50, 100];
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false}>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Auction for {property?.name}</Text>
-          <Text style={styles.currentBid}>
-            Current Bid: ${auction.currentBid}
-            {highestBidder ? ` by ${highestBidder.name}` : ' (No bids yet)'}
-          </Text>
-        </View>
+    <Modal visible={visible} animationType="slide" transparent={true}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Auction for {property?.name}</Text>
+            <Text style={styles.currentBid}>
+              Current Bid: ${auction.currentBid}
+              {highestBidder ? ` by ${highestBidder.name}` : ' (No bids yet)'}
+            </Text>
+          </View>
 
-        <ScrollView style={styles.participantsList}>
-          {auction.participants.map((playerId, index) => {
-            const player = players.find((p) => p.id === playerId);
-            if (!player) return null;
+          <ScrollView style={styles.participantsList}>
+            {auction.participants.map((playerId, index) => {
+              const player = players.find((p) => p.id === playerId);
+              if (!player) return null;
 
-            const isHighestBidder = auction.highestBidderId === playerId;
-            const isTurn = index === auction.currentBidderIndex;
-            const canAffordBid = (amount: number) => player.money >= amount;
+              const isHighestBidder = auction.highestBidderId === playerId;
+              const isTurn = index === auction.currentBidderIndex;
+              const canAffordBid = (amount: number) => player.money >= amount;
 
-            return (
-              <View
-                key={playerId}
-                style={[
-                  styles.playerRow,
-                  isTurn ? styles.activePlayerRow : styles.inactivePlayerRow
-                ]}
-              >
-                <View style={styles.playerInfo}>
-                  <View style={[styles.playerColor, { backgroundColor: player.color }]} />
-                  <Text style={[styles.playerName, isTurn && styles.activePlayerName]}>
-                    {player.name} (${player.money}) {isTurn && " (Your Turn)"}
-                  </Text>
-                </View>
+              return (
+                <View
+                  key={playerId}
+                  style={[
+                    styles.playerRow,
+                    isTurn ? styles.activePlayerRow : styles.inactivePlayerRow,
+                  ]}
+                >
+                  <View style={styles.playerInfo}>
+                    <View style={[styles.playerColor, { backgroundColor: player.color }]} />
+                    <Text style={[styles.playerName, isTurn && styles.activePlayerName]}>
+                      {player.name} (${player.money}) {isTurn && ' (Your Turn)'}
+                    </Text>
+                  </View>
 
-                <View style={styles.controls}>
-                  <View style={styles.bidButtons}>
-                    {increments.map((inc) => {
-                      const bidAmount = auction.currentBid + inc;
-                      const disabled = !canAffordBid(bidAmount) || !isTurn;
-                      // Note: Standard rules don't strictly forbid bidding against yourself, but logic blocks it if not turn.
-                      // If I am high bidder, and it's my turn (e.g. everyone else folded?), I win immediately by logic.
-                      // But if there are others, it won't be my turn if I am high bidder (unless I outbid myself which is silly).
-                      // Actually, if I bid, turn passes. So I can't bid again immediately.
+                  <View style={styles.controls}>
+                    <View style={styles.bidButtons}>
+                      {increments.map((inc) => {
+                        const bidAmount = auction.currentBid + inc;
+                        const disabled = !canAffordBid(bidAmount) || !isTurn;
+                        // Note: Standard rules don't strictly forbid bidding against yourself, but logic blocks it if not turn.
+                        // If I am high bidder, and it's my turn (e.g. everyone else folded?), I win immediately by logic.
+                        // But if there are others, it won't be my turn if I am high bidder (unless I outbid myself which is silly).
+                        // Actually, if I bid, turn passes. So I can't bid again immediately.
 
-                      return (
-                        <View key={inc} style={styles.buttonWrapper}>
+                        return (
+                          <View key={inc} style={styles.buttonWrapper}>
                             <IconButton
                               title={`+${inc}`}
                               icon="arrow-up-bold"
@@ -81,37 +84,52 @@ export const AuctionModal: React.FC<Props> = ({
                               disabled={disabled}
                               size="small"
                             />
-                        </View>
-                      );
-                    })}
-                  </View>
-                  <View style={styles.foldButton}>
-                    <IconButton
+                          </View>
+                        );
+                      })}
+                    </View>
+                    <View style={styles.foldButton}>
+                      <IconButton
                         title="Fold"
                         icon="close-circle"
                         onPress={() => onConcede(playerId)}
                         color="#d9534f"
                         disabled={!isTurn || isHighestBidder}
                         size="small"
-                    />
+                      />
+                    </View>
                   </View>
                 </View>
-              </View>
-            );
-          })}
-        </ScrollView>
-        <View style={styles.footer}>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.footer}>
             <Text style={styles.footerText}>Last player remaining wins the auction!</Text>
+          </View>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  modalOverlay: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '95%',
+    maxHeight: '90%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    overflow: 'hidden', // Ensure content doesn't spill out of rounded corners
   },
   header: {
     padding: 20,
@@ -124,13 +142,15 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
+    textAlign: 'center',
   },
   currentBid: {
     fontSize: 18,
     color: '#444',
+    textAlign: 'center',
   },
   participantsList: {
-    flex: 1,
+    flexGrow: 0, // Important for ScrollView inside centered modal
     padding: 10,
   },
   playerRow: {
@@ -184,20 +204,20 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   buttonWrapper: {
-      minWidth: 60,
+    minWidth: 60,
   },
   foldButton: {
-      alignSelf: 'flex-start'
+    alignSelf: 'flex-start',
   },
   footer: {
-      padding: 15,
-      alignItems: 'center',
-      borderTopWidth: 1,
-      borderColor: '#ccc',
-      backgroundColor: '#eee'
+    padding: 15,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderColor: '#ccc',
+    backgroundColor: '#eee',
   },
   footerText: {
-      fontStyle: 'italic',
-      color: '#666'
-  }
+    fontStyle: 'italic',
+    color: '#666',
+  },
 });
