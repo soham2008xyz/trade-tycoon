@@ -10,6 +10,8 @@ export const createInitialState = (): GameState => {
     phase: 'roll', // Start ready to roll
     board: BOARD,
     winner: null,
+    auction: null,
+    activeTrade: null,
     logs: [],
   };
 };
