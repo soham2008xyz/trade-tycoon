@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, StyleProp, ViewStyle, Pressable } from 'react-native';
 import { Tile as TileType, Player } from '@trade-tycoon/game-logic';
 
 interface Props {
@@ -8,6 +8,7 @@ interface Props {
   style?: StyleProp<ViewStyle>;
   players?: Player[];
   owner?: Player;
+  onPress?: () => void;
 }
 
 const GROUP_COLORS: Record<string, string> = {
@@ -23,7 +24,7 @@ const GROUP_COLORS: Record<string, string> = {
   utility: '#D3D3D3',
 };
 
-export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], owner }) => {
+export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], owner, onPress }) => {
   const isStreet = tile.type === 'street';
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
   const houseCount = owner?.houses[tile.id] || 0;
@@ -57,7 +58,14 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], 
   };
 
   return (
-    <View style={[styles.container, { flexDirection }, style]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.container,
+        { flexDirection, opacity: pressed ? 0.8 : 1 },
+        style
+      ]}
+    >
       {isStreet && (
         <View
           style={[
@@ -86,7 +94,7 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], 
           ))}
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 };
 
