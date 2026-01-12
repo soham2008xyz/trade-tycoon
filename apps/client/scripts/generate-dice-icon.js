@@ -73,30 +73,21 @@ async function generate() {
 
   // 1. icon.png (1024x1024)
   const iconBuffer = Buffer.from(mainIconSvg(1024, 1024));
-  await sharp(iconBuffer)
-    .png()
-    .toFile(path.join(ASSETS_DIR, 'icon.png'));
+  await sharp(iconBuffer).png().toFile(path.join(ASSETS_DIR, 'icon.png'));
   console.log('Generated icon.png');
 
   // 2. favicon.png (196x196)
-  await sharp(iconBuffer)
-    .resize(196, 196)
-    .png()
-    .toFile(path.join(ASSETS_DIR, 'favicon.png'));
+  await sharp(iconBuffer).resize(196, 196).png().toFile(path.join(ASSETS_DIR, 'favicon.png'));
   console.log('Generated favicon.png');
 
   // 3. android-icon-foreground.png (432x432)
   const androidFgBuffer = Buffer.from(androidForegroundSvg(432, 432));
-  await sharp(androidFgBuffer)
-    .png()
-    .toFile(path.join(ASSETS_DIR, 'android-icon-foreground.png'));
+  await sharp(androidFgBuffer).png().toFile(path.join(ASSETS_DIR, 'android-icon-foreground.png'));
   console.log('Generated android-icon-foreground.png');
 
   // 4. android-icon-monochrome.png (432x432)
   const monochromeBuffer = Buffer.from(monochromeSvg(432, 432));
-  await sharp(monochromeBuffer)
-    .png()
-    .toFile(path.join(ASSETS_DIR, 'android-icon-monochrome.png'));
+  await sharp(monochromeBuffer).png().toFile(path.join(ASSETS_DIR, 'android-icon-monochrome.png'));
   console.log('Generated android-icon-monochrome.png');
 
   // 5. android-icon-background.png (1x1 is enough, let's do 100x100)
@@ -105,8 +96,8 @@ async function generate() {
       width: 100,
       height: 100,
       channels: 4,
-      background: BG_COLOR
-    }
+      background: BG_COLOR,
+    },
   })
     .png()
     .toFile(path.join(ASSETS_DIR, 'android-icon-background.png'));
@@ -116,13 +107,13 @@ async function generate() {
   // Reuse foreground, resize if needed.
   // Splash icon usually is the logo.
   await sharp(androidFgBuffer)
-     .resize(512, 512)
-     .png()
-     .toFile(path.join(ASSETS_DIR, 'splash-icon.png'));
+    .resize(512, 512)
+    .png()
+    .toFile(path.join(ASSETS_DIR, 'splash-icon.png'));
   console.log('Generated splash-icon.png');
 }
 
-generate().catch(err => {
+generate().catch((err) => {
   console.error(err);
   process.exit(1);
 });

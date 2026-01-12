@@ -100,8 +100,7 @@ export const BOARD: Tile[] = [
     index: 10,
     name: 'Jail / Just Visiting',
     type: 'jail',
-    description:
-      'If you land here, you are just visiting. If sent here, you are in Jail.',
+    description: 'If you land here, you are just visiting. If sent here, you are in Jail.',
   },
   {
     id: 'st_charles',
