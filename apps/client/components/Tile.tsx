@@ -25,10 +25,13 @@ const GROUP_COLORS: Record<string, string> = {
   utility: '#D3D3D3',
 };
 
+const STRIPES = Array.from({ length: 40 });
+
 export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], owner, onPress, testID }) => {
   const isStreet = tile.type === 'street';
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
   const houseCount = owner?.houses[tile.id] || 0;
+  const isMortgaged = owner?.mortgaged.includes(tile.id);
 
   // Determine flex direction based on orientation
   let flexDirection: 'column' | 'row' | 'column-reverse' | 'row-reverse' = 'column';
@@ -68,6 +71,21 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], 
         style
       ]}
     >
+      {isMortgaged && (
+        <View style={styles.mortgagedOverlay}>
+          {STRIPES.map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.stripe,
+                {
+                  left: i * 10 - 100,
+                },
+              ]}
+            />
+          ))}
+        </View>
+      )}
       {isStreet && (
         <View
           style={[
@@ -181,5 +199,19 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 8,
     marginTop: 2,
+  },
+  mortgagedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(200, 200, 200, 0.5)',
+    zIndex: 0,
+    overflow: 'hidden',
+  },
+  stripe: {
+    position: 'absolute',
+    top: -100,
+    bottom: -100,
+    width: 4,
+    backgroundColor: 'rgba(255, 0, 0, 0.2)',
+    transform: [{ rotate: '45deg' }],
   },
 });
