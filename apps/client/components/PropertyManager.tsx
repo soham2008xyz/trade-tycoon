@@ -10,6 +10,7 @@ import {
 } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { CloseButton } from './ui/CloseButton';
+import { GROUP_COLORS, GROUP_DISPLAY_NAMES } from '../constants';
 
 interface Props {
   visible: boolean;
@@ -20,32 +21,6 @@ interface Props {
   onMortgage: (propertyId: string) => void;
   onUnmortgage: (propertyId: string) => void;
 }
-
-const GROUP_COLORS: Record<string, string> = {
-  brown: '#8B4513',
-  light_blue: '#87CEEB',
-  pink: '#FF69B4',
-  orange: '#FFA500',
-  red: '#FF0000',
-  yellow: '#FFFF00',
-  green: '#008000',
-  dark_blue: '#00008B',
-  railroad: '#000000',
-  utility: '#D3D3D3',
-};
-
-const GROUP_DISPLAY_NAMES: Record<string, string> = {
-  brown: 'Brown',
-  light_blue: 'Light Blue',
-  pink: 'Pink',
-  orange: 'Orange',
-  red: 'Red',
-  yellow: 'Yellow',
-  green: 'Green',
-  dark_blue: 'Dark Blue',
-  railroad: 'Railroads',
-  utility: 'Utilities',
-};
 
 export const PropertyManager: React.FC<Props> = ({
   visible,

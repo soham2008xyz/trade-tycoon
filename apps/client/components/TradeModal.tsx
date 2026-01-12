@@ -13,19 +13,7 @@ import { IconButton } from './ui/IconButton';
 import { CloseButton } from './ui/CloseButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
-
-const GROUP_COLORS: Record<string, string> = {
-  brown: '#8B4513',
-  light_blue: '#87CEEB',
-  pink: '#FF69B4',
-  orange: '#FFA500',
-  red: '#FF0000',
-  yellow: '#FFFF00',
-  green: '#008000',
-  dark_blue: '#00008B',
-  railroad: '#000000',
-  utility: '#D3D3D3',
-};
+import { GROUP_COLORS } from '../constants';
 
 interface Props {
   visible: boolean;

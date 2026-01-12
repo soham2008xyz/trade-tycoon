@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle, Pressable } from 'react-native';
 import { Tile as TileType, Player } from '@trade-tycoon/game-logic';
+import { GROUP_COLORS } from '../constants';
 
 interface Props {
   tile: TileType;
@@ -11,29 +12,9 @@ interface Props {
   testID?: string;
 }
 
-const GROUP_COLORS: Record<string, string> = {
-  brown: '#8B4513',
-  light_blue: '#87CEEB',
-  pink: '#FF69B4',
-  orange: '#FFA500',
-  red: '#FF0000',
-  yellow: '#FFFF00',
-  green: '#008000',
-  dark_blue: '#00008B',
-  railroad: '#000000',
-  utility: '#D3D3D3',
-};
-
 const STRIPES = Array.from({ length: 40 });
 
-export const Tile: React.FC<Props> = ({
-  tile,
-  orientation,
-  style,
-  owner,
-  onPress,
-  testID,
-}) => {
+export const Tile: React.FC<Props> = ({ tile, orientation, style, owner, onPress, testID }) => {
   const isStreet = tile.type === 'street';
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
   const houseCount = owner?.houses[tile.id] || 0;
@@ -97,7 +78,6 @@ export const Tile: React.FC<Props> = ({
           {tile.name}
         </Text>
         {tile.price && <Text style={styles.price}>${tile.price}</Text>}
-
       </View>
       {isMortgaged && (
         <View style={styles.mortgagedOverlay}>

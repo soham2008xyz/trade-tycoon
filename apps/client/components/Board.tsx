@@ -15,6 +15,7 @@ import { TileInfoModal } from './TileInfoModal';
 import { IconButton } from './ui/IconButton';
 import { Dice } from './Dice';
 import { PlayerToken } from './PlayerToken';
+import { GROUP_COLORS } from '../constants';
 
 const CORNER_SIZE_PCT = 14;
 
@@ -145,19 +146,6 @@ export const Board: React.FC<Props> = ({
 
   const getPlayersOnTile = (index: number) => players.filter((p) => p.position === index);
   const getOwner = (tileId: string) => players.find((p) => p.properties.includes(tileId));
-
-  const GROUP_COLORS: Record<string, string> = {
-    brown: '#955436',
-    light_blue: '#AAE0FA',
-    pink: '#D93A96',
-    orange: '#F7941D',
-    red: '#ED1B24',
-    yellow: '#FEF200',
-    green: '#1FB25A',
-    dark_blue: '#0072BB',
-    railroad: '#000000',
-    utility: '#A0A0A0',
-  };
 
   return (
     <View style={[styles.boardContainer, { width: size, height: size }]}>
