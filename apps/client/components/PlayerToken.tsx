@@ -3,6 +3,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withSequence,
   Easing,
 } from 'react-native-reanimated';
 import { Player } from '@trade-tycoon/game-logic';
@@ -83,10 +84,26 @@ export const PlayerToken: React.FC<Props> = ({ player, boardSize, index }) => {
     if (diff === 0) return;
 
     if (diff <= 12) {
-      visualIndex.value = withTiming(visualIndex.value + diff, {
-        duration: 1000,
-        easing: Easing.out(Easing.quad),
-      });
+      const animations = [];
+      const current = Math.round(visualIndex.value);
+
+      for (let i = 1; i <= diff; i++) {
+        // Move to next tile
+        animations.push(withTiming(current + i, {
+          duration: 300,
+          easing: Easing.inOut(Easing.quad)
+        }));
+
+        // Pause on tile (if not the last one)
+        if (i < diff) {
+          animations.push(withTiming(current + i, { duration: 150 }));
+        }
+      }
+
+      // Use spread operator to pass array elements as arguments
+      // @ts-ignore - spread operator works for withSequence
+      visualIndex.value = withSequence(...animations);
+
     } else {
       visualIndex.value = player.position;
     }

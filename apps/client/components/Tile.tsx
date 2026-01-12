@@ -6,7 +6,6 @@ interface Props {
   tile: TileType;
   orientation: 'bottom' | 'left' | 'top' | 'right' | 'corner';
   style?: StyleProp<ViewStyle>;
-  players?: Player[];
   owner?: Player;
   onPress?: () => void;
   testID?: string;
@@ -137,20 +136,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     borderColor: '#000',
-  },
-  tokenContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  token: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    margin: 1,
-    borderWidth: 1,
-    borderColor: 'white',
   },
   colorBar: {
     position: 'relative',
