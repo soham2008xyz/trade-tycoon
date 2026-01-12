@@ -9,6 +9,7 @@ interface Props {
   players?: Player[];
   owner?: Player;
   onPress?: () => void;
+  testID?: string;
 }
 
 const GROUP_COLORS: Record<string, string> = {
@@ -26,7 +27,7 @@ const GROUP_COLORS: Record<string, string> = {
 
 const STRIPES = Array.from({ length: 40 });
 
-export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], owner, onPress }) => {
+export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], owner, onPress, testID }) => {
   const isStreet = tile.type === 'street';
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
   const houseCount = owner?.houses[tile.id] || 0;
@@ -62,6 +63,7 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], 
 
   return (
     <Pressable
+      testID={testID || `tile-${tile.id}`}
       onPress={onPress}
       style={({ pressed }) => [
         styles.container,
