@@ -149,7 +149,8 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
     case 'ROLL_DICE': {
       if (state.currentPlayerId !== action.playerId) return state;
-      if (state.phase !== 'roll') return state;
+      if (state.phase !== 'roll' && !(state.phase === 'action' && state.doublesCount > 0))
+        return state;
 
       const die1 = action.die1 ?? Math.floor(Math.random() * 6) + 1;
       const die2 = action.die2 ?? Math.floor(Math.random() * 6) + 1;

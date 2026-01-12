@@ -49,7 +49,7 @@ export default function GameScreen() {
 
   const handleRollAgain = () => {
     if (state.currentPlayerId) {
-      dispatch({ type: 'CONTINUE_TURN', playerId: state.currentPlayerId });
+      dispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId });
     }
   };
 
