@@ -121,10 +121,6 @@ export default function GameScreen() {
     }
   };
 
-  const handleDismissError = () => {
-    dispatch({ type: 'DISMISS_ERROR' });
-  };
-
   const handleDismissToast = () => {
     dispatch({ type: 'DISMISS_TOAST' });
   };

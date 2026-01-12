@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  StyleSheet,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, Modal, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Player, TradeOffer, TradeRequest, BOARD } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { CloseButton } from './ui/CloseButton';

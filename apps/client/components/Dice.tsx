@@ -65,7 +65,7 @@ const Die: React.FC<{ value: number; size: number; color: string; isRolling?: bo
       // Optional: Add a small "landing" animation
       scale.value = withSequence(withTiming(1.2, { duration: 150 }), withSpring(1));
     }
-  }, [isRolling, value]); // React to isRolling change or value change
+  }, [isRolling, value, rotation, scale]); // React to isRolling change or value change
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -89,7 +89,7 @@ export const Dice: React.FC<DiceProps> = ({
   value2,
   size = 40,
   color = 'black',
-  isRolling = false
+  isRolling = false,
 }) => {
   return (
     <View style={styles.container}>

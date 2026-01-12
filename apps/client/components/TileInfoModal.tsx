@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity } from 'react-native';
-import { Tile, Player, TileType } from '@trade-tycoon/game-logic';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { Tile, Player } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { GROUP_COLORS } from '../constants';
 

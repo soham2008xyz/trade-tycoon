@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Modal, ScrollView } from 'react-native';
 import { AuctionState, Player, BOARD } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 

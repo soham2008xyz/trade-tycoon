@@ -26,32 +26,32 @@ const getTileCenter = (index: number) => {
   const i = index % 40;
 
   // Corners
-  if (i === 0) return { x: 1 - CORNER_PCT/2, y: 1 - CORNER_PCT/2 };
-  if (i === 10) return { x: CORNER_PCT/2, y: 1 - CORNER_PCT/2 };
-  if (i === 20) return { x: CORNER_PCT/2, y: CORNER_PCT/2 };
-  if (i === 30) return { x: 1 - CORNER_PCT/2, y: CORNER_PCT/2 };
+  if (i === 0) return { x: 1 - CORNER_PCT / 2, y: 1 - CORNER_PCT / 2 };
+  if (i === 10) return { x: CORNER_PCT / 2, y: 1 - CORNER_PCT / 2 };
+  if (i === 20) return { x: CORNER_PCT / 2, y: CORNER_PCT / 2 };
+  if (i === 30) return { x: 1 - CORNER_PCT / 2, y: CORNER_PCT / 2 };
 
   // Edges
   if (i > 0 && i < 10) {
-     // Bottom: Right to Left
-     // i=1 is right-most street.
-     const distFromRight = CORNER_PCT + (i - 1) * TILE_PCT + TILE_PCT / 2;
-     return { x: 1 - distFromRight, y: 1 - CORNER_PCT/2 };
+    // Bottom: Right to Left
+    // i=1 is right-most street.
+    const distFromRight = CORNER_PCT + (i - 1) * TILE_PCT + TILE_PCT / 2;
+    return { x: 1 - distFromRight, y: 1 - CORNER_PCT / 2 };
   }
   if (i > 10 && i < 20) {
-     // Left: Bottom to Top
-     const distFromBottom = CORNER_PCT + (i - 11) * TILE_PCT + TILE_PCT / 2;
-     return { x: CORNER_PCT/2, y: 1 - distFromBottom };
+    // Left: Bottom to Top
+    const distFromBottom = CORNER_PCT + (i - 11) * TILE_PCT + TILE_PCT / 2;
+    return { x: CORNER_PCT / 2, y: 1 - distFromBottom };
   }
   if (i > 20 && i < 30) {
-     // Top: Left to Right
-     const distFromLeft = CORNER_PCT + (i - 21) * TILE_PCT + TILE_PCT / 2;
-     return { x: distFromLeft, y: CORNER_PCT/2 };
+    // Top: Left to Right
+    const distFromLeft = CORNER_PCT + (i - 21) * TILE_PCT + TILE_PCT / 2;
+    return { x: distFromLeft, y: CORNER_PCT / 2 };
   }
   if (i > 30 && i < 40) {
-     // Right: Top to Bottom
-     const distFromTop = CORNER_PCT + (i - 31) * TILE_PCT + TILE_PCT / 2;
-     return { x: 1 - CORNER_PCT/2, y: distFromTop };
+    // Right: Top to Bottom
+    const distFromTop = CORNER_PCT + (i - 31) * TILE_PCT + TILE_PCT / 2;
+    return { x: 1 - CORNER_PCT / 2, y: distFromTop };
   }
   return { x: 0.5, y: 0.5 };
 };
@@ -102,14 +102,20 @@ export const PlayerToken: React.FC<Props> = ({
         const isLastStep = i === diff;
 
         // Move to next tile
-        animations.push(withTiming(current + i, {
-          duration: 300,
-          easing: Easing.inOut(Easing.quad)
-        }, (finished) => {
-          if (finished && isLastStep && onAnimationComplete) {
-            runOnJS(onAnimationComplete)();
-          }
-        }));
+        animations.push(
+          withTiming(
+            current + i,
+            {
+              duration: 300,
+              easing: Easing.inOut(Easing.quad),
+            },
+            (finished) => {
+              if (finished && isLastStep && onAnimationComplete) {
+                runOnJS(onAnimationComplete)();
+              }
+            }
+          )
+        );
 
         // Pause on tile (if not the last one)
         if (i < diff) {
@@ -120,11 +126,10 @@ export const PlayerToken: React.FC<Props> = ({
       // Use spread operator to pass array elements as arguments
       // @ts-ignore - spread operator works for withSequence
       visualIndex.value = withSequence(...animations);
-
     } else {
       visualIndex.value = player.position;
     }
-  }, [player.position]);
+  }, [player.position, onAnimationStart, onAnimationComplete, visualIndex]);
 
   const style = useAnimatedStyle(() => {
     const coords = getInterpolatedCoords(visualIndex.value);
@@ -149,7 +154,7 @@ export const PlayerToken: React.FC<Props> = ({
         { translateY: coords.y * boardSize - tokenSize / 2 + offsetY },
       ],
       zIndex: 100 + index,
-      shadowColor: "#000",
+      shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.25,
       shadowRadius: 3.84,

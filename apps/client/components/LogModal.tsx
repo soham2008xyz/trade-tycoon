@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, ScrollView } from 'react-native';
 import { Player } from '@trade-tycoon/game-logic';
-import { IconButton } from './ui/IconButton';
 import { CloseButton } from './ui/CloseButton';
 
 interface Props {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, Platform } from 'react-native';
+import { Modal, View, Text, StyleSheet } from 'react-native';
 import { IconButton } from './IconButton';
 
 export interface AlertButton {

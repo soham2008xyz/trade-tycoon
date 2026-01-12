@@ -144,7 +144,6 @@ export const Board: React.FC<Props> = ({
     gotojail: BOARD[30],
   };
 
-  const getPlayersOnTile = (index: number) => players.filter((p) => p.position === index);
   const getOwner = (tileId: string) => players.find((p) => p.properties.includes(tileId));
 
   return (
