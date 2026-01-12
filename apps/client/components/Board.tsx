@@ -232,16 +232,10 @@ export const Board: React.FC<Props> = ({
                       ]}
                     />
                   )}
-                  <Text style={styles.statusText}>
-                    {isTokenMoving ? '...' : currentTile?.name}
-                  </Text>
+                  <Text style={styles.statusText}>{isTokenMoving ? '...' : currentTile?.name}</Text>
                 </View>
                 {phase === 'action' && (
-                  <Dice
-                    value1={dice[0]}
-                    value2={dice[1]}
-                    isRolling={isTokenMoving}
-                  />
+                  <Dice value1={dice[0]} value2={dice[1]} isRolling={isTokenMoving} />
                 )}
               </View>
 
@@ -281,14 +275,14 @@ export const Board: React.FC<Props> = ({
 
                 {phase === 'action' && (
                   <>
-                    {canBuy && (
+                    {canBuy && !isTokenMoving && (
                       <IconButton
                         title={`Buy ($${currentTile?.price || 0})`}
                         icon="cart"
                         onPress={onBuy}
                       />
                     )}
-                    {canAuction && (
+                    {canAuction && !isTokenMoving && (
                       <IconButton
                         title="Auction"
                         icon="gavel"
@@ -296,7 +290,7 @@ export const Board: React.FC<Props> = ({
                         color="#f0ad4e"
                       />
                     )}
-                    {doublesCount === 0 && (
+                    {doublesCount === 0 && !isTokenMoving && (
                       <IconButton
                         title="Manage Properties"
                         icon="city"
@@ -304,21 +298,23 @@ export const Board: React.FC<Props> = ({
                         color="#841584"
                       />
                     )}
-                    {doublesCount > 0 ? (
-                      <IconButton
-                        title="Roll Again"
-                        icon="dice-multiple"
-                        onPress={onRollAgain}
-                        color="orange"
-                      />
-                    ) : (
-                      <IconButton
-                        title="End Turn"
-                        icon="check"
-                        onPress={onEndTurn}
-                        color="#d9534f"
-                      />
-                    )}
+                    {doublesCount > 0
+                      ? !isTokenMoving && (
+                          <IconButton
+                            title="Roll Again"
+                            icon="dice-multiple"
+                            onPress={onRollAgain}
+                            color="orange"
+                          />
+                        )
+                      : !isTokenMoving && (
+                          <IconButton
+                            title="End Turn"
+                            icon="check"
+                            onPress={onEndTurn}
+                            color="#d9534f"
+                          />
+                        )}
                   </>
                 )}
               </View>
@@ -470,7 +466,7 @@ export const Board: React.FC<Props> = ({
       {/* Tile Info Modal - moved to bottom to ensure z-index priority */}
       <TileInfoModal
         visible={!!selectedTileId}
-        tile={selectedTileId ? BOARD.find(t => t.id === selectedTileId) || null : null}
+        tile={selectedTileId ? BOARD.find((t) => t.id === selectedTileId) || null : null}
         owner={selectedTileId ? getOwner(selectedTileId) : undefined}
         onClose={() => setSelectedTileId(null)}
       />
