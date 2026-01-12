@@ -71,20 +71,125 @@ npm run test                                         # Run all workspace tests
 
 ## Key Patterns
 
-### Component naming
+### Component Naming
 
-- Use **lower-case-with-dashes** for all component file names (e.g., `tile-info-modal.tsx`)
+Use **PascalCase** for React component files (e.g., `AuctionModal.tsx`, `TileInfoModal.tsx`, `PropertyManager.tsx`).
 
 ### Styling
 
 - Use `StyleSheet.create` from `react-native`
 - Ensure cross-platform (iOS/Android/Web) compatibility
 
-### Testing
+## Writing Tests
 
-- **Logic features are not complete without passing tests**
-- Use `vitest` for `game-logic` package
-- Tests are co-located: `reducer.test.ts`, `auction-trade.test.ts`, `cards.test.ts`
+**Logic features are not complete without passing tests.** Use `vitest` for all `game-logic` tests.
+
+### Test File Structure
+
+Tests are co-located with source files:
+
+- `reducer.test.ts` - Core game actions (rolling, buying, building, mortgages)
+- `auction-trade.test.ts` - Auction and trade logic
+- `cards.test.ts` - Chance/Community Chest cards
+
+### Test Pattern Example
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest';
+import { gameReducer } from './reducer';
+import { createInitialState, createPlayer } from './index';
+import { GameState } from './types';
+
+describe('Feature Name', () => {
+  let state: GameState;
+
+  beforeEach(() => {
+    // Setup fresh state before each test
+    state = createInitialState();
+    state.players = [createPlayer('p1', 'Player 1'), createPlayer('p2', 'Player 2')];
+    state.currentPlayerId = 'p1';
+    state.phase = 'action';
+  });
+
+  it('should do something when action dispatched', () => {
+    const newState = gameReducer(state, {
+      type: 'ACTION_TYPE',
+      playerId: 'p1',
+      // ... other action params
+    });
+
+    expect(newState.someProperty).toBe(expectedValue);
+    expect(newState.errorMessage).toBeUndefined(); // Verify no errors
+  });
+
+  it('should fail with error if invalid', () => {
+    state.players[0].money = 10; // Setup failure condition
+
+    const newState = gameReducer(state, {
+      type: 'ACTION_TYPE',
+      playerId: 'p1',
+    });
+
+    expect(newState.errorMessage).toMatch(/expected error/);
+  });
+});
+```
+
+### Key Testing Patterns
+
+1. **Use `beforeEach`** to reset state for isolation
+2. **Test both success and failure paths** - verify `errorMessage` is set on failures
+3. **Use `die1`/`die2` params** to control dice for deterministic movement tests
+4. **Mock `Math.random`** with `vi.spyOn` for card draw tests:
+   ```typescript
+   const randomSpy = vi.spyOn(Math, 'random');
+   randomSpy.mockReturnValueOnce(0.5); // Control card index
+   // ... test ...
+   randomSpy.mockRestore();
+   ```
+5. **Test turn enforcement** - verify actions fail when wrong player attempts them
+
+## Multiplayer Architecture (Planned)
+
+The architecture is designed for future online multiplayer via Socket.io.
+
+### Server Role
+
+- **Authoritative Source of Truth**: Server holds the canonical `GameState`
+- **Technology**: Node.js (Express) + Socket.io in `apps/server`
+- **State Storage**: In-memory (or Redis for scaling)
+
+### Data Flow
+
+```
+┌─────────────┐        WebSocket         ┌─────────────┐
+│   Client    │ ──── socket.emit() ───→  │   Server    │
+│  (Expo/RN)  │                          │  (Node.js)  │
+│             │                          │             │
+│  useReducer │ ←── state_update() ────  │  reducer()  │
+│  (sync)     │                          │  (authoritative)
+└─────────────┘                          └─────────────┘
+```
+
+1. **Client Action**: User clicks "Roll Dice" → `socket.emit('action', { type: 'ROLL_DICE', ... })`
+2. **Server Validation**: Server validates turn/rules → Runs `gameReducer(serverState, action)`
+3. **State Broadcast**: Server emits `socket.emit('state_update', newState)` to all clients
+4. **Client Sync**: Clients replace local state → Re-render UI
+
+### Implementation Steps
+
+1. Initialize `apps/server` workspace with Express + Socket.io
+2. Setup room management (create/join lobbies)
+3. Integrate `@trade-tycoon/game-logic` reducer into socket event loop
+4. Handle player disconnection and reconnection
+
+### Shared Logic Advantage
+
+The `packages/game-logic` package is **framework-agnostic**:
+
+- Client imports it for local single-player mode
+- Server imports the same package for authoritative multiplayer
+- Guarantees identical game rules across environments
 
 ## Workspace Boundaries
 
