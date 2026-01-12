@@ -27,7 +27,15 @@ const GROUP_COLORS: Record<string, string> = {
 
 const STRIPES = Array.from({ length: 40 });
 
-export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], owner, onPress, testID }) => {
+export const Tile: React.FC<Props> = ({
+  tile,
+  orientation,
+  style,
+  players = [],
+  owner,
+  onPress,
+  testID,
+}) => {
   const isStreet = tile.type === 'street';
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
   const houseCount = owner?.houses[tile.id] || 0;
@@ -68,24 +76,9 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], 
       style={({ pressed }) => [
         styles.container,
         { flexDirection, opacity: pressed ? 0.8 : 1 },
-        style
+        style,
       ]}
     >
-      {isMortgaged && (
-        <View style={styles.mortgagedOverlay}>
-          {STRIPES.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.stripe,
-                {
-                  left: i * 10 - 100,
-                },
-              ]}
-            />
-          ))}
-        </View>
-      )}
       {isStreet && (
         <View
           style={[
@@ -114,6 +107,21 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, players = [], 
           ))}
         </View>
       </View>
+      {isMortgaged && (
+        <View style={styles.mortgagedOverlay}>
+          {STRIPES.map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.stripe,
+                {
+                  left: i * 10 - 100,
+                },
+              ]}
+            />
+          ))}
+        </View>
+      )}
     </Pressable>
   );
 };
@@ -203,7 +211,7 @@ const styles = StyleSheet.create({
   mortgagedOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(200, 200, 200, 0.5)',
-    zIndex: 0,
+    zIndex: 10,
     overflow: 'hidden',
   },
   stripe: {
