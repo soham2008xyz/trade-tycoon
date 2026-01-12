@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Modal, ScrollView, Platform } from 'react-native';
 import {
   Player,
   BOARD,
@@ -272,8 +272,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowRadius: 2,
+    ...Platform.select({
+      web: {
+        textShadow: '0px 0px 2px rgba(0,0,0,0.5)',
+      },
+      default: {
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowRadius: 2,
+      },
+    }),
   },
   propertyRow: {
     flexDirection: 'row',
