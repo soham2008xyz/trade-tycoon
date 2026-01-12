@@ -31,7 +31,6 @@ export const Tile: React.FC<Props> = ({
   tile,
   orientation,
   style,
-  players = [],
   owner,
   onPress,
   testID,
@@ -100,12 +99,6 @@ export const Tile: React.FC<Props> = ({
         </Text>
         {tile.price && <Text style={styles.price}>${tile.price}</Text>}
 
-        {/* Render Players */}
-        <View style={styles.tokenContainer}>
-          {players.map((p) => (
-            <View key={p.id} style={[styles.token, { backgroundColor: p.color }]} />
-          ))}
-        </View>
       </View>
       {isMortgaged && (
         <View style={styles.mortgagedOverlay}>

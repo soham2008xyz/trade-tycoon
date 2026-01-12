@@ -14,6 +14,7 @@ import { TradeModal } from './TradeModal';
 import { TileInfoModal } from './TileInfoModal';
 import { IconButton } from './ui/IconButton';
 import { Dice } from './Dice';
+import { PlayerToken } from './PlayerToken';
 
 const CORNER_SIZE_PCT = 14;
 
@@ -326,6 +327,11 @@ export const Board: React.FC<Props> = ({
         boardSize={size}
       />
 
+      {/* Render Animated Player Tokens */}
+      {players.map((player, index) => (
+        <PlayerToken key={player.id} player={player} boardSize={size} index={index} />
+      ))}
+
       {currentPlayer && (
         <TradeModal
           visible={
@@ -371,7 +377,6 @@ export const Board: React.FC<Props> = ({
         <Tile
           tile={corners.go}
           orientation="corner"
-          players={getPlayersOnTile(0)}
           onPress={() => setSelectedTileId(corners.go.id)}
         />
       </View>
@@ -379,7 +384,6 @@ export const Board: React.FC<Props> = ({
         <Tile
           tile={corners.jail}
           orientation="corner"
-          players={getPlayersOnTile(10)}
           onPress={() => setSelectedTileId(corners.jail.id)}
         />
       </View>
@@ -387,7 +391,6 @@ export const Board: React.FC<Props> = ({
         <Tile
           tile={corners.parking}
           orientation="corner"
-          players={getPlayersOnTile(20)}
           onPress={() => setSelectedTileId(corners.parking.id)}
         />
       </View>
@@ -395,7 +398,6 @@ export const Board: React.FC<Props> = ({
         <Tile
           tile={corners.gotojail}
           orientation="corner"
-          players={getPlayersOnTile(30)}
           onPress={() => setSelectedTileId(corners.gotojail.id)}
         />
       </View>
@@ -407,7 +409,6 @@ export const Board: React.FC<Props> = ({
             key={t.id}
             tile={t}
             orientation="bottom"
-            players={getPlayersOnTile(t.index)}
             owner={getOwner(t.id)}
             onPress={() => setSelectedTileId(t.id)}
           />
@@ -420,7 +421,6 @@ export const Board: React.FC<Props> = ({
             key={t.id}
             tile={t}
             orientation="left"
-            players={getPlayersOnTile(t.index)}
             owner={getOwner(t.id)}
             onPress={() => setSelectedTileId(t.id)}
           />
@@ -433,7 +433,6 @@ export const Board: React.FC<Props> = ({
             key={t.id}
             tile={t}
             orientation="top"
-            players={getPlayersOnTile(t.index)}
             owner={getOwner(t.id)}
             onPress={() => setSelectedTileId(t.id)}
           />
@@ -446,7 +445,6 @@ export const Board: React.FC<Props> = ({
             key={t.id}
             tile={t}
             orientation="right"
-            players={getPlayersOnTile(t.index)}
             owner={getOwner(t.id)}
             onPress={() => setSelectedTileId(t.id)}
           />
