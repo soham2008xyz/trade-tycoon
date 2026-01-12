@@ -27,6 +27,7 @@ export interface Tile {
   index: number; // 0-39
   name: string;
   type: TileType;
+  description?: string;
   group?: PropertyGroup;
   price?: number;
   rent?: number[]; // [base, 1house, 2house, 3house, 4house, hotel] for streets. Flat rent for others.

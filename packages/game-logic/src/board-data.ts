@@ -1,7 +1,13 @@
 import { Tile } from './types';
 
 export const BOARD: Tile[] = [
-  { id: 'go', index: 0, name: 'GO', type: 'go' },
+  {
+    id: 'go',
+    index: 0,
+    name: 'GO',
+    type: 'go',
+    description: 'Collect $200 when you pass.',
+  },
   {
     id: 'mediterranean',
     index: 1,
@@ -13,7 +19,13 @@ export const BOARD: Tile[] = [
     mortgageValue: 30,
     houseCost: 50,
   },
-  { id: 'chest1', index: 2, name: 'Community Chest', type: 'community_chest' },
+  {
+    id: 'chest1',
+    index: 2,
+    name: 'Community Chest',
+    type: 'community_chest',
+    description: 'Draw a Community Chest card.',
+  },
   {
     id: 'baltic',
     index: 3,
@@ -25,7 +37,14 @@ export const BOARD: Tile[] = [
     mortgageValue: 30,
     houseCost: 50,
   },
-  { id: 'tax1', index: 4, name: 'Income Tax', type: 'tax', price: 200 },
+  {
+    id: 'tax1',
+    index: 4,
+    name: 'Income Tax',
+    type: 'tax',
+    price: 200,
+    description: 'Pay the tax amount shown.',
+  },
   {
     id: 'reading_rr',
     index: 5,
@@ -47,7 +66,13 @@ export const BOARD: Tile[] = [
     mortgageValue: 50,
     houseCost: 50,
   },
-  { id: 'chance1', index: 7, name: 'Chance', type: 'chance' },
+  {
+    id: 'chance1',
+    index: 7,
+    name: 'Chance',
+    type: 'chance',
+    description: 'Draw a Chance card.',
+  },
   {
     id: 'vermont',
     index: 8,
@@ -70,7 +95,14 @@ export const BOARD: Tile[] = [
     mortgageValue: 60,
     houseCost: 50,
   },
-  { id: 'jail', index: 10, name: 'Jail / Just Visiting', type: 'jail' },
+  {
+    id: 'jail',
+    index: 10,
+    name: 'Jail / Just Visiting',
+    type: 'jail',
+    description:
+      'If you land here, you are just visiting. If sent here, you are in Jail.',
+  },
   {
     id: 'st_charles',
     index: 11,
@@ -134,7 +166,13 @@ export const BOARD: Tile[] = [
     mortgageValue: 90,
     houseCost: 100,
   },
-  { id: 'chest2', index: 17, name: 'Community Chest', type: 'community_chest' },
+  {
+    id: 'chest2',
+    index: 17,
+    name: 'Community Chest',
+    type: 'community_chest',
+    description: 'Draw a Community Chest card.',
+  },
   {
     id: 'tennessee',
     index: 18,
@@ -157,7 +195,13 @@ export const BOARD: Tile[] = [
     mortgageValue: 100,
     houseCost: 100,
   },
-  { id: 'parking', index: 20, name: 'Free Parking', type: 'parking' },
+  {
+    id: 'parking',
+    index: 20,
+    name: 'Free Parking',
+    type: 'parking',
+    description: 'No action.',
+  },
   {
     id: 'kentucky',
     index: 21,
@@ -169,7 +213,13 @@ export const BOARD: Tile[] = [
     mortgageValue: 110,
     houseCost: 150,
   },
-  { id: 'chance2', index: 22, name: 'Chance', type: 'chance' },
+  {
+    id: 'chance2',
+    index: 22,
+    name: 'Chance',
+    type: 'chance',
+    description: 'Draw a Chance card.',
+  },
   {
     id: 'indiana',
     index: 23,
@@ -244,7 +294,13 @@ export const BOARD: Tile[] = [
     mortgageValue: 140,
     houseCost: 150,
   },
-  { id: 'go_to_jail', index: 30, name: 'Go To Jail', type: 'go_to_jail' },
+  {
+    id: 'go_to_jail',
+    index: 30,
+    name: 'Go To Jail',
+    type: 'go_to_jail',
+    description: 'Go directly to Jail. Do not pass GO, do not collect $200.',
+  },
   {
     id: 'pacific',
     index: 31,
@@ -267,7 +323,13 @@ export const BOARD: Tile[] = [
     mortgageValue: 150,
     houseCost: 200,
   },
-  { id: 'chest3', index: 33, name: 'Community Chest', type: 'community_chest' },
+  {
+    id: 'chest3',
+    index: 33,
+    name: 'Community Chest',
+    type: 'community_chest',
+    description: 'Draw a Community Chest card.',
+  },
   {
     id: 'pennsylvania',
     index: 34,
@@ -289,7 +351,13 @@ export const BOARD: Tile[] = [
     rent: [25, 50, 100, 200],
     mortgageValue: 100,
   },
-  { id: 'chance3', index: 36, name: 'Chance', type: 'chance' },
+  {
+    id: 'chance3',
+    index: 36,
+    name: 'Chance',
+    type: 'chance',
+    description: 'Draw a Chance card.',
+  },
   {
     id: 'park',
     index: 37,
@@ -301,7 +369,14 @@ export const BOARD: Tile[] = [
     mortgageValue: 175,
     houseCost: 200,
   },
-  { id: 'tax2', index: 38, name: 'Luxury Tax', type: 'tax', price: 100 },
+  {
+    id: 'tax2',
+    index: 38,
+    name: 'Luxury Tax',
+    type: 'tax',
+    price: 100,
+    description: 'Pay the tax amount shown.',
+  },
   {
     id: 'boardwalk',
     index: 39,
