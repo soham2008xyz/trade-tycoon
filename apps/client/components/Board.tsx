@@ -87,6 +87,7 @@ export const Board: React.FC<Props> = ({
   const [showPropertyManager, setShowPropertyManager] = useState(false);
   const [tradeTargetId, setTradeTargetId] = useState<string | undefined>(undefined);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
+  const [isTokenMoving, setIsTokenMoving] = useState(false);
   const size = Math.min(width, height) - 20; // Padding
 
   // Slice the board into sections
@@ -222,8 +223,8 @@ export const Board: React.FC<Props> = ({
                   <Text style={styles.statusText}>{currentPlayer.name}</Text>
                 </View>
                 <View style={styles.currentTileInfo}>
-                  <Text style={styles.statusText}>Pos: </Text>
-                  {currentTile?.group && GROUP_COLORS[currentTile.group] && (
+                  <Text style={styles.statusText}>Position: </Text>
+                  {!isTokenMoving && currentTile?.group && GROUP_COLORS[currentTile.group] && (
                     <View
                       style={[
                         styles.tileColor,
@@ -231,9 +232,17 @@ export const Board: React.FC<Props> = ({
                       ]}
                     />
                   )}
-                  <Text style={styles.statusText}>{currentTile?.name}</Text>
+                  <Text style={styles.statusText}>
+                    {isTokenMoving ? '...' : currentTile?.name}
+                  </Text>
                 </View>
-                {phase === 'action' && <Dice value1={dice[0]} value2={dice[1]} />}
+                {phase === 'action' && (
+                  <Dice
+                    value1={dice[0]}
+                    value2={dice[1]}
+                    isRolling={isTokenMoving}
+                  />
+                )}
               </View>
 
               <View style={styles.actions}>
@@ -329,7 +338,14 @@ export const Board: React.FC<Props> = ({
 
       {/* Render Animated Player Tokens */}
       {players.map((player, index) => (
-        <PlayerToken key={player.id} player={player} boardSize={size} index={index} />
+        <PlayerToken
+          key={player.id}
+          player={player}
+          boardSize={size}
+          index={index}
+          onAnimationStart={() => setIsTokenMoving(true)}
+          onAnimationComplete={() => setIsTokenMoving(false)}
+        />
       ))}
 
       {currentPlayer && (

@@ -4,6 +4,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withSequence,
+  runOnJS,
   Easing,
 } from 'react-native-reanimated';
 import { Player } from '@trade-tycoon/game-logic';
@@ -12,6 +13,8 @@ interface Props {
   player: Player;
   boardSize: number;
   index: number;
+  onAnimationStart?: () => void;
+  onAnimationComplete?: () => void;
 }
 
 const CORNER_PCT = 0.14;
@@ -74,7 +77,13 @@ const getInterpolatedCoords = (val: number) => {
   };
 };
 
-export const PlayerToken: React.FC<Props> = ({ player, boardSize, index }) => {
+export const PlayerToken: React.FC<Props> = ({
+  player,
+  boardSize,
+  index,
+  onAnimationStart,
+  onAnimationComplete,
+}) => {
   const visualIndex = useSharedValue(player.position);
 
   useEffect(() => {
@@ -84,14 +93,22 @@ export const PlayerToken: React.FC<Props> = ({ player, boardSize, index }) => {
     if (diff === 0) return;
 
     if (diff <= 12) {
+      if (onAnimationStart) onAnimationStart();
+
       const animations = [];
       const current = Math.round(visualIndex.value);
 
       for (let i = 1; i <= diff; i++) {
+        const isLastStep = i === diff;
+
         // Move to next tile
         animations.push(withTiming(current + i, {
           duration: 300,
           easing: Easing.inOut(Easing.quad)
+        }, (finished) => {
+          if (finished && isLastStep && onAnimationComplete) {
+            runOnJS(onAnimationComplete)();
+          }
         }));
 
         // Pause on tile (if not the last one)
