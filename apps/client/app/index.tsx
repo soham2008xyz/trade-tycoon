@@ -4,6 +4,8 @@ import { Board } from '../components/Board';
 import { Toast } from '../components/ui/Toast';
 import { CustomAlert, AlertButton, AlertOptions } from '../components/ui/Alert';
 import { GameSetup } from '../components/GameSetup';
+import { NewGameScreen } from '../components/NewGameScreen';
+import { MultiplayerMenuScreen } from '../components/MultiplayerMenuScreen';
 import { LogModal } from '../components/LogModal';
 import {
   createInitialState,
@@ -13,9 +15,12 @@ import {
   TradeOffer,
 } from '@trade-tycoon/game-logic';
 
+type Screen = 'new-game' | 'game-setup' | 'multiplayer-menu' | 'game';
+
 export default function GameScreen() {
   const [state, dispatch] = useReducer(gameReducer, createInitialState());
-  const [setupVisible, setSetupVisible] = useState(true);
+  const [currentScreen, setCurrentScreen] = useState<Screen>('new-game');
+  const [uiToastMessage, setUiToastMessage] = useState<string | null>(null);
   const [logVisible, setLogVisible] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertOptions, setAlertOptions] = useState<AlertOptions | null>(null);
@@ -35,7 +40,7 @@ export default function GameScreen() {
       id: `p${index + 1}`,
     }));
     dispatch({ type: 'RESET_GAME', players: playersWithIds });
-    setSetupVisible(false);
+    setCurrentScreen('game');
   };
 
   const currentPlayer = state.players.find((p) => p.id === state.currentPlayerId);
@@ -206,12 +211,12 @@ export default function GameScreen() {
       },
       {
         text: 'Yes',
-        onPress: () => setSetupVisible(true),
+        onPress: () => setCurrentScreen('new-game'),
       },
     ]);
   };
 
-  if (!setupVisible && !currentPlayer && !state.winner) return <Text>Loading...</Text>;
+  if (currentScreen === 'game' && !currentPlayer && !state.winner) return <Text>Loading...</Text>;
 
   // Check buy availability
   const isPropertyUnowned =
@@ -229,7 +234,23 @@ export default function GameScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <GameSetup visible={setupVisible} onStartGame={handleStartGame} />
+      {currentScreen === 'new-game' && (
+        <NewGameScreen
+          onLocalMultiplayer={() => setCurrentScreen('game-setup')}
+          onOnlineMultiplayer={() => setCurrentScreen('multiplayer-menu')}
+        />
+      )}
+      {currentScreen === 'multiplayer-menu' && (
+        <MultiplayerMenuScreen
+          onBack={() => setCurrentScreen('new-game')}
+          onToast={setUiToastMessage}
+        />
+      )}
+      <GameSetup
+        visible={currentScreen === 'game-setup'}
+        onStartGame={handleStartGame}
+        onBack={() => setCurrentScreen('new-game')}
+      />
       <LogModal
         visible={logVisible}
         logs={state.logs}
@@ -237,6 +258,9 @@ export default function GameScreen() {
         onClose={() => setLogVisible(false)}
       />
       {state.toastMessage && <Toast message={state.toastMessage} onDismiss={handleDismissToast} />}
+      {uiToastMessage && (
+        <Toast message={uiToastMessage} onDismiss={() => setUiToastMessage(null)} />
+      )}
       <CustomAlert
         visible={alertVisible}
         options={alertOptions}

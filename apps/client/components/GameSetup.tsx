@@ -18,6 +18,7 @@ interface PlayerConfig {
 interface Props {
   visible: boolean;
   onStartGame: (players: PlayerConfig[]) => void;
+  onBack: () => void;
 }
 
 const COLORS = [
@@ -31,7 +32,7 @@ const COLORS = [
   '#FFC0CB',
 ];
 
-export const GameSetup: React.FC<Props> = ({ visible, onStartGame }) => {
+export const GameSetup: React.FC<Props> = ({ visible, onStartGame, onBack }) => {
   const [playerCount, setPlayerCount] = useState(2);
   const [players, setPlayers] = useState<PlayerConfig[]>([
     { name: 'Player 1', color: COLORS[0] },
@@ -116,7 +117,20 @@ export const GameSetup: React.FC<Props> = ({ visible, onStartGame }) => {
             ))}
           </ScrollView>
 
-          <IconButton title="Start Game" icon="play" onPress={handleSubmit} />
+          <View style={styles.actionButtons}>
+            <IconButton
+              title="Back"
+              icon="arrow-left"
+              onPress={onBack}
+              style={{ backgroundColor: '#666', flex: 1 }}
+            />
+            <IconButton
+              title="Start Game"
+              icon="play"
+              onPress={handleSubmit}
+              style={{ flex: 2 }}
+            />
+          </View>
         </View>
       </View>
     </Modal>
@@ -204,5 +218,10 @@ const styles = StyleSheet.create({
   selectedColor: {
     borderWidth: 2,
     borderColor: 'black',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
   },
 });
