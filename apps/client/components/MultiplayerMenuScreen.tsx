@@ -4,12 +4,14 @@ import { IconButton } from './ui/IconButton';
 
 interface Props {
   onBack: () => void;
-  onToast: (message: string) => void;
+  onJoinRoom: () => void;
+  onCreateRoom: () => void;
 }
 
 export const MultiplayerMenuScreen: React.FC<Props> = ({
   onBack,
-  onToast,
+  onJoinRoom,
+  onCreateRoom
 }) => {
   return (
     <Modal visible={true} animationType="slide" transparent={true}>
@@ -19,15 +21,15 @@ export const MultiplayerMenuScreen: React.FC<Props> = ({
 
           <View style={styles.buttonContainer}>
             <IconButton
-              title="New Lobby"
+              title="Create New Room"
               icon="plus-circle"
-              onPress={() => onToast("Coming soon")}
+              onPress={onCreateRoom}
               style={styles.button}
             />
             <IconButton
-              title="Join Existing Lobby"
+              title="Join Existing Room"
               icon="login"
-              onPress={() => onToast("Coming soon")}
+              onPress={onJoinRoom}
               style={styles.button}
             />
             <IconButton
