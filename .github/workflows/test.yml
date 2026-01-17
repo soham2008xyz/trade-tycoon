@@ -24,5 +24,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build game logic package
+        run: npm run build:game-logic
+
       - name: Run tests
         run: npm test
