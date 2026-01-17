@@ -87,3 +87,33 @@ export interface GameState {
   toastMessage?: string;
   logs: string[];
 }
+
+export type GameAction =
+  | { type: 'JOIN_GAME'; playerId: string; name: string }
+  | { type: 'ROLL_DICE'; playerId: string; die1?: number; die2?: number }
+  | { type: 'END_TURN'; playerId: string }
+  | { type: 'BUY_PROPERTY'; playerId: string; propertyId: string }
+  | { type: 'PAY_FINE'; playerId: string }
+  | { type: 'USE_GOOJ_CARD'; playerId: string }
+  | { type: 'DISMISS_ERROR' }
+  | { type: 'DISMISS_TOAST' }
+  | { type: 'RESET_GAME'; players: { id: string; name: string; color: string }[] }
+  | { type: 'CONTINUE_TURN'; playerId: string }
+  | { type: 'BUILD_HOUSE'; playerId: string; propertyId: string }
+  | { type: 'SELL_HOUSE'; playerId: string; propertyId: string }
+  | { type: 'MORTGAGE_PROPERTY'; playerId: string; propertyId: string }
+  | { type: 'UNMORTGAGE_PROPERTY'; playerId: string; propertyId: string }
+  | { type: 'DECLARE_BANKRUPTCY'; playerId: string }
+  | { type: 'DECLINE_BUY'; playerId: string }
+  | { type: 'PLACE_BID'; playerId: string; amount: number }
+  | { type: 'CONCEDE_AUCTION'; playerId: string }
+  | {
+      type: 'PROPOSE_TRADE';
+      playerId: string;
+      targetPlayerId: string;
+      offer: TradeOffer;
+      request: TradeOffer;
+    }
+  | { type: 'ACCEPT_TRADE'; playerId: string }
+  | { type: 'REJECT_TRADE'; playerId: string }
+  | { type: 'CANCEL_TRADE'; playerId: string };

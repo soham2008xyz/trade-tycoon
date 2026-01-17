@@ -2,10 +2,13 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { createInitialState } from '@trade-tycoon/game-logic';
+import { RoomManager } from './RoomManager';
+import { registerSocketHandlers } from './socket-handler';
+import { ClientToServerEvents, ServerToClientEvents } from '@trade-tycoon/game-logic';
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
+const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
     origin: '*',
   },
@@ -13,18 +16,10 @@ const io = new Server(httpServer, {
 
 const PORT = process.env.PORT || 3001;
 
-// Simple in-memory game state
-let gameState = createInitialState();
+// Room Manager Instance
+const roomManager = new RoomManager();
 
-io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
-
-  socket.emit('game_state', gameState);
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-  });
-});
+registerSocketHandlers(io, roomManager);
 
 app.get('/', (req, res) => {
   res.send('Trade Tycoon Server is Running');
