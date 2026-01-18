@@ -140,9 +140,22 @@ export class RoomManager {
     return gameState;
   }
 
-  handleGameAction(roomId: string, action: GameAction): GameState | null {
+  handleGameAction(roomId: string, userId: string, action: GameAction): GameState | null {
     const room = this.rooms.get(roomId);
     if (!room || !room.gameState) return null;
+
+    // Check if user is in the game
+    const player = room.gameState.players.find((p) => p.id === userId);
+    if (!player) {
+      console.warn(`[RoomManager] User ${userId} not in game ${roomId}`);
+      return null;
+    }
+
+    // Security Check: Ensure action.playerId matches userId
+    if ('playerId' in action && (action as any).playerId !== userId) {
+      console.warn(`[RoomManager] User ${userId} tried to act as ${(action as any).playerId}`);
+      return null;
+    }
 
     // Apply reducer
     const newState = gameReducer(room.gameState, action);
