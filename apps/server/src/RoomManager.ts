@@ -14,6 +14,7 @@ export class RoomManager {
   createRoom(hostName: string): string {
     const roomId = this.generateRoomId();
     const hostId = this.generateUserId();
+    console.log(`[RoomManager] Creating room ${roomId} for host ${hostName} (${hostId})`);
 
     const hostPlayer: LobbyPlayer = {
       id: hostId,
@@ -35,9 +36,18 @@ export class RoomManager {
 
   joinRoom(roomId: string, playerName: string): { userId: string; state: LobbyState } | null {
     const room = this.rooms.get(roomId);
-    if (!room) return null;
-    if (room.status !== 'lobby') return null; // Cannot join started game for now
-    if (room.players.length >= 8) return null; // Max players
+    if (!room) {
+        console.warn(`[RoomManager] Join failed: Room ${roomId} not found`);
+        return null;
+    }
+    if (room.status !== 'lobby') {
+        console.warn(`[RoomManager] Join failed: Room ${roomId} is in progress`);
+        return null; // Cannot join started game for now
+    }
+    if (room.players.length >= 8) {
+        console.warn(`[RoomManager] Join failed: Room ${roomId} is full`);
+        return null; // Max players
+    }
 
     const userId = this.generateUserId();
     const newPlayer: LobbyPlayer = {
@@ -49,6 +59,7 @@ export class RoomManager {
     };
 
     room.players.push(newPlayer);
+    console.log(`[RoomManager] Player ${playerName} (${userId}) joined room ${roomId}`);
     return { userId, state: room };
   }
 
@@ -92,12 +103,23 @@ export class RoomManager {
 
   startGame(roomId: string, userId: string): GameState | null {
     const room = this.rooms.get(roomId);
-    if (!room) return null;
+    if (!room) {
+         console.warn(`[RoomManager] Start failed: Room ${roomId} not found`);
+         return null;
+    }
 
     const player = room.players.find((p) => p.id === userId);
-    if (!player || !player.isHost) return null; // Only host can start
+    if (!player || !player.isHost) {
+        console.warn(`[RoomManager] Start failed: User ${userId} is not host or not in room`);
+        return null; // Only host can start
+    }
 
-    if (room.players.length < 2) return null; // Min 2 players
+    if (room.players.length < 2) {
+        console.warn(`[RoomManager] Start failed: Not enough players in room ${roomId}`);
+        return null; // Min 2 players
+    }
+
+    console.log(`[RoomManager] Starting game in room ${roomId} with ${room.players.length} players`);
 
     // Initialize Game Logic State
     let gameState = createInitialState();
