@@ -97,7 +97,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       setError('Please enter your name');
       return;
     }
-    socket?.emit('create_room', playerName);
+    socket?.emit('create_room', playerName.trim());
   };
 
   const handleJoin = () => {
@@ -105,7 +105,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       setError('Please enter name and room code');
       return;
     }
-    socket?.emit('join_room', inputRoomId.toUpperCase(), playerName);
+    socket?.emit('join_room', inputRoomId.trim().toUpperCase(), playerName.trim());
   };
 
   const handleStartGame = () => {
