@@ -105,19 +105,12 @@ export const registerSocketHandlers = (io: Server<ClientToServerEvents, ServerTo
             return;
         }
 
-        // Additional Security: Check if action.playerId === userId
-        // This prevents User A from sending "User B rolls dice" action.
-        if ('playerId' in action && action.playerId !== userId) {
-             console.warn(`[game_action] User ${userId} tried to act as ${action.playerId}`);
-             socket.emit('error', 'You cannot perform actions for another player.');
-             return;
-        }
-
-        const newState = roomManager.handleGameAction(roomId, action);
+        const newState = roomManager.handleGameAction(roomId, userId, action);
         if (newState) {
             io.to(roomId).emit('game_state_update', newState);
         } else {
             console.warn(`[game_action] Action ${action.type} resulted in no state change (or invalid)`);
+            // Optionally emit error if action failed due to validation
         }
     });
 
