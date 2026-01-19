@@ -8,11 +8,7 @@ interface Props {
   onCreateRoom: () => void;
 }
 
-export const MultiplayerMenuScreen: React.FC<Props> = ({
-  onBack,
-  onJoinRoom,
-  onCreateRoom
-}) => {
+export const MultiplayerMenuScreen: React.FC<Props> = ({ onBack, onJoinRoom, onCreateRoom }) => {
   return (
     <Modal visible={true} animationType="slide" transparent={true}>
       <View style={styles.modalContainer}>
@@ -80,5 +76,5 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 10,
     backgroundColor: '#666',
-  }
+  },
 });

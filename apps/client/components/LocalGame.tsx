@@ -1,11 +1,7 @@
 import React, { useReducer, useState } from 'react';
 import { GameUI } from './GameUI';
 import { GameSetup } from './GameSetup';
-import {
-  createInitialState,
-  gameReducer,
-  GameAction,
-} from '@trade-tycoon/game-logic';
+import { createInitialState, gameReducer, GameAction } from '@trade-tycoon/game-logic';
 
 interface LocalGameProps {
   onBack: () => void;
@@ -31,13 +27,7 @@ export const LocalGame: React.FC<LocalGameProps> = ({ onBack }) => {
   };
 
   if (isSetup) {
-    return (
-      <GameSetup
-        visible={true}
-        onStartGame={handleStartGame}
-        onBack={onBack}
-      />
-    );
+    return <GameSetup visible={true} onStartGame={handleStartGame} onBack={onBack} />;
   }
 
   return (

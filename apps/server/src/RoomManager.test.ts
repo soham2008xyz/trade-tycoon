@@ -72,7 +72,7 @@ describe('RoomManager', () => {
       const updatedState = roomManager.updatePlayer(roomId, hostId, 'NewName', '#000000');
       expect(updatedState).not.toBeNull();
 
-      const updatedPlayer = updatedState!.players.find(p => p.id === hostId);
+      const updatedPlayer = updatedState!.players.find((p) => p.id === hostId);
       expect(updatedPlayer?.name).toBe('NewName');
       expect(updatedPlayer?.color).toBe('#000000');
     });
@@ -99,7 +99,7 @@ describe('RoomManager', () => {
 
       // P2 tries to take Black
       roomManager.updatePlayer(roomId, p2Id, 'P2', '#000000');
-      const p2 = roomManager.getRoom(roomId)!.players.find(p => p.id === p2Id)!;
+      const p2 = roomManager.getRoom(roomId)!.players.find((p) => p.id === p2Id)!;
 
       expect(p2.color).not.toBe('#000000'); // Should remain original color
     });
@@ -117,21 +117,21 @@ describe('RoomManager', () => {
     });
 
     it('should handle reconnection for existing game player', () => {
-        const roomId = roomManager.createRoom('Host');
-        const hostId = roomManager.getRoom(roomId)!.players[0].id;
-        roomManager.joinRoom(roomId, 'P2');
-        roomManager.startGame(roomId, hostId);
+      const roomId = roomManager.createRoom('Host');
+      const hostId = roomManager.getRoom(roomId)!.players[0].id;
+      roomManager.joinRoom(roomId, 'P2');
+      roomManager.startGame(roomId, hostId);
 
-        const reconnectResult = roomManager.reconnect(roomId, hostId);
-        expect(reconnectResult).not.toBeNull();
-        expect(reconnectResult?.gameState).toBeDefined();
+      const reconnectResult = roomManager.reconnect(roomId, hostId);
+      expect(reconnectResult).not.toBeNull();
+      expect(reconnectResult?.gameState).toBeDefined();
     });
 
     it('should return null for invalid room or user on reconnect', () => {
-        expect(roomManager.reconnect('INVALID', 'uid')).toBeNull();
+      expect(roomManager.reconnect('INVALID', 'uid')).toBeNull();
 
-        const roomId = roomManager.createRoom('Host');
-        expect(roomManager.reconnect(roomId, 'INVALID_USER')).toBeNull();
+      const roomId = roomManager.createRoom('Host');
+      expect(roomManager.reconnect(roomId, 'INVALID_USER')).toBeNull();
     });
   });
 
@@ -160,62 +160,62 @@ describe('RoomManager', () => {
     });
 
     it('should not start game in non-existent room', () => {
-        expect(roomManager.startGame('INVALID', 'uid')).toBeNull();
+      expect(roomManager.startGame('INVALID', 'uid')).toBeNull();
     });
   });
 
   describe('Game Action Handling', () => {
-      it('should handle game action in a started game', () => {
-          const roomId = roomManager.createRoom('Host');
-          const hostId = roomManager.getRoom(roomId)!.players[0].id;
-          roomManager.joinRoom(roomId, 'P2');
-          roomManager.startGame(roomId, hostId);
+    it('should handle game action in a started game', () => {
+      const roomId = roomManager.createRoom('Host');
+      const hostId = roomManager.getRoom(roomId)!.players[0].id;
+      roomManager.joinRoom(roomId, 'P2');
+      roomManager.startGame(roomId, hostId);
 
-          // Assuming ROLL_DICE is a valid action for the current player
-          const action: any = { type: 'ROLL_DICE', playerId: hostId };
-          const newState = roomManager.handleGameAction(roomId, hostId, action);
+      // Assuming ROLL_DICE is a valid action for the current player
+      const action: any = { type: 'ROLL_DICE', playerId: hostId };
+      const newState = roomManager.handleGameAction(roomId, hostId, action);
 
-          expect(newState).not.toBeNull();
-          expect(newState?.dice).toBeDefined();
-      });
+      expect(newState).not.toBeNull();
+      expect(newState?.dice).toBeDefined();
+    });
 
-      it('should return null for action in non-existent room', () => {
-          const action: any = { type: 'ROLL_DICE', playerId: 'uid' };
-          expect(roomManager.handleGameAction('INVALID', 'uid', action)).toBeNull();
-      });
+    it('should return null for action in non-existent room', () => {
+      const action: any = { type: 'ROLL_DICE', playerId: 'uid' };
+      expect(roomManager.handleGameAction('INVALID', 'uid', action)).toBeNull();
+    });
 
-      it('should return null for action when game not started', () => {
-          const roomId = roomManager.createRoom('Host');
-          const hostId = roomManager.getRoom(roomId)!.players[0].id;
-          const action: any = { type: 'ROLL_DICE', playerId: hostId };
-          // Game not started yet (lobby status)
-          expect(roomManager.handleGameAction(roomId, hostId, action)).toBeNull();
-      });
+    it('should return null for action when game not started', () => {
+      const roomId = roomManager.createRoom('Host');
+      const hostId = roomManager.getRoom(roomId)!.players[0].id;
+      const action: any = { type: 'ROLL_DICE', playerId: hostId };
+      // Game not started yet (lobby status)
+      expect(roomManager.handleGameAction(roomId, hostId, action)).toBeNull();
+    });
 
-      it('should return null when user tries to act as another player', () => {
-          const roomId = roomManager.createRoom('Host');
-          const hostId = roomManager.getRoom(roomId)!.players[0].id;
-          const p2Result = roomManager.joinRoom(roomId, 'P2')!;
-          const p2Id = p2Result.userId;
-          roomManager.startGame(roomId, hostId);
+    it('should return null when user tries to act as another player', () => {
+      const roomId = roomManager.createRoom('Host');
+      const hostId = roomManager.getRoom(roomId)!.players[0].id;
+      const p2Result = roomManager.joinRoom(roomId, 'P2')!;
+      const p2Id = p2Result.userId;
+      roomManager.startGame(roomId, hostId);
 
-          // P2 tries to roll for Host
-          const action: any = { type: 'ROLL_DICE', playerId: hostId };
-          const newState = roomManager.handleGameAction(roomId, p2Id, action);
+      // P2 tries to roll for Host
+      const action: any = { type: 'ROLL_DICE', playerId: hostId };
+      const newState = roomManager.handleGameAction(roomId, p2Id, action);
 
-          expect(newState).toBeNull();
-      });
+      expect(newState).toBeNull();
+    });
 
-      it('should return null when user not in game tries to act', () => {
-          const roomId = roomManager.createRoom('Host');
-          const hostId = roomManager.getRoom(roomId)!.players[0].id;
-          roomManager.joinRoom(roomId, 'P2');
-          roomManager.startGame(roomId, hostId);
+    it('should return null when user not in game tries to act', () => {
+      const roomId = roomManager.createRoom('Host');
+      const hostId = roomManager.getRoom(roomId)!.players[0].id;
+      roomManager.joinRoom(roomId, 'P2');
+      roomManager.startGame(roomId, hostId);
 
-          const action: any = { type: 'ROLL_DICE', playerId: hostId };
-          const newState = roomManager.handleGameAction(roomId, 'ALIEN_USER', action);
+      const action: any = { type: 'ROLL_DICE', playerId: hostId };
+      const newState = roomManager.handleGameAction(roomId, 'ALIEN_USER', action);
 
-          expect(newState).toBeNull();
-      });
+      expect(newState).toBeNull();
+    });
   });
 });

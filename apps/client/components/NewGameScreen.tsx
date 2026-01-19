@@ -7,10 +7,7 @@ interface Props {
   onOnlineMultiplayer: () => void;
 }
 
-export const NewGameScreen: React.FC<Props> = ({
-  onLocalMultiplayer,
-  onOnlineMultiplayer,
-}) => {
+export const NewGameScreen: React.FC<Props> = ({ onLocalMultiplayer, onOnlineMultiplayer }) => {
   return (
     <Modal visible={true} animationType="slide" transparent={true}>
       <View style={styles.modalContainer}>
@@ -67,5 +64,5 @@ const styles = StyleSheet.create({
   },
   button: {
     width: '100%',
-  }
+  },
 });

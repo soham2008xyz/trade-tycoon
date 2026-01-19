@@ -38,16 +38,16 @@ export class RoomManager {
     roomId = roomId.trim().toUpperCase();
     const room = this.rooms.get(roomId);
     if (!room) {
-        console.warn(`[RoomManager] Join failed: Room ${roomId} not found`);
-        return null;
+      console.warn(`[RoomManager] Join failed: Room ${roomId} not found`);
+      return null;
     }
     if (room.status !== 'lobby') {
-        console.warn(`[RoomManager] Join failed: Room ${roomId} is in progress`);
-        return null; // Cannot join started game for now
+      console.warn(`[RoomManager] Join failed: Room ${roomId} is in progress`);
+      return null; // Cannot join started game for now
     }
     if (room.players.length >= 8) {
-        console.warn(`[RoomManager] Join failed: Room ${roomId} is full`);
-        return null; // Max players
+      console.warn(`[RoomManager] Join failed: Room ${roomId} is full`);
+      return null; // Max players
     }
 
     const userId = this.generateUserId();
@@ -65,10 +65,7 @@ export class RoomManager {
   }
 
   // Handle re-connection
-  reconnect(
-    roomId: string,
-    userId: string
-  ): { state: LobbyState; gameState?: GameState } | null {
+  reconnect(roomId: string, userId: string): { state: LobbyState; gameState?: GameState } | null {
     roomId = roomId.trim().toUpperCase();
     const room = this.rooms.get(roomId);
     if (!room) return null;
@@ -108,31 +105,33 @@ export class RoomManager {
     roomId = roomId.trim().toUpperCase();
     const room = this.rooms.get(roomId);
     if (!room) {
-         console.warn(`[RoomManager] Start failed: Room ${roomId} not found`);
-         return null;
+      console.warn(`[RoomManager] Start failed: Room ${roomId} not found`);
+      return null;
     }
 
     const player = room.players.find((p) => p.id === userId);
     if (!player || !player.isHost) {
-        console.warn(`[RoomManager] Start failed: User ${userId} is not host or not in room`);
-        return null; // Only host can start
+      console.warn(`[RoomManager] Start failed: User ${userId} is not host or not in room`);
+      return null; // Only host can start
     }
 
     if (room.players.length < 2) {
-        console.warn(`[RoomManager] Start failed: Not enough players in room ${roomId}`);
-        return null; // Min 2 players
+      console.warn(`[RoomManager] Start failed: Not enough players in room ${roomId}`);
+      return null; // Min 2 players
     }
 
-    console.log(`[RoomManager] Starting game in room ${roomId} with ${room.players.length} players`);
+    console.log(
+      `[RoomManager] Starting game in room ${roomId} with ${room.players.length} players`
+    );
 
     // Initialize Game Logic State
     let gameState = createInitialState();
 
     // Map LobbyPlayers to GamePlayers
-    const gamePlayers = room.players.map(p => {
-        const gp = createPlayer(p.id, p.name);
-        gp.color = p.color;
-        return gp;
+    const gamePlayers = room.players.map((p) => {
+      const gp = createPlayer(p.id, p.name);
+      gp.color = p.color;
+      return gp;
     });
 
     gameState.players = gamePlayers;
@@ -201,7 +200,7 @@ export class RoomManager {
     ];
     const available = colors.filter((c) => !excludeColors.includes(c));
     if (available.length > 0) {
-        return available[Math.floor(Math.random() * available.length)];
+      return available[Math.floor(Math.random() * available.length)];
     }
     // Fallback to random
     return '#' + Math.floor(Math.random() * 16777215).toString(16);

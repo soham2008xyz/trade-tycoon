@@ -19,9 +19,7 @@ export default function GameScreen() {
         />
       )}
 
-      {currentScreen === 'local-game' && (
-         <LocalGame onBack={() => setCurrentScreen('new-game')} />
-      )}
+      {currentScreen === 'local-game' && <LocalGame onBack={() => setCurrentScreen('new-game')} />}
 
       {currentScreen === 'multiplayer-menu' && (
         <MultiplayerMenuScreen
@@ -32,10 +30,10 @@ export default function GameScreen() {
       )}
 
       {(currentScreen === 'online-create' || currentScreen === 'online-join') && (
-          <OnlineGame
-            initialMode={currentScreen === 'online-create' ? 'create' : 'join'}
-            onBack={() => setCurrentScreen('multiplayer-menu')}
-          />
+        <OnlineGame
+          initialMode={currentScreen === 'online-create' ? 'create' : 'join'}
+          onBack={() => setCurrentScreen('multiplayer-menu')}
+        />
       )}
     </SafeAreaView>
   );

@@ -124,12 +124,7 @@ export const GameSetup: React.FC<Props> = ({ visible, onStartGame, onBack }) => 
               onPress={onBack}
               style={{ backgroundColor: '#666', flex: 1 }}
             />
-            <IconButton
-              title="Start Game"
-              icon="play"
-              onPress={handleSubmit}
-              style={{ flex: 2 }}
-            />
+            <IconButton title="Start Game" icon="play" onPress={handleSubmit} style={{ flex: 2 }} />
           </View>
         </View>
       </View>
