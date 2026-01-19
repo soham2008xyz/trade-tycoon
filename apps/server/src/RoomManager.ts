@@ -35,6 +35,7 @@ export class RoomManager {
   }
 
   joinRoom(roomId: string, playerName: string): { userId: string; state: LobbyState } | null {
+    roomId = roomId.trim().toUpperCase();
     const room = this.rooms.get(roomId);
     if (!room) {
         console.warn(`[RoomManager] Join failed: Room ${roomId} not found`);
@@ -68,6 +69,7 @@ export class RoomManager {
     roomId: string,
     userId: string
   ): { state: LobbyState; gameState?: GameState } | null {
+    roomId = roomId.trim().toUpperCase();
     const room = this.rooms.get(roomId);
     if (!room) return null;
 
@@ -83,6 +85,7 @@ export class RoomManager {
   }
 
   updatePlayer(roomId: string, userId: string, name: string, color: string): LobbyState | null {
+    roomId = roomId.trim().toUpperCase();
     const room = this.rooms.get(roomId);
     if (!room) return null;
 
@@ -102,6 +105,7 @@ export class RoomManager {
   }
 
   startGame(roomId: string, userId: string): GameState | null {
+    roomId = roomId.trim().toUpperCase();
     const room = this.rooms.get(roomId);
     if (!room) {
          console.warn(`[RoomManager] Start failed: Room ${roomId} not found`);
@@ -141,6 +145,7 @@ export class RoomManager {
   }
 
   handleGameAction(roomId: string, userId: string, action: GameAction): GameState | null {
+    roomId = roomId.trim().toUpperCase();
     const room = this.rooms.get(roomId);
     if (!room || !room.gameState) return null;
 
@@ -165,7 +170,7 @@ export class RoomManager {
   }
 
   getRoom(roomId: string): LobbyState | undefined {
-    return this.rooms.get(roomId);
+    return this.rooms.get(roomId.trim().toUpperCase());
   }
 
   private generateRoomId(): string {
