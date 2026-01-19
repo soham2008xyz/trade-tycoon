@@ -1,18 +1,11 @@
 import React from 'react';
-import { View, StyleSheet, Platform, Text } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Board } from './Board';
 import { Toast } from './ui/Toast';
 import { CustomAlert, AlertOptions } from './ui/Alert';
-import { GameSetup } from './GameSetup';
+
 import { LogModal } from './LogModal';
-import {
-  GameState,
-  GameAction,
-  BOARD,
-  isTileBuyable,
-  TradeOffer,
-  TradeRequest
-} from '@trade-tycoon/game-logic';
+import { GameState, GameAction, BOARD, isTileBuyable, TradeOffer } from '@trade-tycoon/game-logic';
 
 interface GameUIProps {
   state: GameState;
@@ -56,15 +49,15 @@ export const GameUI: React.FC<GameUIProps> = ({
 
   // Actions
   const handleRoll = () => {
-      onDispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId });
+    onDispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId });
   };
 
   const handleRollAgain = () => {
-      onDispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId });
+    onDispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId });
   };
 
   const handleEndTurn = () => {
-      onDispatch({ type: 'END_TURN', playerId: state.currentPlayerId });
+    onDispatch({ type: 'END_TURN', playerId: state.currentPlayerId });
   };
 
   const handleBuy = () => {
@@ -78,43 +71,43 @@ export const GameUI: React.FC<GameUIProps> = ({
   };
 
   const handleBuild = (propertyId: string) => {
-      onDispatch({
-        type: 'BUILD_HOUSE',
-        playerId: state.currentPlayerId,
-        propertyId,
-      });
+    onDispatch({
+      type: 'BUILD_HOUSE',
+      playerId: state.currentPlayerId,
+      propertyId,
+    });
   };
 
   const handleSell = (propertyId: string) => {
-      onDispatch({
-        type: 'SELL_HOUSE',
-        playerId: state.currentPlayerId,
-        propertyId,
-      });
+    onDispatch({
+      type: 'SELL_HOUSE',
+      playerId: state.currentPlayerId,
+      propertyId,
+    });
   };
 
   const handleMortgage = (propertyId: string) => {
-      onDispatch({
-        type: 'MORTGAGE_PROPERTY',
-        playerId: state.currentPlayerId,
-        propertyId,
-      });
+    onDispatch({
+      type: 'MORTGAGE_PROPERTY',
+      playerId: state.currentPlayerId,
+      propertyId,
+    });
   };
 
   const handleUnmortgage = (propertyId: string) => {
-      onDispatch({
-        type: 'UNMORTGAGE_PROPERTY',
-        playerId: state.currentPlayerId,
-        propertyId,
-      });
+    onDispatch({
+      type: 'UNMORTGAGE_PROPERTY',
+      playerId: state.currentPlayerId,
+      propertyId,
+    });
   };
 
   const handlePayFine = () => {
-      onDispatch({ type: 'PAY_FINE', playerId: state.currentPlayerId });
+    onDispatch({ type: 'PAY_FINE', playerId: state.currentPlayerId });
   };
 
   const handleUseGOOJCard = () => {
-      onDispatch({ type: 'USE_GOOJ_CARD', playerId: state.currentPlayerId });
+    onDispatch({ type: 'USE_GOOJ_CARD', playerId: state.currentPlayerId });
   };
 
   const handleDismissToast = () => {
@@ -140,7 +133,7 @@ export const GameUI: React.FC<GameUIProps> = ({
   };
 
   const handleDeclineBuy = () => {
-      onDispatch({ type: 'DECLINE_BUY', playerId: state.currentPlayerId });
+    onDispatch({ type: 'DECLINE_BUY', playerId: state.currentPlayerId });
   };
 
   const handleBid = (playerId: string, amount: number) => {
@@ -152,13 +145,13 @@ export const GameUI: React.FC<GameUIProps> = ({
   };
 
   const handleProposeTrade = (targetPlayerId: string, offer: TradeOffer, request: TradeOffer) => {
-      onDispatch({
-        type: 'PROPOSE_TRADE',
-        playerId: state.currentPlayerId,
-        targetPlayerId,
-        offer,
-        request,
-      });
+    onDispatch({
+      type: 'PROPOSE_TRADE',
+      playerId: state.currentPlayerId,
+      targetPlayerId,
+      offer,
+      request,
+    });
   };
 
   const handleAcceptTrade = (tradeId: string) => {
@@ -174,7 +167,7 @@ export const GameUI: React.FC<GameUIProps> = ({
   };
 
   const handleCancelTrade = (tradeId: string) => {
-      onDispatch({ type: 'CANCEL_TRADE', playerId: state.currentPlayerId });
+    onDispatch({ type: 'CANCEL_TRADE', playerId: state.currentPlayerId });
   };
 
   const handleRestart = () => {
@@ -205,7 +198,6 @@ export const GameUI: React.FC<GameUIProps> = ({
   // Or, we accept that for MVP everyone sees the buttons but they only work for the turn owner (and server enforces).
   // BETTER: We can conditionally pass callbacks as `undefined` if it's not my turn!
 
-  const isMyTurn = state.currentPlayerId === myPlayerId;
   // For hotseat (LocalGame), myPlayerId can be ignored or treated as "always me".
   // Actually, for LocalGame, we pass myPlayerId as the current player ID always?
   // Let's handle this logic in parent or here.

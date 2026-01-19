@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 import { GameUI } from './GameUI';
@@ -11,7 +11,9 @@ import {
   GameAction,
 } from '@trade-tycoon/game-logic';
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || (Platform.OS === 'web' ? 'http://localhost:3001' : 'http://10.0.2.2:3001');
+const SERVER_URL =
+  process.env.EXPO_PUBLIC_SERVER_URL ||
+  (Platform.OS === 'web' ? 'http://localhost:3001' : 'http://10.0.2.2:3001');
 
 interface OnlineGameProps {
   onBack: () => void;
@@ -19,7 +21,9 @@ interface OnlineGameProps {
 }
 
 export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) => {
-  const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(
+    null
+  );
   const [lobbyState, setLobbyState] = useState<LobbyState | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -82,7 +86,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
           setUserId(userId);
           setRoomId(roomId);
         } catch (e) {
-          console.error("Invalid session", e);
+          console.error('Invalid session', e);
         }
       }
     }
@@ -90,6 +94,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     return () => {
       newSocket.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCreate = () => {
@@ -121,10 +126,10 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   };
 
   const handleLeave = () => {
-      if (Platform.OS === 'web') {
-          localStorage.removeItem('trade_tycoon_session');
-      }
-      onBack();
+    if (Platform.OS === 'web') {
+      localStorage.removeItem('trade_tycoon_session');
+    }
+    onBack();
   };
 
   // Render Logic
@@ -152,7 +157,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
               style={styles.input}
               placeholder="Room Code (e.g. ABCD123)"
               value={inputRoomId}
-              onChangeText={text => setInputRoomId(text.toUpperCase())}
+              onChangeText={(text) => setInputRoomId(text.toUpperCase())}
               autoCapitalize="characters"
             />
           )}
@@ -161,8 +166,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
 
           <View style={styles.buttonContainer}>
             <IconButton
-              title={initialMode === 'create' ? "Create" : "Join"}
-              icon={initialMode === 'create' ? "plus" : "login"}
+              title={initialMode === 'create' ? 'Create' : 'Join'}
+              icon={initialMode === 'create' ? 'plus' : 'login'}
               onPress={initialMode === 'create' ? handleCreate : handleJoin}
               style={styles.button}
             />
@@ -179,58 +184,58 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   }
 
   if (step === 'lobby') {
-      const isHost = lobbyState?.players.find(p => p.id === userId)?.isHost;
+    const isHost = lobbyState?.players.find((p) => p.id === userId)?.isHost;
 
-      return (
-        <View style={styles.container}>
-           <View style={styles.card}>
-              <Text style={styles.title}>Room: {roomId}</Text>
-              <Text style={styles.subtitle}>Players:</Text>
-              {lobbyState?.players.map((p) => (
-                  <View key={p.id} style={styles.playerRow}>
-                      <View style={[styles.colorDot, { backgroundColor: p.color }]} />
-                      <Text style={styles.playerText}>
-                          {p.name} {p.isHost ? '(Host)' : ''} {p.id === userId ? '(You)' : ''}
-                      </Text>
-                  </View>
-              ))}
+    return (
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Room: {roomId}</Text>
+          <Text style={styles.subtitle}>Players:</Text>
+          {lobbyState?.players.map((p) => (
+            <View key={p.id} style={styles.playerRow}>
+              <View style={[styles.colorDot, { backgroundColor: p.color }]} />
+              <Text style={styles.playerText}>
+                {p.name} {p.isHost ? '(Host)' : ''} {p.id === userId ? '(You)' : ''}
+              </Text>
+            </View>
+          ))}
 
-              <View style={styles.spacer} />
+          <View style={styles.spacer} />
 
-              {isHost ? (
-                  <IconButton
-                    title="Start Game"
-                    icon="play"
-                    onPress={handleStartGame}
-                    style={styles.button}
-                    disabled={!lobbyState || lobbyState.players.length < 2}
-                  />
-              ) : (
-                  <Text style={styles.waitingText}>Waiting for host to start...</Text>
-              )}
+          {isHost ? (
+            <IconButton
+              title="Start Game"
+              icon="play"
+              onPress={handleStartGame}
+              style={styles.button}
+              disabled={!lobbyState || lobbyState.players.length < 2}
+            />
+          ) : (
+            <Text style={styles.waitingText}>Waiting for host to start...</Text>
+          )}
 
-              <IconButton
-                  title="Leave"
-                  icon="close"
-                  onPress={handleLeave}
-                  style={styles.secondaryButton}
-              />
-           </View>
+          <IconButton
+            title="Leave"
+            icon="close"
+            onPress={handleLeave}
+            style={styles.secondaryButton}
+          />
         </View>
-      );
+      </View>
+    );
   }
 
   if (step === 'game' && gameState) {
-      return (
-          <GameUI
-             state={gameState}
-             currentPlayerId={userId || ''}
-             onDispatch={handleGameDispatch}
-             uiToastMessage={uiToastMessage || error}
-             setUiToastMessage={setUiToastMessage}
-             onLeaveGame={handleLeave}
-          />
-      );
+    return (
+      <GameUI
+        state={gameState}
+        currentPlayerId={userId || ''}
+        onDispatch={handleGameDispatch}
+        uiToastMessage={uiToastMessage || error}
+        setUiToastMessage={setUiToastMessage}
+        onLeaveGame={handleLeave}
+      />
+    );
   }
 
   return <Text>Loading...</Text>;
@@ -258,9 +263,9 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   subtitle: {
-      fontSize: 18,
-      marginBottom: 10,
-      alignSelf: 'flex-start',
+    fontSize: 18,
+    marginBottom: 10,
+    alignSelf: 'flex-start',
   },
   input: {
     width: '100%',
@@ -272,44 +277,44 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   buttonContainer: {
-      width: '100%',
-      gap: 10,
+    width: '100%',
+    gap: 10,
   },
   button: {
-      width: '100%',
+    width: '100%',
   },
   secondaryButton: {
-      width: '100%',
-      backgroundColor: '#666',
-      marginTop: 10,
+    width: '100%',
+    backgroundColor: '#666',
+    marginTop: 10,
   },
   error: {
-      color: 'red',
-      marginBottom: 10,
+    color: 'red',
+    marginBottom: 10,
   },
   playerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      width: '100%',
-      paddingVertical: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: '#eee',
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   colorDot: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      marginRight: 10,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 10,
   },
   playerText: {
-      fontSize: 16,
+    fontSize: 16,
   },
   spacer: {
-      height: 20,
+    height: 20,
   },
   waitingText: {
-      fontStyle: 'italic',
-      color: '#666',
-      marginBottom: 20,
-  }
+    fontStyle: 'italic',
+    color: '#666',
+    marginBottom: 20,
+  },
 });
