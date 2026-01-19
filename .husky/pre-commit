@@ -1,4 +1,1 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
-npm run lint:md && npm run test --workspace=packages/game-logic
+npm run lint && npm run lint:md && npm run prettier && npm run test

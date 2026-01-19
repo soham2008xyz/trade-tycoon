@@ -16,7 +16,8 @@
     "test": "npm test --workspaces --if-present",
     "lint": "npm run lint --workspace=apps/client",
     "lint:md": "markdownlint '**/*.md' --ignore node_modules",
-    "prepare": "husky"
+    "prepare": "husky",
+    "prettier": "prettier --write **/*.{js,ts,tsx,json,md}"
   },
   "devDependencies": {
     "husky": "^9.1.7",
