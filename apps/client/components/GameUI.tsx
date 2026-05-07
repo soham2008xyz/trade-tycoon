@@ -115,7 +115,7 @@ export const GameUI: React.FC<GameUIProps> = ({
   };
 
   const handleDeclareBankruptcy = () => {
-    if (state.currentPlayerId) {
+    if (myPlayerId) {
       showAlert(
         'Declare Bankruptcy',
         'Are you sure you want to declare bankruptcy? You will be removed from the game.',
@@ -124,8 +124,7 @@ export const GameUI: React.FC<GameUIProps> = ({
           {
             text: 'Yes',
             style: 'destructive',
-            onPress: () =>
-              onDispatch({ type: 'DECLARE_BANKRUPTCY', playerId: state.currentPlayerId! }),
+            onPress: () => onDispatch({ type: 'DECLARE_BANKRUPTCY', playerId: myPlayerId }),
           },
         ]
       );
@@ -147,7 +146,7 @@ export const GameUI: React.FC<GameUIProps> = ({
   const handleProposeTrade = (targetPlayerId: string, offer: TradeOffer, request: TradeOffer) => {
     onDispatch({
       type: 'PROPOSE_TRADE',
-      playerId: state.currentPlayerId,
+      playerId: myPlayerId,
       targetPlayerId,
       offer,
       request,
@@ -167,7 +166,7 @@ export const GameUI: React.FC<GameUIProps> = ({
   };
 
   const handleCancelTrade = (tradeId: string) => {
-    onDispatch({ type: 'CANCEL_TRADE', playerId: state.currentPlayerId });
+    onDispatch({ type: 'CANCEL_TRADE', playerId: myPlayerId });
   };
 
   const handleRestart = () => {

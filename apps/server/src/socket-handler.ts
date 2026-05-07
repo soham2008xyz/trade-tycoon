@@ -113,9 +113,9 @@ export const registerSocketHandlers = (
         io.to(roomId).emit('game_state_update', newState);
       } else {
         console.warn(
-          `[game_action] Action ${action.type} resulted in no state change (or invalid)`
+          `[game_action] Action ${action.type} by ${userId} rejected (security or state mismatch)`
         );
-        // Optionally emit error if action failed due to validation
+        socket.emit('error', 'Action rejected: not authorized or invalid.');
       }
     });
 

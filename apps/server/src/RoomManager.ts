@@ -78,7 +78,10 @@ export class RoomManager {
 
     if (!playerInLobby && !playerInGame) return null;
 
-    return { state: room, gameState: room.gameState };
+    return {
+      state: room,
+      gameState: room.gameState ? this.stripBoard(room.gameState) : undefined,
+    };
   }
 
   updatePlayer(roomId: string, userId: string, name: string, color: string): LobbyState | null {
@@ -140,7 +143,7 @@ export class RoomManager {
     room.status = 'game';
     room.gameState = gameState;
 
-    return gameState;
+    return this.stripBoard(gameState);
   }
 
   handleGameAction(roomId: string, userId: string, action: GameAction): GameState | null {
@@ -165,7 +168,13 @@ export class RoomManager {
     const newState = gameReducer(room.gameState, action);
     room.gameState = newState;
 
-    return newState;
+    return this.stripBoard(newState);
+  }
+
+  private stripBoard(state: GameState): GameState {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { board: _board, ...rest } = state as any;
+    return rest as GameState;
   }
 
   getRoom(roomId: string): LobbyState | undefined {

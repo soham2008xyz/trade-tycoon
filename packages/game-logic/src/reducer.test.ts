@@ -1331,4 +1331,435 @@ describe('Game Reducer', () => {
       expect(newState.currentPlayerId).toBe('p1'); // Still p1's turn
     });
   });
+
+  describe('DISMISS_ERROR / DISMISS_TOAST', () => {
+    it('should clear errorMessage on DISMISS_ERROR', () => {
+      const stateWithError: GameState = {
+        ...createInitialState(),
+        errorMessage: 'Something went wrong',
+      };
+      const newState = gameReducer(stateWithError, { type: 'DISMISS_ERROR' });
+      expect(newState.errorMessage).toBeUndefined();
+    });
+
+    it('should clear toastMessage on DISMISS_TOAST', () => {
+      const stateWithToast: GameState = {
+        ...createInitialState(),
+        toastMessage: 'You rolled doubles!',
+      };
+      const newState = gameReducer(stateWithToast, { type: 'DISMISS_TOAST' });
+      expect(newState.toastMessage).toBeUndefined();
+    });
+
+    it('should not affect other state on DISMISS_ERROR when no error', () => {
+      const state = createInitialState();
+      const newState = gameReducer(state, { type: 'DISMISS_ERROR' });
+      expect(newState.phase).toBe('roll');
+      expect(newState.players).toHaveLength(0);
+    });
+  });
+
+  describe('Auction Flow (DECLINE_BUY, PLACE_BID, CONCEDE_AUCTION)', () => {
+    let auctionState: GameState;
+
+    beforeEach(() => {
+      auctionState = createInitialState();
+      const p1 = createPlayer('p1', 'Player 1');
+      const p2 = createPlayer('p2', 'Player 2');
+      // Position p1 on Mediterranean Ave (index 1, id 'mediterranean', price 60)
+      p1.position = 1;
+      auctionState.players = [p1, p2];
+      auctionState.currentPlayerId = 'p1';
+      auctionState.phase = 'action';
+    });
+
+    it('should start an auction when current player declines to buy', () => {
+      const newState = gameReducer(auctionState, {
+        type: 'DECLINE_BUY',
+        playerId: 'p1',
+      });
+
+      expect(newState.phase).toBe('auction');
+      expect(newState.auction).not.toBeNull();
+      expect(newState.auction?.propertyId).toBe('mediterranean');
+      expect(newState.auction?.participants).toEqual(['p1', 'p2']);
+      expect(newState.auction?.currentBid).toBe(0);
+      expect(newState.auction?.highestBidderId).toBeNull();
+    });
+
+    it('should not start auction if not current player', () => {
+      const newState = gameReducer(auctionState, {
+        type: 'DECLINE_BUY',
+        playerId: 'p2',
+      });
+      expect(newState.phase).toBe('action');
+      expect(newState.auction).toBeNull();
+    });
+
+    it('should accept a valid bid', () => {
+      const withAuction: GameState = {
+        ...auctionState,
+        phase: 'auction',
+        auction: {
+          propertyId: 'mediterranean',
+          currentBid: 0,
+          highestBidderId: null,
+          participants: ['p1', 'p2'],
+          currentBidderIndex: 0,
+        },
+      };
+
+      const newState = gameReducer(withAuction, {
+        type: 'PLACE_BID',
+        playerId: 'p1',
+        amount: 50,
+      });
+
+      expect(newState.auction?.currentBid).toBe(50);
+      expect(newState.auction?.highestBidderId).toBe('p1');
+      expect(newState.auction?.currentBidderIndex).toBe(1); // Moved to p2
+    });
+
+    it('should reject bid that is not higher than current', () => {
+      const withAuction: GameState = {
+        ...auctionState,
+        phase: 'auction',
+        auction: {
+          propertyId: 'mediterranean',
+          currentBid: 50,
+          highestBidderId: 'p1',
+          participants: ['p1', 'p2'],
+          currentBidderIndex: 1,
+        },
+      };
+
+      const newState = gameReducer(withAuction, {
+        type: 'PLACE_BID',
+        playerId: 'p2',
+        amount: 50,
+      });
+
+      expect(newState.auction?.currentBid).toBe(50); // Unchanged
+      expect(newState.errorMessage).toMatch(/higher/i);
+    });
+
+    it('should reject bid from player not in auction', () => {
+      const p3 = createPlayer('p3', 'Player 3');
+      const withAuction: GameState = {
+        ...auctionState,
+        players: [...auctionState.players, p3],
+        phase: 'auction',
+        auction: {
+          propertyId: 'mediterranean',
+          currentBid: 0,
+          highestBidderId: null,
+          participants: ['p1', 'p2'],
+          currentBidderIndex: 0,
+        },
+      };
+
+      const newState = gameReducer(withAuction, {
+        type: 'PLACE_BID',
+        playerId: 'p3',
+        amount: 30,
+      });
+
+      expect(newState.errorMessage).toBeDefined();
+    });
+
+    it('should reject bid when it is not the bidder turn', () => {
+      const withAuction: GameState = {
+        ...auctionState,
+        phase: 'auction',
+        auction: {
+          propertyId: 'mediterranean',
+          currentBid: 0,
+          highestBidderId: null,
+          participants: ['p1', 'p2'],
+          currentBidderIndex: 0, // p1's turn
+        },
+      };
+
+      const newState = gameReducer(withAuction, {
+        type: 'PLACE_BID',
+        playerId: 'p2', // Not their turn
+        amount: 30,
+      });
+
+      expect(newState.errorMessage).toBeDefined();
+    });
+
+    it('should remove conceding player and pass to next bidder', () => {
+      const withAuction: GameState = {
+        ...auctionState,
+        phase: 'auction',
+        auction: {
+          propertyId: 'mediterranean',
+          currentBid: 40,
+          highestBidderId: 'p1',
+          participants: ['p1', 'p2'],
+          currentBidderIndex: 1, // p2's turn to bid
+        },
+      };
+
+      const newState = gameReducer(withAuction, {
+        type: 'CONCEDE_AUCTION',
+        playerId: 'p2',
+      });
+
+      // p1 wins since they were the highest bidder and p2 conceded
+      expect(newState.phase).toBe('action');
+      expect(newState.auction).toBeNull();
+      const p1 = newState.players.find((p) => p.id === 'p1')!;
+      expect(p1.properties).toContain('mediterranean');
+      expect(p1.money).toBe(1500 - 40);
+    });
+
+    it('should end auction with no sale when everyone concedes with no bids', () => {
+      const withAuction: GameState = {
+        ...auctionState,
+        phase: 'auction',
+        auction: {
+          propertyId: 'mediterranean',
+          currentBid: 0,
+          highestBidderId: null,
+          participants: ['p1'],
+          currentBidderIndex: 0,
+        },
+      };
+
+      const newState = gameReducer(withAuction, {
+        type: 'CONCEDE_AUCTION',
+        playerId: 'p1',
+      });
+
+      expect(newState.phase).toBe('action');
+      expect(newState.auction).toBeNull();
+      // No one owns it
+      expect(newState.players[0].properties).not.toContain('mediterranean');
+    });
+  });
+
+  describe('Trade Flow (PROPOSE_TRADE, ACCEPT_TRADE, REJECT_TRADE, CANCEL_TRADE)', () => {
+    let tradeState: GameState;
+
+    beforeEach(() => {
+      tradeState = createInitialState();
+      const p1 = createPlayer('p1', 'Player 1');
+      const p2 = createPlayer('p2', 'Player 2');
+      p1.properties = ['mediterranean'];
+      p2.properties = ['baltic'];
+      tradeState.players = [p1, p2];
+      tradeState.currentPlayerId = 'p1';
+      tradeState.phase = 'action';
+    });
+
+    it('should create an activeTrade on PROPOSE_TRADE', () => {
+      const newState = gameReducer(tradeState, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: ['mediterranean'], getOutOfJailCards: 0 },
+        request: { money: 0, properties: ['baltic'], getOutOfJailCards: 0 },
+      });
+
+      expect(newState.activeTrade).not.toBeNull();
+      expect(newState.activeTrade?.initiatorId).toBe('p1');
+      expect(newState.activeTrade?.targetPlayerId).toBe('p2');
+      expect(newState.activeTrade?.status).toBe('pending');
+    });
+
+    it('should reject trade when initiator does not own offered property', () => {
+      const newState = gameReducer(tradeState, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: ['boardwalk'], getOutOfJailCards: 0 }, // p1 doesn't own boardwalk
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      expect(newState.activeTrade).toBeNull();
+      expect(newState.errorMessage).toBeDefined();
+    });
+
+    it('should reject trade when target does not own requested property', () => {
+      const newState = gameReducer(tradeState, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: ['boardwalk'], getOutOfJailCards: 0 }, // p2 doesn't own boardwalk
+      });
+
+      expect(newState.activeTrade).toBeNull();
+      expect(newState.errorMessage).toBeDefined();
+    });
+
+    it('should reject trade proposal during auction phase', () => {
+      const stateInAuction: GameState = {
+        ...tradeState,
+        phase: 'auction',
+        auction: {
+          propertyId: 'mediterranean',
+          currentBid: 0,
+          highestBidderId: null,
+          participants: ['p1', 'p2'],
+          currentBidderIndex: 0,
+        },
+      };
+
+      const newState = gameReducer(stateInAuction, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      expect(newState.activeTrade).toBeNull();
+      expect(newState.errorMessage).toMatch(/auction/i);
+    });
+
+    it('should transfer properties and money on ACCEPT_TRADE', () => {
+      const pendingTrade = gameReducer(tradeState, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 100, properties: ['mediterranean'], getOutOfJailCards: 0 },
+        request: { money: 0, properties: ['baltic'], getOutOfJailCards: 0 },
+      });
+
+      const accepted = gameReducer(pendingTrade, {
+        type: 'ACCEPT_TRADE',
+        playerId: 'p2',
+      });
+
+      expect(accepted.activeTrade).toBeNull();
+      const p1 = accepted.players.find((p) => p.id === 'p1')!;
+      const p2 = accepted.players.find((p) => p.id === 'p2')!;
+
+      // p1 gave 'mediterranean' + $100, got 'baltic'
+      expect(p1.properties).not.toContain('mediterranean');
+      expect(p1.properties).toContain('baltic');
+      expect(p1.money).toBe(1500 - 100);
+
+      // p2 gave 'baltic', got 'mediterranean' + $100
+      expect(p2.properties).not.toContain('baltic');
+      expect(p2.properties).toContain('mediterranean');
+      expect(p2.money).toBe(1500 + 100);
+    });
+
+    it('should reject ACCEPT_TRADE when wrong player accepts', () => {
+      const pendingTrade = gameReducer(tradeState, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      // p1 tries to accept their own trade
+      const newState = gameReducer(pendingTrade, {
+        type: 'ACCEPT_TRADE',
+        playerId: 'p1',
+      });
+
+      expect(newState.activeTrade).not.toBeNull(); // Trade still pending
+      expect(newState.errorMessage).toBeDefined();
+    });
+
+    it('should clear activeTrade on REJECT_TRADE by target', () => {
+      const pendingTrade = gameReducer(tradeState, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      const rejected = gameReducer(pendingTrade, {
+        type: 'REJECT_TRADE',
+        playerId: 'p2',
+      });
+
+      expect(rejected.activeTrade).toBeNull();
+      // Properties unchanged
+      expect(rejected.players.find((p) => p.id === 'p1')!.properties).toContain('mediterranean');
+      expect(rejected.players.find((p) => p.id === 'p2')!.properties).toContain('baltic');
+    });
+
+    it('should ignore REJECT_TRADE from non-target player', () => {
+      const pendingTrade = gameReducer(tradeState, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      // p1 tries to reject their own trade (only target can reject)
+      const newState = gameReducer(pendingTrade, {
+        type: 'REJECT_TRADE',
+        playerId: 'p1',
+      });
+
+      expect(newState.activeTrade).not.toBeNull();
+    });
+
+    it('should clear activeTrade on CANCEL_TRADE by initiator', () => {
+      const pendingTrade = gameReducer(tradeState, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      const cancelled = gameReducer(pendingTrade, {
+        type: 'CANCEL_TRADE',
+        playerId: 'p1',
+      });
+
+      expect(cancelled.activeTrade).toBeNull();
+    });
+
+    it('should ignore CANCEL_TRADE from non-initiator', () => {
+      const pendingTrade = gameReducer(tradeState, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      // p2 tries to cancel (only initiator can cancel)
+      const newState = gameReducer(pendingTrade, {
+        type: 'CANCEL_TRADE',
+        playerId: 'p2',
+      });
+
+      expect(newState.activeTrade).not.toBeNull();
+    });
+
+    it('should transfer mortgaged property status in trade', () => {
+      tradeState.players[0].mortgaged = ['mediterranean'];
+
+      const accepted = gameReducer(
+        gameReducer(tradeState, {
+          type: 'PROPOSE_TRADE',
+          playerId: 'p1',
+          targetPlayerId: 'p2',
+          offer: { money: 0, properties: ['mediterranean'], getOutOfJailCards: 0 },
+          request: { money: 0, properties: [], getOutOfJailCards: 0 },
+        }),
+        { type: 'ACCEPT_TRADE', playerId: 'p2' }
+      );
+
+      const p1 = accepted.players.find((p) => p.id === 'p1')!;
+      const p2 = accepted.players.find((p) => p.id === 'p2')!;
+
+      expect(p1.mortgaged).not.toContain('mediterranean');
+      expect(p2.mortgaged).toContain('mediterranean');
+    });
+  });
 });

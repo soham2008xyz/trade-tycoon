@@ -39,8 +39,26 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     const newSocket = io(SERVER_URL);
     setSocket(newSocket);
 
+    const tryRestoreSession = (socket: typeof newSocket) => {
+      if (Platform.OS === 'web') {
+        const session = localStorage.getItem('trade_tycoon_session');
+        if (session) {
+          try {
+            const { roomId, userId } = JSON.parse(session);
+            socket.emit('reconnect', roomId, userId);
+            // Optimistically restore IDs — lobby_update will confirm or correct
+            setUserId(userId);
+            setRoomId(roomId);
+          } catch (e) {
+            console.error('Invalid session', e);
+          }
+        }
+      }
+    };
+
     newSocket.on('connect', () => {
       console.log('Connected to server');
+      tryRestoreSession(newSocket);
     });
 
     newSocket.on('lobby_update', (state) => {
@@ -74,22 +92,6 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       // Clear error after 3s
       setTimeout(() => setError(null), 3000);
     });
-
-    // Check for existing session
-    if (Platform.OS === 'web') {
-      const session = localStorage.getItem('trade_tycoon_session');
-      if (session) {
-        try {
-          const { roomId, userId } = JSON.parse(session);
-          newSocket.emit('reconnect', roomId, userId);
-          // We optimistically set ID, but we wait for lobby_update to confirm
-          setUserId(userId);
-          setRoomId(roomId);
-        } catch (e) {
-          console.error('Invalid session', e);
-        }
-      }
-    }
 
     return () => {
       newSocket.disconnect();
