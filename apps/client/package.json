@@ -50,8 +50,15 @@
     "eslint-config-expo": "~55.0.0",
     "serve": "^14.2.5",
     "sharp": "^0.34.5",
-    "typescript": "~5.9.2",
+    "typescript": "^6.0.3",
     "workbox-build": "^7.4.0"
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "typescript"
+      ]
+    }
   },
   "private": true
 }
