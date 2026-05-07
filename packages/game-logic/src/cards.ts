@@ -52,11 +52,13 @@ export const processCardEffect = (
       break;
 
     case 'MOVE_TO':
-      // Check if passing GO (wrapping around board)
-      // If target position is less than current position, we passed GO
-      // (Unless we are just moving backwards, but typical cards are advance)
-      // Logic from original: if (card.action.collectGo && card.action.position < newPosition)
-      if (card.action.collectGo && card.action.position < newPlayer.position) {
+      // "Advance to" cards collect $200 if the move passes GO.
+      // Passes GO when target index is strictly less than current index (wrap-around)
+      // OR target IS GO itself (e.g. "Advance to GO" — always pays, even when at 0).
+      if (
+        card.action.collectGo &&
+        (card.action.position < newPlayer.position || card.action.position === 0)
+      ) {
         newPlayer.money += 200;
       }
       newPlayer.position = card.action.position;

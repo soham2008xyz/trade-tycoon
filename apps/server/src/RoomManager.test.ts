@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { RoomManager } from './RoomManager';
 
 describe('RoomManager', () => {
@@ -216,6 +216,48 @@ describe('RoomManager', () => {
       const newState = roomManager.handleGameAction(roomId, 'ALIEN_USER', action);
 
       expect(newState).toBeNull();
+    });
+
+    it('should reject client-issued RESET_GAME', () => {
+      const roomId = roomManager.createRoom('Host');
+      const hostId = roomManager.getRoom(roomId)!.players[0].id;
+      roomManager.joinRoom(roomId, 'P2');
+      roomManager.startGame(roomId, hostId);
+
+      // Even the host cannot reset via the action channel.
+      const action: any = {
+        type: 'RESET_GAME',
+        players: [{ id: 'x', name: 'X', color: '#000' }],
+      };
+      const result = roomManager.handleGameAction(roomId, hostId, action);
+      expect(result).toBeNull();
+
+      // Game state untouched — original players still present.
+      const room = roomManager.getRoom(roomId)!;
+      expect(room.gameState!.players).toHaveLength(2);
+    });
+
+    it('should ignore client-supplied dice values on ROLL_DICE', () => {
+      const roomId = roomManager.createRoom('Host');
+      const hostId = roomManager.getRoom(roomId)!.players[0].id;
+      roomManager.joinRoom(roomId, 'P2');
+      roomManager.startGame(roomId, hostId);
+
+      // Try to cheat with a custom (out-of-range, doubles) roll.
+      const cheatAction: any = {
+        type: 'ROLL_DICE',
+        playerId: hostId,
+        die1: 6,
+        die2: 6, // would always net doubles + 12 if honored
+      };
+
+      // Force the RNG so we can assert the dice came from the server, not the client.
+      const rngSpy = vi.spyOn(Math, 'random').mockReturnValue(0); // both dice -> 1
+      const newState = roomManager.handleGameAction(roomId, hostId, cheatAction);
+      rngSpy.mockRestore();
+
+      expect(newState).not.toBeNull();
+      expect(newState!.dice).toEqual([1, 1]);
     });
   });
 });

@@ -66,4 +66,40 @@ describe('processCardEffect', () => {
 
     expect(updatedPlayer.money).toBe(1000);
   });
+
+  describe('MOVE_TO with collectGo', () => {
+    const advanceToGo: Card = {
+      id: 'c1',
+      text: 'Advance to GO',
+      action: { type: 'MOVE_TO', position: 0, collectGo: true },
+    };
+
+    it('should pay $200 when wrapping past GO from a higher index', () => {
+      const player: Player = { ...mockPlayer, position: 36 };
+      const { player: updated } = processCardEffect(player, advanceToGo);
+      expect(updated.position).toBe(0);
+      expect(updated.money).toBe(1200); // 1000 + 200
+    });
+
+    it('should pay $200 even when player is already AT GO (regression)', () => {
+      // Edge case: previously `position < newPosition` failed for position === 0,
+      // so the player got an "Advance to GO" card without collecting $200.
+      const player: Player = { ...mockPlayer, position: 0 };
+      const { player: updated } = processCardEffect(player, advanceToGo);
+      expect(updated.position).toBe(0);
+      expect(updated.money).toBe(1200);
+    });
+
+    it('should NOT pay $200 when advancing forward without crossing GO', () => {
+      const advanceToBoardwalk: Card = {
+        id: 'c8',
+        text: 'Advance to Boardwalk',
+        action: { type: 'MOVE_TO', position: 39 },
+      };
+      const player: Player = { ...mockPlayer, position: 1 };
+      const { player: updated } = processCardEffect(player, advanceToBoardwalk);
+      expect(updated.position).toBe(39);
+      expect(updated.money).toBe(1000);
+    });
+  });
 });

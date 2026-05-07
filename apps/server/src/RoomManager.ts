@@ -158,14 +158,29 @@ export class RoomManager {
       return null;
     }
 
-    // Security Check: Ensure action.playerId matches userId
+    // Security Check: Reject actions that are not authored by an in-game player.
+    // RESET_GAME has no playerId field — clients must NEVER be able to send it
+    // (it would let any player wipe the game). Only the server may dispatch it.
+    if (action.type === 'RESET_GAME') {
+      console.warn(`[RoomManager] Rejected client-issued RESET_GAME from ${userId}`);
+      return null;
+    }
+
+    // For every other action, the action's playerId must match the authenticated user.
     if ('playerId' in action && (action as any).playerId !== userId) {
       console.warn(`[RoomManager] User ${userId} tried to act as ${(action as any).playerId}`);
       return null;
     }
 
+    // Sanitize untrusted action input. The reducer accepts client-provided dice
+    // (die1/die2) to support deterministic tests, but on a server those values
+    // would let a malicious client pick favorable rolls. Force server-side RNG.
+    const safeAction =
+      action.type === 'ROLL_DICE' ? ({ ...action, die1: undefined, die2: undefined } as GameAction)
+      : action;
+
     // Apply reducer
-    const newState = gameReducer(room.gameState, action);
+    const newState = gameReducer(room.gameState, safeAction);
     room.gameState = newState;
 
     return this.stripBoard(newState);

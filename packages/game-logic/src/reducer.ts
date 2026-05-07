@@ -36,7 +36,19 @@ export type Action =
   | { type: 'REJECT_TRADE'; playerId: string }
   | { type: 'CANCEL_TRADE'; playerId: string };
 
+// Actions that must be ignored once a winner is declared. The game is over —
+// only RESET_GAME (start a new game) and DISMISS_* (clear UI banners) remain.
+const POST_GAME_ALLOWED: ReadonlySet<Action['type']> = new Set([
+  'RESET_GAME',
+  'DISMISS_ERROR',
+  'DISMISS_TOAST',
+]);
+
 export const gameReducer = (state: GameState, action: Action): GameState => {
+  if (state.winner && !POST_GAME_ALLOWED.has(action.type)) {
+    return state;
+  }
+
   switch (action.type) {
     case 'RESET_GAME': {
       const newPlayers = action.players.map((p) => {
@@ -399,6 +411,10 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
     case 'BUY_PROPERTY': {
       // Validate: Current player, Correct phase, Property is unowned, Player has money
+      if (state.currentPlayerId !== action.playerId) return state;
+      if (state.phase !== 'action')
+        return { ...state, errorMessage: 'Can only buy during action phase.' };
+
       const playerIndex = state.players.findIndex((p) => p.id === action.playerId);
       const player = state.players[playerIndex];
       const tile = BOARD.find((t) => t.id === action.propertyId);
@@ -407,6 +423,10 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
       if (!isTileBuyable(tile))
         return { ...state, errorMessage: 'This property cannot be bought.' };
+
+      // Player must be standing on the property they are buying
+      if (player.position !== tile.index)
+        return { ...state, errorMessage: 'You must be on the property to buy it.' };
 
       if (player.money < tile.price) return { ...state, errorMessage: 'Insufficient funds.' };
 
@@ -623,6 +643,9 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
     case 'PROPOSE_TRADE': {
       // Basic validation
+      if (action.playerId === action.targetPlayerId)
+        return { ...state, errorMessage: 'You cannot trade with yourself.' };
+
       const initiator = state.players.find((p) => p.id === action.playerId);
       const target = state.players.find((p) => p.id === action.targetPlayerId);
       if (!initiator || !target) return state;
@@ -814,6 +837,15 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
       // Complete Group
       if (!ownsCompleteGroup(player, tile.group))
         return { ...state, errorMessage: 'You must own the complete color group to build.' };
+
+      // No mortgaged property in the group (standard Monopoly rule)
+      const groupTileIds = BOARD.filter((t) => t.group === tile.group).map((t) => t.id);
+      const groupHasMortgage = groupTileIds.some((id) => player.mortgaged.includes(id));
+      if (groupHasMortgage)
+        return {
+          ...state,
+          errorMessage: 'Cannot build: a property in this color group is mortgaged.',
+        };
 
       // Max Houses
       const currentHouses = player.houses[action.propertyId] || 0;
