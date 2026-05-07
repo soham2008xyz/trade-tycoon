@@ -176,8 +176,9 @@ export class RoomManager {
     // (die1/die2) to support deterministic tests, but on a server those values
     // would let a malicious client pick favorable rolls. Force server-side RNG.
     const safeAction =
-      action.type === 'ROLL_DICE' ? ({ ...action, die1: undefined, die2: undefined } as GameAction)
-      : action;
+      action.type === 'ROLL_DICE'
+        ? ({ ...action, die1: undefined, die2: undefined } as GameAction)
+        : action;
 
     // Apply reducer
     const newState = gameReducer(room.gameState, safeAction);
