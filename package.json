@@ -6,7 +6,9 @@
     "packages/*"
   ],
   "scripts": {
-    "start": "npm run build && npm run start --workspace=apps/client",
+    "start": "concurrently --names \"api,web\" --prefix-colors \"blue,green\" --kill-others-on-fail \"npm run server\" \"npm run web\"",
+    "start:native": "concurrently --names \"api,native\" --prefix-colors \"blue,magenta\" --kill-others-on-fail \"npm run server\" \"npm run start --workspace=apps/client\"",
+    "start:server": "npm run server",
     "server": "npm run dev --workspace=apps/server",
     "web": "npm run web --workspace=apps/client",
     "build:game-logic": "npm run build --workspace=packages/game-logic",
@@ -20,6 +22,7 @@
     "format": "prettier --write **/*.{js,ts,tsx,json,md}"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "markdownlint-cli": "^0.47.0",
