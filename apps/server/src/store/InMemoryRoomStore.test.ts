@@ -30,9 +30,17 @@ describe('InMemoryRoomStore', () => {
     });
 
     it('returns false when the room id collides, leaving the existing state untouched', async () => {
-      await store.create(sampleRoom({ players: [{ id: 'first', name: 'First', color: '#FF0000', isHost: true, isReady: true }] }));
+      await store.create(
+        sampleRoom({
+          players: [{ id: 'first', name: 'First', color: '#FF0000', isHost: true, isReady: true }],
+        })
+      );
       const second = await store.create(
-        sampleRoom({ players: [{ id: 'second', name: 'Second', color: '#0000FF', isHost: true, isReady: true }] })
+        sampleRoom({
+          players: [
+            { id: 'second', name: 'Second', color: '#0000FF', isHost: true, isReady: true },
+          ],
+        })
       );
       expect(second).toBe(false);
       const stored = await store.get('ABCD1234');
@@ -74,7 +82,13 @@ describe('InMemoryRoomStore', () => {
       const seen: number[] = [];
       await store.update('ABCD1234', (s) => {
         seen.push(s.players.length);
-        return { ...s, players: [...s.players, { id: 'p2', name: 'P2', color: '#0000FF', isHost: false, isReady: true }] };
+        return {
+          ...s,
+          players: [
+            ...s.players,
+            { id: 'p2', name: 'P2', color: '#0000FF', isHost: false, isReady: true },
+          ],
+        };
       });
       await store.update('ABCD1234', (s) => {
         seen.push(s.players.length);
