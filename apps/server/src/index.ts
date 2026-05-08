@@ -40,10 +40,14 @@ function buildBackends(): { roomStore: RoomStore; eventBus: EventBus } {
   // check) is fine on its own; Fluid Compute will still reuse the instance
   // across invocations because `redis` is captured in module scope.
   const redis = new Redis(redisUrl, {
-    // Re-issue commands on temporary disconnects rather than failing them.
+    // Bound per-command retries so a hung Redis doesn't keep a request open
+    // for the full 300s function timeout.
     maxRetriesPerRequest: 3,
-    // Don't queue forever if Redis is down; fail fast so callers see errors.
-    enableOfflineQueue: false,
+    // Keep the default offline queue enabled so the FIRST request after a
+    // cold start waits for the TLS handshake to complete instead of failing
+    // with "Stream isn't writeable" — Vercel functions cold-start frequently
+    // and the queue is the difference between a 200-300ms first hit and a
+    // 500.
   });
   redis.on('error', (err) => console.error('[Redis] connection error', err));
 
