@@ -326,9 +326,7 @@ export const Board: React.FC<Props> = ({
                 ) : (
                   // Idle viewer — show whose turn it is so they're not just
                   // staring at an empty action area.
-                  <Text style={styles.waitingText}>
-                    Waiting for {currentPlayer.name} to play…
-                  </Text>
+                  <Text style={styles.waitingText}>Waiting for {currentPlayer.name} to play…</Text>
                 )}
               </View>
             </>
