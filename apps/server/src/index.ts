@@ -1,9 +1,9 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { createInitialState } from '@trade-tycoon/game-logic';
 import { RoomManager } from './RoomManager';
 import { registerSocketHandlers } from './socket-handler';
+import { InMemoryRoomStore } from './store/InMemoryRoomStore';
 import { ClientToServerEvents, ServerToClientEvents } from '@trade-tycoon/game-logic';
 
 const app = express();
@@ -16,8 +16,9 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
 
 const PORT = process.env.PORT || 3001;
 
-// Room Manager Instance
-const roomManager = new RoomManager();
+// Room Manager Instance — wired to in-memory storage for the local single-process
+// dev server. Production deployments will swap in a Redis-backed store.
+const roomManager = new RoomManager(new InMemoryRoomStore());
 
 registerSocketHandlers(io, roomManager);
 

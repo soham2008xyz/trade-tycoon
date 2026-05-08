@@ -5,6 +5,7 @@ import { Server as IOServer, Socket as IOServerSocket } from 'socket.io';
 import { io as ioClient, Socket as IOClient } from 'socket.io-client';
 import { RoomManager } from './RoomManager';
 import { registerSocketHandlers } from './socket-handler';
+import { InMemoryRoomStore } from './store/InMemoryRoomStore';
 import { ClientToServerEvents, ServerToClientEvents } from '@trade-tycoon/game-logic';
 
 type ServerType = IOServer<ClientToServerEvents, ServerToClientEvents>;
@@ -45,7 +46,7 @@ describe('socket handler integration', () => {
   beforeEach(async () => {
     httpServer = createServer();
     io = new IOServer(httpServer, { cors: { origin: '*' } });
-    registerSocketHandlers(io, new RoomManager());
+    registerSocketHandlers(io, new RoomManager(new InMemoryRoomStore()));
     await new Promise<void>((res) => httpServer.listen(0, res));
     port = (httpServer.address() as AddressInfo).port;
   });

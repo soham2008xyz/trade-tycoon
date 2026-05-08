@@ -9,27 +9,32 @@ export const registerSocketHandlers = (
   io.on('connection', (socket: Socket) => {
     console.log('Client connected:', socket.id);
 
-    socket.on('create_room', (playerName: string) => {
+    socket.on('create_room', async (playerName: string) => {
       console.log(`[create_room] Player: ${playerName}`);
-      const roomId = roomManager.createRoom(playerName);
-      const room = roomManager.getRoom(roomId);
+      try {
+        const roomId = await roomManager.createRoom(playerName);
+        const room = await roomManager.getRoom(roomId);
 
-      if (room && room.players.length > 0) {
-        // The host is the first player created in createRoom
-        const host = room.players[0];
-        socket.join(roomId);
-        socket.emit('joined_room', { roomId, userId: host.id, isHost: true });
-        socket.emit('lobby_update', room);
-        console.log(`[create_room] Room ${roomId} created by ${host.id}`);
-      } else {
-        console.error('[create_room] Failed to create room');
+        if (room && room.players.length > 0) {
+          // The host is the first player created in createRoom
+          const host = room.players[0];
+          socket.join(roomId);
+          socket.emit('joined_room', { roomId, userId: host.id, isHost: true });
+          socket.emit('lobby_update', room);
+          console.log(`[create_room] Room ${roomId} created by ${host.id}`);
+        } else {
+          console.error('[create_room] Failed to create room');
+          socket.emit('error', 'Failed to create room.');
+        }
+      } catch (err) {
+        console.error('[create_room] Error', err);
         socket.emit('error', 'Failed to create room.');
       }
     });
 
-    socket.on('join_room', (roomId: string, playerName: string) => {
+    socket.on('join_room', async (roomId: string, playerName: string) => {
       console.log(`[join_room] Room: ${roomId}, Player: ${playerName}`);
-      const result = roomManager.joinRoom(roomId, playerName);
+      const result = await roomManager.joinRoom(roomId, playerName);
       if (result) {
         socket.join(roomId);
         socket.emit('joined_room', { roomId, userId: result.userId, isHost: false });
@@ -41,9 +46,9 @@ export const registerSocketHandlers = (
       }
     });
 
-    socket.on('reconnect', (roomId: string, userId: string) => {
+    socket.on('reconnect', async (roomId: string, userId: string) => {
       console.log(`[reconnect] Room: ${roomId}, User: ${userId}`);
-      const result = roomManager.reconnect(roomId, userId);
+      const result = await roomManager.reconnect(roomId, userId);
       if (result) {
         socket.join(roomId);
         socket.emit('lobby_update', result.state);
@@ -57,24 +62,27 @@ export const registerSocketHandlers = (
       }
     });
 
-    socket.on('update_player', (roomId: string, userId: string, name: string, color: string) => {
-      console.log(`[update_player] Room: ${roomId}, User: ${userId}`);
-      const newState = roomManager.updatePlayer(roomId, userId, name, color);
-      if (newState) {
-        io.to(roomId).emit('lobby_update', newState);
-      } else {
-        console.warn(`[update_player] Failed to update player ${userId} in room ${roomId}`);
+    socket.on(
+      'update_player',
+      async (roomId: string, userId: string, name: string, color: string) => {
+        console.log(`[update_player] Room: ${roomId}, User: ${userId}`);
+        const newState = await roomManager.updatePlayer(roomId, userId, name, color);
+        if (newState) {
+          io.to(roomId).emit('lobby_update', newState);
+        } else {
+          console.warn(`[update_player] Failed to update player ${userId} in room ${roomId}`);
+        }
       }
-    });
+    );
 
-    socket.on('start_game', (roomId: string, userId: string) => {
+    socket.on('start_game', async (roomId: string, userId: string) => {
       console.log(`[start_game] Room: ${roomId}, User: ${userId}`);
-      const gameState = roomManager.startGame(roomId, userId);
+      const gameState = await roomManager.startGame(roomId, userId);
       if (gameState) {
         io.to(roomId).emit('game_state_update', gameState);
 
         // Fix: Also emit lobby_update so clients know status changed to 'game'
-        const room = roomManager.getRoom(roomId);
+        const room = await roomManager.getRoom(roomId);
         if (room) {
           io.to(roomId).emit('lobby_update', room);
         }
@@ -85,17 +93,9 @@ export const registerSocketHandlers = (
       }
     });
 
-    socket.on('game_action', (roomId: string, userId: string, action) => {
+    socket.on('game_action', async (roomId: string, userId: string, action) => {
       console.log(`[game_action] Room: ${roomId}, User: ${userId}, Action: ${action.type}`);
-      // Validation: Ensure action matches user?
-      // For MVP, we pass the action to reducer.
-      // The reducer checks playerId match for most actions (e.g. ROLL_DICE checks state.currentPlayerId).
-      // However, we should verify that `userId` provided matches the `playerId` in the action if applicable?
-      // Actually, some actions like JOIN_GAME don't apply here.
-      // Let's trust the client logic + reducer checks for now.
-      // But we should ensure `userId` is actually a player in this game.
-
-      const room = roomManager.getRoom(roomId);
+      const room = await roomManager.getRoom(roomId);
       if (!room || !room.gameState) {
         console.warn(`[game_action] Room ${roomId} not found or game not started`);
         return;
@@ -108,7 +108,7 @@ export const registerSocketHandlers = (
         return;
       }
 
-      const newState = roomManager.handleGameAction(roomId, userId, action);
+      const newState = await roomManager.handleGameAction(roomId, userId, action);
       if (newState) {
         io.to(roomId).emit('game_state_update', newState);
       } else {
