@@ -176,36 +176,14 @@ export const GameUI: React.FC<GameUIProps> = ({
     ]);
   };
 
-  // Logic to determine availability
-  // Note: For online multiplayer, we should only enable buttons if state.currentPlayerId === myPlayerId
-  // BUT: "myPlayerId" passed here is purely "who am I".
-  // The Board component doesn't know about "myPlayerId", it takes "currentPlayer" (the active player).
-  // We need to disable controls if I am not the current player?
-  // The Board component is designed for hotseat, so it enables controls for whoever is current.
-  // For online, if I am NOT current player, I should simply not see controls or they should be disabled.
-  // However, Board.tsx renders controls based on "currentPlayer".
-  // If I pass "currentPlayer" as the active player, Board will render controls for them.
-  // If I am NOT them, I shouldn't be able to click them.
-  // We can wrap onDispatch to check? Or rely on server validation.
-  // Ideally, Board would take "isMyTurn" prop.
-  // For now, let's rely on server validation and UI state.
-  // The Board component renders "Buy" / "Roll" etc.
-
-  // Important: In Online mode, if it's not my turn, I shouldn't see "Roll Dice" button for the other player.
-  // But Board.tsx likely renders it.
-  // We might need to refactor Board to accept `isLocalTurn` or similar?
-  // Or, we accept that for MVP everyone sees the buttons but they only work for the turn owner (and server enforces).
-  // BETTER: We can conditionally pass callbacks as `undefined` if it's not my turn!
-
-  // For hotseat (LocalGame), myPlayerId can be ignored or treated as "always me".
-  // Actually, for LocalGame, we pass myPlayerId as the current player ID always?
-  // Let's handle this logic in parent or here.
-
-  // If `myPlayerId` is provided (Online), we check match.
-  // If `myPlayerId` is null/undefined or special (Local), we allow all.
-
-  // Actually, let's just use the callbacks. If I click "Roll" and it's not my turn,
-  // the server rejects it (Online). In Local, it always works.
+  // For online multiplayer the action buttons (Roll, Buy, End Turn, etc.)
+  // must only render for the player whose turn it is — otherwise idle
+  // viewers see buttons that the server's `playerId === userId` check
+  // rejects on click. In local hotseat play `myPlayerId` is set to the
+  // active player by the parent, so this stays true and the UI is
+  // unchanged. The Board component receives this and gates its `<actions>`
+  // block accordingly.
+  const isMyTurn = state.currentPlayerId === myPlayerId;
 
   const isPropertyUnowned =
     state.phase === 'action' &&
@@ -269,6 +247,7 @@ export const GameUI: React.FC<GameUIProps> = ({
           onRestart={handleRestart}
           onShowLog={() => setLogVisible(true)}
           onDeclareBankruptcy={handleDeclareBankruptcy}
+          isMyTurn={isMyTurn}
         />
       </View>
     </View>

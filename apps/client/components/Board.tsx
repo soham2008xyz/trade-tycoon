@@ -30,6 +30,13 @@ interface Props {
   activeTrade?: TradeRequest | null;
   canBuy: boolean;
   canAuction: boolean;
+  /**
+   * Whether the local user is the active player. Drives visibility of
+   * turn-scoped action buttons (Roll, Buy, End Turn, etc.). Defaults to
+   * `true` so local hotseat play — where every viewer is the active player
+   * by definition — behaves exactly as it did before this prop existed.
+   */
+  isMyTurn?: boolean;
   onRoll: () => void;
   onBuy: () => void;
   onDeclineBuy: () => void;
@@ -83,6 +90,7 @@ export const Board: React.FC<Props> = ({
   onAcceptTrade,
   onRejectTrade,
   onCancelTrade,
+  isMyTurn = true,
 }) => {
   const { width, height } = useWindowDimensions();
   const [showPropertyManager, setShowPropertyManager] = useState(false);
@@ -227,82 +235,100 @@ export const Board: React.FC<Props> = ({
               </View>
 
               <View style={styles.actions}>
-                {phase === 'roll' && (
+                {/*
+                  Turn-scoped action buttons. We only render these for the
+                  player whose turn it currently is — otherwise idle players
+                  in an online game would see "Roll Dice" and "End Turn"
+                  buttons that the server rejects on click. `isMyTurn`
+                  defaults to true upstream so local hotseat play is
+                  unaffected (the local viewer is always the active player).
+                */}
+                {isMyTurn ? (
                   <>
-                    <IconButton title="Roll Dice" icon="dice-5" onPress={onRoll} />
-                    {currentPlayer.isInJail && (
+                    {phase === 'roll' && (
                       <>
-                        <IconButton
-                          title="Pay Fine ($50)"
-                          icon="cash-remove"
-                          onPress={onPayFine}
-                          disabled={currentPlayer.money < 50}
-                          color="#d9534f"
-                        />
-                        {currentPlayer.getOutOfJailCards > 0 && (
-                          <IconButton
-                            title={`Use Card (${currentPlayer.getOutOfJailCards})`}
-                            icon="card-account-details"
-                            onPress={onUseGOOJCard}
-                            color="#5bc0de"
-                          />
+                        <IconButton title="Roll Dice" icon="dice-5" onPress={onRoll} />
+                        {currentPlayer.isInJail && (
+                          <>
+                            <IconButton
+                              title="Pay Fine ($50)"
+                              icon="cash-remove"
+                              onPress={onPayFine}
+                              disabled={currentPlayer.money < 50}
+                              color="#d9534f"
+                            />
+                            {currentPlayer.getOutOfJailCards > 0 && (
+                              <IconButton
+                                title={`Use Card (${currentPlayer.getOutOfJailCards})`}
+                                icon="card-account-details"
+                                onPress={onUseGOOJCard}
+                                color="#5bc0de"
+                              />
+                            )}
+                          </>
                         )}
                       </>
                     )}
-                  </>
-                )}
-                {currentPlayer.money < 0 && (
-                  <IconButton
-                    title="Declare Bankruptcy"
-                    icon="alert-circle"
-                    onPress={onDeclareBankruptcy}
-                    color="#444"
-                  />
-                )}
+                    {currentPlayer.money < 0 && (
+                      <IconButton
+                        title="Declare Bankruptcy"
+                        icon="alert-circle"
+                        onPress={onDeclareBankruptcy}
+                        color="#444"
+                      />
+                    )}
 
-                {phase === 'action' && (
-                  <>
-                    {canBuy && !isTokenMoving && (
-                      <IconButton
-                        title={`Buy ($${currentTile?.price || 0})`}
-                        icon="cart"
-                        onPress={onBuy}
-                      />
-                    )}
-                    {canAuction && !isTokenMoving && (
-                      <IconButton
-                        title="Auction"
-                        icon="gavel"
-                        onPress={onDeclineBuy}
-                        color="#f0ad4e"
-                      />
-                    )}
-                    {doublesCount === 0 && !isTokenMoving && (
-                      <IconButton
-                        title="Manage Properties"
-                        icon="city"
-                        onPress={() => setShowPropertyManager(true)}
-                        color="#841584"
-                      />
-                    )}
-                    {doublesCount > 0
-                      ? !isTokenMoving && (
+                    {phase === 'action' && (
+                      <>
+                        {canBuy && !isTokenMoving && (
                           <IconButton
-                            title="Roll Again"
-                            icon="dice-multiple"
-                            onPress={onRollAgain}
-                            color="orange"
-                          />
-                        )
-                      : !isTokenMoving && (
-                          <IconButton
-                            title="End Turn"
-                            icon="check"
-                            onPress={onEndTurn}
-                            color="#d9534f"
+                            title={`Buy ($${currentTile?.price || 0})`}
+                            icon="cart"
+                            onPress={onBuy}
                           />
                         )}
+                        {canAuction && !isTokenMoving && (
+                          <IconButton
+                            title="Auction"
+                            icon="gavel"
+                            onPress={onDeclineBuy}
+                            color="#f0ad4e"
+                          />
+                        )}
+                        {doublesCount === 0 && !isTokenMoving && (
+                          <IconButton
+                            title="Manage Properties"
+                            icon="city"
+                            onPress={() => setShowPropertyManager(true)}
+                            color="#841584"
+                          />
+                        )}
+                        {doublesCount > 0
+                          ? !isTokenMoving && (
+                              <IconButton
+                                title="Roll Again"
+                                icon="dice-multiple"
+                                onPress={onRollAgain}
+                                color="orange"
+                              />
+                            )
+                          : !isTokenMoving && (
+                              <IconButton
+                                title="End Turn"
+                                icon="check"
+                                onPress={onEndTurn}
+                                color="#d9534f"
+                              />
+                            )}
+                      </>
+                    )}
                   </>
+                ) : (
+                  // Idle viewer — show whose turn it is so they're not just
+                  // staring at an empty action area.
+                  <Text style={styles.waitingText}>
+                    Waiting for {currentPlayer.name} to play…
+                  </Text>
                 )}
               </View>
             </>
@@ -558,6 +584,12 @@ const styles = StyleSheet.create({
   actions: {
     gap: 8,
     width: '100%',
+  },
+  waitingText: {
+    color: '#aab8c2',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 12,
   },
   corner: {
     position: 'absolute',
