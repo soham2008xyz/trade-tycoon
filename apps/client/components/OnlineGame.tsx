@@ -122,14 +122,11 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     }
     const targetRoomId = inputRoomId.trim().toUpperCase();
     try {
-      const res = await fetch(
-        `${SERVER_URL}/api/rooms/${encodeURIComponent(targetRoomId)}/join`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ playerName: playerName.trim() }),
-        }
-      );
+      const res = await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(targetRoomId)}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerName: playerName.trim() }),
+      });
       if (!res.ok) {
         setTransientError(await readError(res, 'Could not join room'));
         return;
@@ -147,14 +144,11 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   const handleStartGame = async () => {
     if (!userId || !roomId) return;
     try {
-      const res = await fetch(
-        `${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/start`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId }),
-        }
-      );
+      const res = await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
       if (!res.ok) {
         setTransientError(await readError(res, 'Failed to start game'));
       }
@@ -169,14 +163,11 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   const handleGameDispatch = async (action: GameAction) => {
     if (!userId || !roomId) return;
     try {
-      const res = await fetch(
-        `${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/actions`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, action }),
-        }
-      );
+      const res = await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action }),
+      });
       if (!res.ok) {
         setTransientError(await readError(res, 'Action rejected'));
       }
