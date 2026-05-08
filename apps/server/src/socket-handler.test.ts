@@ -5,10 +5,7 @@ import { Server as IOServer, Socket as IOServerSocket } from 'socket.io';
 import { io as ioClient, Socket as IOClient } from 'socket.io-client';
 import { RoomManager } from './RoomManager';
 import { registerSocketHandlers } from './socket-handler';
-import {
-  ClientToServerEvents,
-  ServerToClientEvents,
-} from '@trade-tycoon/game-logic';
+import { ClientToServerEvents, ServerToClientEvents } from '@trade-tycoon/game-logic';
 
 type ServerType = IOServer<ClientToServerEvents, ServerToClientEvents>;
 type ClientType = IOClient<ServerToClientEvents, ClientToServerEvents>;
