@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import { Redis } from 'ioredis';
-import { attachDatabasePool } from '@vercel/functions';
 import { RoomManager } from './RoomManager';
 import { InMemoryRoomStore } from './store/InMemoryRoomStore';
 import { InMemoryEventBus } from './events/InMemoryEventBus';
@@ -32,6 +31,14 @@ function buildBackends(): { roomStore: RoomStore; eventBus: EventBus } {
 
   // Single shared connection for the publisher + state operations. Subscribers
   // get their own duplicated connection per `RedisEventBus.subscribe` call.
+  //
+  // We do NOT call `attachDatabasePool(redis)` from `@vercel/functions` here:
+  // its 3.5.x runtime check uses node-redis's `options.socket` shape, which
+  // ioredis does not have, so the call throws `Unsupported database pool type`
+  // at module load and crashes every request with FUNCTION_INVOCATION_FAILED.
+  // ioredis's own connection management (lazy connect, auto-reconnect, ready
+  // check) is fine on its own; Fluid Compute will still reuse the instance
+  // across invocations because `redis` is captured in module scope.
   const redis = new Redis(redisUrl, {
     // Re-issue commands on temporary disconnects rather than failing them.
     maxRetriesPerRequest: 3,
@@ -39,11 +46,6 @@ function buildBackends(): { roomStore: RoomStore; eventBus: EventBus } {
     enableOfflineQueue: false,
   });
   redis.on('error', (err) => console.error('[Redis] connection error', err));
-
-  // Tell Vercel's Fluid Compute runtime to manage this connection's lifecycle:
-  // idle clients are released cleanly when the function suspends, and reused
-  // when it resumes for the next request. No-op outside of Fluid Compute.
-  attachDatabasePool(redis);
 
   return {
     roomStore: new RedisRoomStore(redis),
