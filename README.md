@@ -1,11 +1,18 @@
 # Trade Tycoon
 
-A Monopoly-style trading game built with React Native (Expo) and a shared game logic package.
+A Monopoly-style trading game with offline single-player and online
+multiplayer. The web/mobile client is built with Expo (React Native) and the
+multiplayer server is a Node.js Express app that talks REST + Server-Sent
+Events on top of Upstash Redis.
 
 ## Project Structure
 
-- `apps/client`: The React Native mobile application.
-- `packages/game-logic`: Core game rules, state management, and types (TypeScript).
+- `apps/client` — Expo client (web, iOS, Android).
+- `apps/server` — Express server for multiplayer (REST + SSE).
+- `packages/game-logic` — Pure-TypeScript game rules shared by both.
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the multiplayer data flow and
+[DEPLOY.md](./DEPLOY.md) for production deployment / env vars.
 
 ## Getting Started
 
@@ -15,20 +22,47 @@ A Monopoly-style trading game built with React Native (Expo) and a shared game l
    npm install
    ```
 
-2. **Run the client:**
+2. **Run the dev loop:**
 
    ```bash
-   npm run ios --workspace=apps/client
-   # or
-   npm run android --workspace=apps/client
-   # or
-   npm run web --workspace=apps/client
+   npm start             # api-server + expo web (default)
+   npm run start:native  # api-server + expo metro (for iOS/Android)
+   npm run start:server  # api-server only
    ```
+
+   Or run pieces individually:
+
+   ```bash
+   npm run server                    # express server on :3001
+   npm run web                       # expo web on :8081
+   npm run ios --workspace=apps/client
+   npm run android --workspace=apps/client
+   ```
+
+   For purely offline play, only the client is needed.
 
 ## Development
 
-For detailed feature tracking and implementation status, please refer to [SPECIFICATION.md](./SPECIFICATION.md).
+For detailed feature tracking and implementation status, see
+[SPECIFICATION.md](./SPECIFICATION.md).
 
-- **Game Logic:**
-  - Tests: `npm run test --workspace=packages/game-logic`
-  - Build: `npm run build --workspace=packages/game-logic`
+**Tests:**
+
+```bash
+npm test                                          # everything
+npm test --workspace=apps/server                  # server only
+npm test --workspace=packages/game-logic          # game logic only
+```
+
+**Build:**
+
+```bash
+npm run build                                     # all workspaces
+```
+
+**Lint + format:**
+
+```bash
+npm run lint
+npm run format
+```
