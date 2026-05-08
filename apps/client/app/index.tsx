@@ -5,7 +5,13 @@ import { MultiplayerMenuScreen } from '../components/MultiplayerMenuScreen';
 import { LocalGame } from '../components/LocalGame';
 import { OnlineGame } from '../components/OnlineGame';
 
-type Screen = 'new-game' | 'local-game' | 'multiplayer-menu' | 'online-create' | 'online-join';
+type Screen =
+  | 'new-game'
+  | 'local-game'
+  | 'multiplayer-menu'
+  | 'online-create'
+  | 'online-join'
+  | 'online-resume';
 
 export default function GameScreen() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('new-game');
@@ -26,12 +32,21 @@ export default function GameScreen() {
           onBack={() => setCurrentScreen('new-game')}
           onCreateRoom={() => setCurrentScreen('online-create')}
           onJoinRoom={() => setCurrentScreen('online-join')}
+          onResumeGame={() => setCurrentScreen('online-resume')}
         />
       )}
 
-      {(currentScreen === 'online-create' || currentScreen === 'online-join') && (
+      {(currentScreen === 'online-create' ||
+        currentScreen === 'online-join' ||
+        currentScreen === 'online-resume') && (
         <OnlineGame
-          initialMode={currentScreen === 'online-create' ? 'create' : 'join'}
+          initialMode={
+            currentScreen === 'online-create'
+              ? 'create'
+              : currentScreen === 'online-join'
+                ? 'join'
+                : 'resume'
+          }
           onBack={() => setCurrentScreen('multiplayer-menu')}
         />
       )}

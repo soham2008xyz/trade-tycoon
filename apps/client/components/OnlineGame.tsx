@@ -10,7 +10,7 @@ const SERVER_URL =
 
 interface OnlineGameProps {
   onBack: () => void;
-  initialMode: 'create' | 'join';
+  initialMode: 'create' | 'join' | 'resume';
 }
 
 interface JoinedRoomResponse {
@@ -18,6 +18,36 @@ interface JoinedRoomResponse {
   userId: string;
   isHost: boolean;
 }
+
+interface ReconnectResponse {
+  lobby: LobbyState;
+  gameState: GameState | null;
+}
+
+interface StoredSession {
+  roomId: string;
+  userId: string;
+}
+
+/**
+ * Read the saved session from localStorage. Returns null on web platforms
+ * without a session, on native (no localStorage), or if the stored value is
+ * malformed.
+ */
+const readStoredSession = (): StoredSession | null => {
+  if (Platform.OS !== 'web') return null;
+  try {
+    const raw = localStorage.getItem('trade_tycoon_session');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StoredSession>;
+    if (!parsed || typeof parsed.roomId !== 'string' || typeof parsed.userId !== 'string') {
+      return null;
+    }
+    return { roomId: parsed.roomId, userId: parsed.userId };
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Read a JSON error message from a non-OK fetch response, falling back to a
@@ -40,10 +70,68 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   const [roomId, setRoomId] = useState<string>('');
   const [playerName, setPlayerName] = useState('');
   const [inputRoomId, setInputRoomId] = useState('');
-  const [step, setStep] = useState<'connect' | 'lobby' | 'game'>('connect');
+  const [step, setStep] = useState<'connect' | 'lobby' | 'game' | 'resuming'>(
+    initialMode === 'resume' ? 'resuming' : 'connect'
+  );
   const [uiToastMessage, setUiToastMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Resume flow: validate the stored session against the server before
+  // hydrating local state. If the room/user is gone (server restart, room
+  // expired, host kicked the player), drop the stored session and bounce the
+  // user back to the previous screen so they can start fresh.
+  useEffect(() => {
+    if (initialMode !== 'resume') return;
+    const session = readStoredSession();
+    if (!session) {
+      onBack();
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `${SERVER_URL}/api/rooms/${encodeURIComponent(session.roomId)}/reconnect`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: session.userId }),
+          }
+        );
+        if (cancelled) return;
+        if (!res.ok) {
+          // 404 from the server with body { error: 'session_expired' }, or
+          // any other failure — drop the session and exit.
+          if (Platform.OS === 'web') localStorage.removeItem('trade_tycoon_session');
+          onBack();
+          return;
+        }
+        const body = (await res.json()) as ReconnectResponse;
+        setLobbyState(body.lobby);
+        setRoomId(session.roomId);
+        setUserId(session.userId);
+        if (body.gameState) {
+          setGameState(body.gameState);
+          setStep('game');
+        } else {
+          setStep('lobby');
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.error('Resume failed', err);
+        // Network errors mean we don't know if the session is still valid —
+        // leave localStorage alone and bounce so the user can retry.
+        onBack();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // initialMode is constant for the lifetime of this mount; eslint can't
+    // see that, but we deliberately want this to run exactly once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Subscribe to the server's SSE stream for the current room. Re-runs when we
   // join/create a room and we have both a roomId and userId.
@@ -211,6 +299,19 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   }
 
   // Render Logic
+  if (step === 'resuming') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Resuming…</Text>
+          <Text style={styles.waitingText}>
+            Reconnecting to your last room. If it can&apos;t be found we&apos;ll send you back.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   if (step === 'connect') {
     return (
       <View style={styles.container}>

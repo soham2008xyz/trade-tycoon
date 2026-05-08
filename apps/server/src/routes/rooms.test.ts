@@ -187,6 +187,34 @@ describe('REST: /api/rooms', () => {
       expect(res.body.gameState).toBeNull();
     });
 
+    it('returns 200 with both lobby and gameState once the game has started', async () => {
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      const { roomId, userId: hostId } = create.body;
+      await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: hostId });
+
+      const res = await request(app).post(`/api/rooms/${roomId}/reconnect`).send({ userId: hostId });
+      expect(res.status).toBe(200);
+      expect(res.body.lobby.status).toBe('game');
+      expect(res.body.gameState).toBeTruthy();
+      expect(res.body.gameState.players).toHaveLength(2);
+      // Resume must not leak the precomputed board (game-logic strips it)
+      expect(res.body.gameState.board).toBeUndefined();
+    });
+
+    it('returns 200 for a non-host who reconnects to a started game', async () => {
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      const { roomId, userId: hostId } = create.body;
+      const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
+      const bobId = join.body.userId;
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: hostId });
+
+      const res = await request(app).post(`/api/rooms/${roomId}/reconnect`).send({ userId: bobId });
+      expect(res.status).toBe(200);
+      expect(res.body.lobby.status).toBe('game');
+      expect(res.body.gameState).toBeTruthy();
+    });
+
     it('returns 404 with session_expired for a stale userId', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       const res = await request(app)

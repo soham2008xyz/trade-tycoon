@@ -1,14 +1,52 @@
-import React from 'react';
-import { View, Text, StyleSheet, Modal } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Modal, Platform } from 'react-native';
 import { IconButton } from './ui/IconButton';
 
 interface Props {
   onBack: () => void;
   onJoinRoom: () => void;
   onCreateRoom: () => void;
+  onResumeGame: () => void;
 }
 
-export const MultiplayerMenuScreen: React.FC<Props> = ({ onBack, onJoinRoom, onCreateRoom }) => {
+interface StoredSession {
+  roomId: string;
+  userId: string;
+}
+
+/**
+ * Try to read a previous session from localStorage on web. Returns null on
+ * native (no localStorage), when nothing is stored, or when the stored value
+ * is malformed. Kept loose-typed because the only field we display is roomId.
+ */
+const readStoredSession = (): StoredSession | null => {
+  if (Platform.OS !== 'web') return null;
+  try {
+    const raw = localStorage.getItem('trade_tycoon_session');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StoredSession>;
+    if (!parsed || typeof parsed.roomId !== 'string' || typeof parsed.userId !== 'string') {
+      return null;
+    }
+    return { roomId: parsed.roomId, userId: parsed.userId };
+  } catch {
+    return null;
+  }
+};
+
+export const MultiplayerMenuScreen: React.FC<Props> = ({
+  onBack,
+  onJoinRoom,
+  onCreateRoom,
+  onResumeGame,
+}) => {
+  // Session detection runs once on mount. If the user navigates away and
+  // comes back the menu remounts, so this stays fresh.
+  const [savedSession, setSavedSession] = useState<StoredSession | null>(null);
+  useEffect(() => {
+    setSavedSession(readStoredSession());
+  }, []);
+
   return (
     <Modal visible={true} animationType="slide" transparent={true}>
       <View style={styles.modalContainer}>
@@ -16,6 +54,14 @@ export const MultiplayerMenuScreen: React.FC<Props> = ({ onBack, onJoinRoom, onC
           <Text style={styles.title}>Online Multiplayer</Text>
 
           <View style={styles.buttonContainer}>
+            {savedSession && (
+              <IconButton
+                title={`Resume Game (${savedSession.roomId})`}
+                icon="play-circle"
+                onPress={onResumeGame}
+                style={styles.button}
+              />
+            )}
             <IconButton
               title="Create New Room"
               icon="plus-circle"
