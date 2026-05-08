@@ -1,15 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
-import { io, Socket } from 'socket.io-client';
 import { GameUI } from './GameUI';
 import { IconButton } from './ui/IconButton';
-import {
-  ClientToServerEvents,
-  ServerToClientEvents,
-  LobbyState,
-  GameState,
-  GameAction,
-} from '@trade-tycoon/game-logic';
+import { LobbyState, GameState, GameAction } from '@trade-tycoon/game-logic';
 
 const SERVER_URL =
   process.env.EXPO_PUBLIC_SERVER_URL ||
@@ -20,10 +13,27 @@ interface OnlineGameProps {
   initialMode: 'create' | 'join';
 }
 
+interface JoinedRoomResponse {
+  roomId: string;
+  userId: string;
+  isHost: boolean;
+}
+
+/**
+ * Read a JSON error message from a non-OK fetch response, falling back to a
+ * sensible default. Server endpoints return { error: '...' }.
+ */
+const readError = async (res: Response, fallback: string): Promise<string> => {
+  try {
+    const body = await res.json();
+    if (body && typeof body.error === 'string') return body.error;
+  } catch {
+    // Body wasn't JSON.
+  }
+  return fallback;
+};
+
 export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) => {
-  const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(
-    null
-  );
   const [lobbyState, setLobbyState] = useState<LobbyState | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -33,85 +43,146 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   const [step, setStep] = useState<'connect' | 'lobby' | 'game'>('connect');
   const [uiToastMessage, setUiToastMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
-  // Initialize Socket
+  // Subscribe to the server's SSE stream for the current room. Re-runs when we
+  // join/create a room and we have both a roomId and userId.
   useEffect(() => {
-    const newSocket = io(SERVER_URL);
-    setSocket(newSocket);
+    if (!roomId || !userId || typeof EventSource === 'undefined') return;
 
-    newSocket.on('connect', () => {
-      console.log('Connected to server');
-    });
+    const url = `${SERVER_URL}/api/rooms/${encodeURIComponent(
+      roomId
+    )}/events?userId=${encodeURIComponent(userId)}`;
+    const es = new EventSource(url);
+    eventSourceRef.current = es;
 
-    newSocket.on('lobby_update', (state) => {
-      setLobbyState(state);
-      if (state.status === 'game' && state.gameState) {
-        setGameState(state.gameState);
-        setStep('game');
-      }
-    });
-
-    newSocket.on('game_state_update', (state) => {
-      setGameState(state);
-    });
-
-    newSocket.on('joined_room', ({ roomId, userId, isHost }) => {
-      setRoomId(roomId);
-      setUserId(userId);
-      setStep('lobby');
-
-      // Persist session
-      if (Platform.OS === 'web') {
-        localStorage.setItem('trade_tycoon_session', JSON.stringify({ roomId, userId }));
-      }
-    });
-
-    newSocket.on('error', (msg) => {
-      // The server uses the literal string 'session_expired' to signal that a
-      // resume attempt referenced a room that no longer holds the user. In that
-      // case clear the stale session silently rather than surfacing it as an
-      // error to a user who may have just clicked Create or Join.
-      if (msg === 'session_expired') {
-        if (Platform.OS === 'web') {
-          localStorage.removeItem('trade_tycoon_session');
+    const onLobby = (e: MessageEvent) => {
+      try {
+        const state = JSON.parse(e.data) as LobbyState;
+        setLobbyState(state);
+        if (state.status === 'game' && state.gameState) {
+          setGameState(state.gameState);
+          setStep('game');
         }
-        return;
+      } catch (err) {
+        console.error('Bad lobby_update payload', err);
       }
-      setError(msg);
-      // Clear error after 3s
-      setTimeout(() => setError(null), 3000);
-    });
+    };
+    const onGame = (e: MessageEvent) => {
+      try {
+        setGameState(JSON.parse(e.data) as GameState);
+      } catch (err) {
+        console.error('Bad game_state_update payload', err);
+      }
+    };
+
+    es.addEventListener('lobby_update', onLobby);
+    es.addEventListener('game_state_update', onGame);
+    es.onerror = () => {
+      // EventSource auto-reconnects on its own; we just log so the user can
+      // see what's happening if they have devtools open.
+      console.warn('SSE connection hiccup; browser will retry automatically');
+    };
 
     return () => {
-      newSocket.disconnect();
+      es.removeEventListener('lobby_update', onLobby);
+      es.removeEventListener('game_state_update', onGame);
+      es.close();
+      eventSourceRef.current = null;
     };
-  }, []);
+  }, [roomId, userId]);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!playerName.trim()) {
       setError('Please enter your name');
       return;
     }
-    socket?.emit('create_room', playerName.trim());
+    try {
+      const res = await fetch(`${SERVER_URL}/api/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerName: playerName.trim() }),
+      });
+      if (!res.ok) {
+        setTransientError(await readError(res, 'Failed to create room'));
+        return;
+      }
+      const body = (await res.json()) as JoinedRoomResponse;
+      enterLobby(body);
+    } catch (err) {
+      console.error(err);
+      setTransientError('Network error: could not reach server');
+    }
   };
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (!playerName.trim() || !inputRoomId.trim()) {
       setError('Please enter name and room code');
       return;
     }
-    socket?.emit('join_room', inputRoomId.trim().toUpperCase(), playerName.trim());
-  };
-
-  const handleStartGame = () => {
-    if (userId && roomId) {
-      socket?.emit('start_game', roomId, userId);
+    const targetRoomId = inputRoomId.trim().toUpperCase();
+    try {
+      const res = await fetch(
+        `${SERVER_URL}/api/rooms/${encodeURIComponent(targetRoomId)}/join`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerName: playerName.trim() }),
+        }
+      );
+      if (!res.ok) {
+        setTransientError(await readError(res, 'Could not join room'));
+        return;
+      }
+      const body = (await res.json()) as JoinedRoomResponse;
+      // Server already normalized the room id, but make sure we use the
+      // exact value it returned for SSE / future requests.
+      enterLobby({ ...body, roomId: body.roomId || targetRoomId });
+    } catch (err) {
+      console.error(err);
+      setTransientError('Network error: could not reach server');
     }
   };
 
-  const handleGameDispatch = (action: GameAction) => {
-    if (userId && roomId) {
-      socket?.emit('game_action', roomId, userId, action);
+  const handleStartGame = async () => {
+    if (!userId || !roomId) return;
+    try {
+      const res = await fetch(
+        `${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/start`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId }),
+        }
+      );
+      if (!res.ok) {
+        setTransientError(await readError(res, 'Failed to start game'));
+      }
+      // The actual transition to step='game' happens via the SSE stream when
+      // it delivers the lobby_update with status='game'.
+    } catch (err) {
+      console.error(err);
+      setTransientError('Network error: could not reach server');
+    }
+  };
+
+  const handleGameDispatch = async (action: GameAction) => {
+    if (!userId || !roomId) return;
+    try {
+      const res = await fetch(
+        `${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/actions`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, action }),
+        }
+      );
+      if (!res.ok) {
+        setTransientError(await readError(res, 'Action rejected'));
+      }
+    } catch (err) {
+      console.error(err);
+      setTransientError('Network error: could not reach server');
     }
   };
 
@@ -119,17 +190,37 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     if (Platform.OS === 'web') {
       localStorage.removeItem('trade_tycoon_session');
     }
+    eventSourceRef.current?.close();
+    eventSourceRef.current = null;
     onBack();
   };
 
+  /** Centralized helper so a 200ms transient toast doesn't accumulate timers. */
+  function setTransientError(msg: string) {
+    setError(msg);
+    setTimeout(() => setError(null), 3000);
+  }
+
+  /**
+   * Bring the joined-room response from the REST call into local state and
+   * persist the session for future resume. This is the entry point that flips
+   * `step` to 'lobby', and also triggers the SSE useEffect via the new
+   * `roomId` / `userId`.
+   */
+  function enterLobby(body: JoinedRoomResponse) {
+    setRoomId(body.roomId);
+    setUserId(body.userId);
+    setStep('lobby');
+    if (Platform.OS === 'web') {
+      localStorage.setItem(
+        'trade_tycoon_session',
+        JSON.stringify({ roomId: body.roomId, userId: body.userId })
+      );
+    }
+  }
+
   // Render Logic
   if (step === 'connect') {
-    // If we are auto-reconnecting (waiting for socket), we might want a spinner?
-    // But here we present the Create/Join UI if not reconnected.
-
-    // We can check if we tried reconnecting logic?
-    // For simplicity, we just show form. If reconnect works, it will jump to lobby/game.
-
     return (
       <View style={styles.container}>
         <View style={styles.card}>
@@ -203,6 +294,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
           ) : (
             <Text style={styles.waitingText}>Waiting for host to start...</Text>
           )}
+
+          {error && <Text style={styles.error}>{error}</Text>}
 
           <IconButton
             title="Leave"

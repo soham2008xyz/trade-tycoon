@@ -52,9 +52,7 @@ describe('REST: /api/rooms', () => {
       const events: RoomEvent[] = [];
       await eventBus.subscribe(roomId, (e) => events.push(e));
 
-      const res = await request(app)
-        .post(`/api/rooms/${roomId}/join`)
-        .send({ playerName: 'Bob' });
+      const res = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
 
       expect(res.status).toBe(200);
       expect(res.body.userId).toBeTruthy();
@@ -68,9 +66,7 @@ describe('REST: /api/rooms', () => {
     });
 
     it('returns 404 for a room that does not exist', async () => {
-      const res = await request(app)
-        .post('/api/rooms/NONEXIST/join')
-        .send({ playerName: 'Bob' });
+      const res = await request(app).post('/api/rooms/NONEXIST/join').send({ playerName: 'Bob' });
       expect(res.status).toBe(404);
     });
 
@@ -89,9 +85,7 @@ describe('REST: /api/rooms', () => {
     it('lower-case room codes resolve to the canonical uppercase room', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       const lower = (create.body.roomId as string).toLowerCase();
-      const res = await request(app)
-        .post(`/api/rooms/${lower}/join`)
-        .send({ playerName: 'Bob' });
+      const res = await request(app).post(`/api/rooms/${lower}/join`).send({ playerName: 'Bob' });
       expect(res.status).toBe(200);
     });
   });
@@ -171,9 +165,7 @@ describe('REST: /api/rooms', () => {
     it('returns 409 when a player tries to roll for someone else (server enforces playerId match)', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       const { roomId, userId: hostId } = create.body;
-      const join = await request(app)
-        .post(`/api/rooms/${roomId}/join`)
-        .send({ playerName: 'Bob' });
+      const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
       const bobId = join.body.userId;
       await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: hostId });
 

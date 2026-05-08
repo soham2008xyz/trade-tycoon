@@ -1,5 +1,14 @@
-import { GameState, GameAction } from './types';
+import { GameState } from './types';
 
+/**
+ * Shared lobby/room data shapes. Used by both the server (`RoomManager`,
+ * REST endpoints) and the client (`OnlineGame`). Keeps the wire format
+ * type-safe across the workspace.
+ *
+ * The file is named `socket-types.ts` for historical reasons — it used to
+ * also export Socket.IO event signatures, but those went away when the
+ * server moved to REST + SSE.
+ */
 export interface LobbyPlayer {
   id: string;
   name: string;
@@ -13,20 +22,4 @@ export interface LobbyState {
   players: LobbyPlayer[];
   status: 'lobby' | 'game';
   gameState?: GameState;
-}
-
-export interface ClientToServerEvents {
-  create_room: (playerName: string) => void;
-  join_room: (roomId: string, playerName: string) => void;
-  update_player: (roomId: string, userId: string, name: string, color: string) => void;
-  start_game: (roomId: string, userId: string) => void;
-  game_action: (roomId: string, userId: string, action: GameAction) => void;
-  reconnect: (roomId: string, userId: string) => void;
-}
-
-export interface ServerToClientEvents {
-  lobby_update: (lobbyState: LobbyState) => void;
-  game_state_update: (gameState: GameState) => void;
-  error: (message: string) => void;
-  joined_room: (payload: { roomId: string; userId: string; isHost: boolean }) => void;
 }
