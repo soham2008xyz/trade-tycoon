@@ -193,7 +193,9 @@ describe('REST: /api/rooms', () => {
       await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
       await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: hostId });
 
-      const res = await request(app).post(`/api/rooms/${roomId}/reconnect`).send({ userId: hostId });
+      const res = await request(app)
+        .post(`/api/rooms/${roomId}/reconnect`)
+        .send({ userId: hostId });
       expect(res.status).toBe(200);
       expect(res.body.lobby.status).toBe('game');
       expect(res.body.gameState).toBeTruthy();
