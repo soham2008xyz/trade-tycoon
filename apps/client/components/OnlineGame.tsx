@@ -39,26 +39,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     const newSocket = io(SERVER_URL);
     setSocket(newSocket);
 
-    const tryRestoreSession = (socket: typeof newSocket) => {
-      if (Platform.OS === 'web') {
-        const session = localStorage.getItem('trade_tycoon_session');
-        if (session) {
-          try {
-            const { roomId, userId } = JSON.parse(session);
-            socket.emit('reconnect', roomId, userId);
-            // Optimistically restore IDs — lobby_update will confirm or correct
-            setUserId(userId);
-            setRoomId(roomId);
-          } catch (e) {
-            console.error('Invalid session', e);
-          }
-        }
-      }
-    };
-
     newSocket.on('connect', () => {
       console.log('Connected to server');
-      tryRestoreSession(newSocket);
     });
 
     newSocket.on('lobby_update', (state) => {
@@ -66,9 +48,6 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       if (state.status === 'game' && state.gameState) {
         setGameState(state.gameState);
         setStep('game');
-      } else if (step === 'connect') {
-        // If we reconnect to a lobby, ensure we show the lobby screen
-        setStep('lobby');
       }
     });
 
@@ -88,6 +67,16 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     });
 
     newSocket.on('error', (msg) => {
+      // The server uses the literal string 'session_expired' to signal that a
+      // resume attempt referenced a room that no longer holds the user. In that
+      // case clear the stale session silently rather than surfacing it as an
+      // error to a user who may have just clicked Create or Join.
+      if (msg === 'session_expired') {
+        if (Platform.OS === 'web') {
+          localStorage.removeItem('trade_tycoon_session');
+        }
+        return;
+      }
       setError(msg);
       // Clear error after 3s
       setTimeout(() => setError(null), 3000);

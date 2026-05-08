@@ -53,7 +53,7 @@ export const registerSocketHandlers = (
         console.log(`[reconnect] User ${userId} reconnected to ${roomId}`);
       } else {
         console.warn(`[reconnect] Failed to reconnect user ${userId} to ${roomId}`);
-        // socket.emit('error', 'Session expired');
+        socket.emit('error', 'session_expired');
       }
     });
 
