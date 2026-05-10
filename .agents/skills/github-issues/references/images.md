@@ -81,7 +81,7 @@ const puppeteer = require('puppeteer-core');
 
 const browser = await puppeteer.launch({
   executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  defaultViewport: { width: 900, height: 600, deviceScaleFactor: 2 }
+  defaultViewport: { width: 900, height: 600, deviceScaleFactor: 2 },
 });
 
 const page = await browser.newPage();
@@ -100,12 +100,12 @@ await browser.close();
 
 ## Quick reference
 
-| Method | Private repos | Permanent | No auth needed | API-only |
-|--------|:---:|:---:|:---:|:---:|
-| Contents API + `github.com/raw/` | ✅ | ✅ | ❌ | ✅ |
-| Browser drag-drop (`user-attachments`) | ✅ | ✅ | ✅ | ❌ |
-| `raw.githubusercontent.com` | ❌ (404) | ✅ | ❌ | ✅ |
-| Gist | Public only | ✅ | ✅ | ❌ (no binary) |
+| Method                                 | Private repos | Permanent | No auth needed |    API-only    |
+| -------------------------------------- | :-----------: | :-------: | :------------: | :------------: |
+| Contents API + `github.com/raw/`       |      ✅       |    ✅     |       ❌       |       ✅       |
+| Browser drag-drop (`user-attachments`) |      ✅       |    ✅     |       ✅       |       ❌       |
+| `raw.githubusercontent.com`            |   ❌ (404)    |    ✅     |       ❌       |       ✅       |
+| Gist                                   |  Public only  |    ✅     |       ✅       | ❌ (no binary) |
 
 ## Common pitfalls
 
