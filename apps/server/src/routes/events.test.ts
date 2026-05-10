@@ -133,4 +133,34 @@ describe('SSE: GET /api/rooms/:id/events', () => {
 
     await reader.cancel();
   });
+
+  it('strips board data from the initial started-game snapshot', async () => {
+    const roomId = await roomManager.createRoom('Alice');
+    const room = (await roomManager.getRoom(roomId))!;
+    const hostId = room.players[0].id;
+    await roomManager.joinRoom(roomId, 'Bob');
+    await roomManager.startGame(roomId, hostId);
+
+    const res = await fetch(`http://localhost:${port}/api/rooms/${roomId}/events?userId=${hostId}`);
+    expect(res.status).toBe(200);
+
+    const reader = res.body!.getReader();
+    const dec = new TextDecoder();
+    const frames: { event: string; data: string }[] = [];
+
+    while (frames.length < 2) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      frames.push(...parseSSE(dec.decode(value)));
+    }
+
+    const lobbyFrame = frames.find((frame) => frame.event === 'lobby_update');
+    const gameFrame = frames.find((frame) => frame.event === 'game_state_update');
+    expect(lobbyFrame).toBeTruthy();
+    expect(gameFrame).toBeTruthy();
+    expect(JSON.parse(lobbyFrame!.data).gameState.board).toBeUndefined();
+    expect(JSON.parse(gameFrame!.data).board).toBeUndefined();
+
+    await reader.cancel();
+  });
 });

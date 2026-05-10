@@ -1764,6 +1764,27 @@ describe('Game Reducer', () => {
       expect(newState.errorMessage).toMatch(/auction/i);
     });
 
+    it('should preserve the existing trade when a second proposal is attempted', () => {
+      const firstTrade = gameReducer(tradeState, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 100, properties: ['mediterranean'], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      const secondTrade = gameReducer(firstTrade, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p2',
+        targetPlayerId: 'p1',
+        offer: { money: 50, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: ['mediterranean'], getOutOfJailCards: 0 },
+      });
+
+      expect(secondTrade.activeTrade?.id).toBe(firstTrade.activeTrade?.id);
+      expect(secondTrade.errorMessage).toMatch(/resolve the current trade/i);
+    });
+
     it('should transfer properties and money on ACCEPT_TRADE', () => {
       const pendingTrade = gameReducer(tradeState, {
         type: 'PROPOSE_TRADE',

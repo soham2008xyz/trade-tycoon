@@ -4,3 +4,11 @@
   must POST `/api/rooms/:id/leave` before returning to the menu, otherwise the
   departed player remains in the room snapshot and their board marker stays
   visible for other clients.
+- Reducer-level `errorMessage` values are part of the user-facing game flow:
+  client surfaces them through the in-game toast, so game-rule rejections
+  should prefer setting `errorMessage` over silent no-ops when the player needs
+  feedback.
+- `apps/server` tests execute against the published `@trade-tycoon/game-logic`
+  package shape, so the server workspace test script must rebuild
+  `packages/game-logic` first or reducer changes can be invisible to server
+  tests.

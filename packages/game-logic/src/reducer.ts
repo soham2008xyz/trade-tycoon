@@ -805,6 +805,11 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
 
       if (state.phase === 'auction')
         return { ...state, errorMessage: 'Cannot trade during auction.' };
+      if (state.activeTrade)
+        return {
+          ...state,
+          errorMessage: 'Resolve the current trade before proposing a new one.',
+        };
 
       // Validate Initiator has offered items
       const hasMoney = initiator.money >= action.offer.money;

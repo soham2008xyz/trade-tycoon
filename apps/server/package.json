@@ -6,7 +6,7 @@
     "build": "npm run build:game-logic --prefix ../.. && tsc",
     "dev": "ts-node src/index.ts",
     "start": "node dist/index.js",
-    "test": "vitest run src"
+    "test": "npm run build:game-logic --prefix ../.. && vitest run src"
   },
   "dependencies": {
     "@trade-tycoon/game-logic": "*",

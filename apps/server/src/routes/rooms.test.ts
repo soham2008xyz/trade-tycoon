@@ -202,6 +202,7 @@ describe('REST: /api/rooms', () => {
       expect(res.body.gameState.players).toHaveLength(2);
       // Resume must not leak the precomputed board (game-logic strips it)
       expect(res.body.gameState.board).toBeUndefined();
+      expect(res.body.lobby.gameState.board).toBeUndefined();
     });
 
     it('returns 200 for a non-host who reconnects to a started game', async () => {
@@ -436,6 +437,26 @@ describe('REST: /api/rooms', () => {
         .post(`/api/rooms/${roomId}/actions`)
         .send({ userId: bobId, action: { type: 'ACCEPT_TRADE', playerId: aliceId } });
       expect(res.status).toBe(409);
+    });
+
+    it('preserves the existing trade when another player proposes a new one', async () => {
+      const { roomId, aliceId, bobId, tradeId } = await setupActiveTrade();
+      const res = await request(app).post(`/api/rooms/${roomId}/actions`).send({
+        userId: bobId,
+        action: {
+          type: 'PROPOSE_TRADE',
+          playerId: bobId,
+          targetPlayerId: aliceId,
+          offer: { money: 10, properties: [], getOutOfJailCards: 0 },
+          request: { money: 0, properties: [], getOutOfJailCards: 0 },
+        },
+      });
+
+      expect(res.status).toBe(200);
+
+      const after = await roomManager.getRoom(roomId);
+      expect(after?.gameState?.activeTrade?.id).toBe(tradeId);
+      expect(after?.gameState?.errorMessage).toMatch(/resolve the current trade/i);
     });
   });
 });

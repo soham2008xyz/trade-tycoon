@@ -359,5 +359,44 @@ describe('RoomManager', () => {
       expect(newState).not.toBeNull();
       expect(newState!.dice).toEqual([1, 1]);
     });
+
+    it('should keep the existing trade pending when another proposal is submitted', async () => {
+      const roomId = await roomManager.createRoom('Host');
+      const hostId = (await roomManager.getRoom(roomId))!.players[0].id;
+      const p2Id = (await roomManager.joinRoom(roomId, 'P2'))!.userId;
+      await roomManager.startGame(roomId, hostId);
+
+      const firstState = await roomManager.handleGameAction(roomId, hostId, {
+        type: 'PROPOSE_TRADE',
+        playerId: hostId,
+        targetPlayerId: p2Id,
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+      expect(firstState?.activeTrade).toBeTruthy();
+
+      const secondState = await roomManager.handleGameAction(roomId, p2Id, {
+        type: 'PROPOSE_TRADE',
+        playerId: p2Id,
+        targetPlayerId: hostId,
+        offer: { money: 10, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      expect(secondState?.activeTrade?.id).toBe(firstState?.activeTrade?.id);
+      expect(secondState?.errorMessage).toMatch(/resolve the current trade/i);
+    });
+
+    it('should strip the nested board from room snapshots after a game starts', async () => {
+      const roomId = await roomManager.createRoom('Host');
+      const hostId = (await roomManager.getRoom(roomId))!.players[0].id;
+      await roomManager.joinRoom(roomId, 'P2');
+      await roomManager.startGame(roomId, hostId);
+
+      const room = await roomManager.getRoom(roomId);
+
+      expect(room?.gameState).toBeTruthy();
+      expect(room?.gameState?.board).toBeUndefined();
+    });
   });
 });

@@ -92,7 +92,7 @@ export class RoomManager {
     }
 
     console.log(`[RoomManager] Player ${playerName} (${userId}) joined room ${roomId}`);
-    return { userId, state };
+    return { userId, state: this.stripLobbyState(state) };
   }
 
   async leaveRoom(
@@ -148,7 +148,7 @@ export class RoomManager {
     if (!updated) return null;
 
     return {
-      state: updated,
+      state: this.stripLobbyState(updated),
       gameState: updated.gameState ? this.stripBoard(updated.gameState) : null,
     };
   }
@@ -171,7 +171,7 @@ export class RoomManager {
     if (!playerInLobby && !playerInGame) return null;
 
     return {
-      state: room,
+      state: this.stripLobbyState(room),
       gameState: room.gameState ? this.stripBoard(room.gameState) : undefined,
     };
   }
@@ -298,8 +298,17 @@ export class RoomManager {
     return rest as GameState;
   }
 
+  private stripLobbyState(state: LobbyState): LobbyState {
+    if (!state.gameState) return state;
+    return {
+      ...state,
+      gameState: this.stripBoard(state.gameState),
+    };
+  }
+
   async getRoom(roomId: string): Promise<LobbyState | null> {
-    return this.store.get(roomId.trim().toUpperCase());
+    const room = await this.store.get(roomId.trim().toUpperCase());
+    return room ? this.stripLobbyState(room) : null;
   }
 
   private generateRoomId(): string {

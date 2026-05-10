@@ -6,6 +6,7 @@ import { CustomAlert, AlertOptions } from './ui/Alert';
 
 import { LogModal } from './LogModal';
 import { GameState, GameAction, BOARD, isTileBuyable, TradeOffer } from '@trade-tycoon/game-logic';
+import { getGameFeedback } from './game-feedback';
 
 interface GameUIProps {
   state: GameState;
@@ -118,10 +119,6 @@ export const GameUI: React.FC<GameUIProps> = ({
     onDispatch({ type: 'USE_GOOJ_CARD', playerId: state.currentPlayerId });
   };
 
-  const handleDismissToast = () => {
-    onDispatch({ type: 'DISMISS_TOAST' });
-  };
-
   const handleDeclareBankruptcy = () => {
     if (myPlayerId) {
       showAlert(
@@ -205,6 +202,12 @@ export const GameUI: React.FC<GameUIProps> = ({
 
   const canBuy = isPropertyUnowned && canAfford;
   const canAuction = isPropertyUnowned;
+  const gameFeedback = getGameFeedback(state);
+
+  const handleDismissGameFeedback = () => {
+    if (!gameFeedback) return;
+    onDispatch({ type: gameFeedback.dismissAction });
+  };
 
   return (
     <View style={styles.container}>
@@ -214,7 +217,9 @@ export const GameUI: React.FC<GameUIProps> = ({
         players={state.players}
         onClose={() => setLogVisible(false)}
       />
-      {state.toastMessage && <Toast message={state.toastMessage} onDismiss={handleDismissToast} />}
+      {gameFeedback && (
+        <Toast message={gameFeedback.message} onDismiss={handleDismissGameFeedback} />
+      )}
       {uiToastMessage && (
         <Toast message={uiToastMessage} onDismiss={() => setUiToastMessage(null)} />
       )}
