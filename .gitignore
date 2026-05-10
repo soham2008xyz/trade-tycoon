@@ -15,4 +15,4 @@ coverage
 
 # Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
-.claude/
+.claude/settings.local.json

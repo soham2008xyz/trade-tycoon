@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api-server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "server"],
+      "port": 3001
+    },
+    {
+      "name": "expo-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "web"],
+      "port": 8081
+    },
+    {
+      "name": "expo-native",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "--workspace=apps/client"],
+      "port": 8081
+    }
+  ]
+}
