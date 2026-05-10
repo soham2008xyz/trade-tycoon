@@ -61,6 +61,24 @@
       "skillPath": "skills/chrome-devtools/SKILL.md",
       "computedHash": "85d9c4ef94e00ddfc937d50aab72a307e80b98bc7e6744ec6e239ef68819c2d7"
     },
+    "create-github-issue-feature-from-specification": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/create-github-issue-feature-from-specification/SKILL.md",
+      "computedHash": "e4d8019e1a7e43b4ab7023117ec9d3332063fdb923a5cc9f2d42159b69cceb04"
+    },
+    "create-github-issues-for-unmet-specification-requirements": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/create-github-issues-for-unmet-specification-requirements/SKILL.md",
+      "computedHash": "f44956e909348a20a808bcc2aa56a1b063ff1cc2ae1a1659de6193cff45f59ac"
+    },
+    "create-github-pull-request-from-specification": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/create-github-pull-request-from-specification/SKILL.md",
+      "computedHash": "2693885db375a1e4a21f66ac69761a86db30911c0a2a9fcb8bac5d9dd05eeb5c"
+    },
     "create-implementation-plan": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
@@ -72,6 +90,12 @@
       "sourceType": "github",
       "skillPath": "skills/create-readme/SKILL.md",
       "computedHash": "d0ece1b2164ce1376e4ab6e98d6ac079df3a2a94f5f02224362b6a1ce2516ae9"
+    },
+    "create-specification": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/create-specification/SKILL.md",
+      "computedHash": "45b9ef98b0fb82ba0e1aee65dfb464fa1f8494a14a557b9788d73aae87e9e618"
     },
     "deploy-to-vercel": {
       "source": "vercel-labs/agent-skills",
