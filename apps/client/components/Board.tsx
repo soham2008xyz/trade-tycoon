@@ -168,6 +168,14 @@ export const Board: React.FC<Props> = ({
 
   const getOwner = (tileId: string) => players.find((p) => p.properties.includes(tileId));
 
+  // Identity of the local user when interacting with cross-turn UI like
+  // trades. In hotseat the user-at-the-device IS the active player, so this
+  // collapses to `currentPlayer.id`. In online play `myPlayerId` is the
+  // local user's player id and may differ from the active outer-game player
+  // — this is the identity we use to decide which row to hide the "Trade"
+  // button on, and to populate the trade-compose modal.
+  const selfId = myPlayerId ?? currentPlayer?.id;
+
   return (
     <View style={[styles.boardContainer, { width: size, height: size }]}>
       {/* Center Logo Area */}
@@ -210,9 +218,9 @@ export const Board: React.FC<Props> = ({
                     <View
                       style={{
                         marginLeft: 10,
-                        opacity: player.id !== currentPlayer.id ? 1 : 0,
+                        opacity: player.id !== selfId ? 1 : 0,
                       }}
-                      pointerEvents={player.id !== currentPlayer.id ? 'auto' : 'none'}
+                      pointerEvents={player.id !== selfId ? 'auto' : 'none'}
                     >
                       <IconButton
                         title="Trade"
@@ -371,18 +379,18 @@ export const Board: React.FC<Props> = ({
         />
       ))}
 
-      {currentPlayer && (
+      {currentPlayer && selfId && (
         <TradeModal
           visible={
             !!tradeTargetId ||
             (!!activeTrade &&
-              (activeTrade.initiatorId === currentPlayer.id ||
-                activeTrade.targetPlayerId === currentPlayer.id))
+              (activeTrade.initiatorId === selfId || activeTrade.targetPlayerId === selfId))
           }
           players={players}
-          currentPlayerId={currentPlayer.id}
+          currentPlayerId={selfId}
           targetPlayerId={tradeTargetId || activeTrade?.targetPlayerId}
           activeTrade={activeTrade}
+          isMultiplayer={isMultiplayer}
           onPropose={(t, o, r) => {
             onProposeTrade(t, o, r);
             setTradeTargetId(undefined); // Close the proposal modal, but activeTrade will keep Pending modal open

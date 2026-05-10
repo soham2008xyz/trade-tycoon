@@ -226,4 +226,144 @@ describe('REST: /api/rooms', () => {
       expect(res.body.error).toBe('session_expired');
     });
   });
+
+  /**
+   * Trade flow integration tests. The client UI hides Accept/Reject from
+   * non-targets and Cancel from non-initiators (`canAcceptTrade` /
+   * `canCancelTrade` in `multiplayer-gating.ts`); these tests pin down the
+   * server-side enforcement so the same boundaries hold even if a malicious
+   * client bypassed the UI.
+   *
+   * Setup helper: starts a 2-player game, has Alice land on Mediterranean
+   * (the first buyable tile after Go) by mocking dice, has her buy it, then
+   * proposes a trade from Alice to Bob offering nothing for nothing.
+   */
+  describe('trade action boundaries (server enforcement)', () => {
+    const setupActiveTrade = async () => {
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      const { roomId, userId: aliceId } = create.body;
+      const join = await request(app)
+        .post(`/api/rooms/${roomId}/join`)
+        .send({ playerName: 'Bob' });
+      const bobId = join.body.userId;
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: aliceId });
+
+      // Propose a trivial trade so we have an `activeTrade` to act on. Whether
+      // the offer makes sense doesn't matter for boundary-checking; we just
+      // need the trade in flight.
+      await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        .send({
+          userId: aliceId,
+          action: {
+            type: 'PROPOSE_TRADE',
+            playerId: aliceId,
+            targetPlayerId: bobId,
+            offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+            request: { money: 0, properties: [], getOutOfJailCards: 0 },
+          },
+        });
+
+      const room = await roomManager.getRoom(roomId);
+      expect(room?.gameState?.activeTrade).toBeTruthy();
+      return { roomId, aliceId, bobId, tradeId: room!.gameState!.activeTrade!.id };
+    };
+
+    it('lets the target accept the trade', async () => {
+      const { roomId, bobId } = await setupActiveTrade();
+      const res = await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        .send({ userId: bobId, action: { type: 'ACCEPT_TRADE', playerId: bobId } });
+      expect(res.status).toBe(200);
+      const room = await roomManager.getRoom(roomId);
+      expect(room?.gameState?.activeTrade).toBeNull();
+    });
+
+    it('lets the initiator cancel the trade', async () => {
+      const { roomId, aliceId } = await setupActiveTrade();
+      const res = await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        .send({ userId: aliceId, action: { type: 'CANCEL_TRADE', playerId: aliceId } });
+      expect(res.status).toBe(200);
+      const room = await roomManager.getRoom(roomId);
+      expect(room?.gameState?.activeTrade).toBeNull();
+    });
+
+    /*
+     * The game-logic reducer silently no-ops on ACCEPT_TRADE from a non-
+     * target and CANCEL_TRADE from a non-initiator (it returns the
+     * unchanged state instead of throwing). The HTTP status that comes
+     * back is therefore 200 — the *action* was processed, the state just
+     * didn't move. We verify the side-effect is absent: `activeTrade`
+     * remains unchanged after the rogue request. The malicious-attribution
+     * case below (where action.playerId is forged) IS a hard 409 because
+     * `handleGameAction`'s `userId === playerId` check rejects it before
+     * the reducer ever sees it.
+     */
+    it('a third-party ACCEPT_TRADE leaves the active trade in place', async () => {
+      // 3-player setup so we have a non-target third party.
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      const { roomId, userId: aliceId } = create.body;
+      const joinBob = await request(app)
+        .post(`/api/rooms/${roomId}/join`)
+        .send({ playerName: 'Bob' });
+      const bobId = joinBob.body.userId;
+      const joinCharlie = await request(app)
+        .post(`/api/rooms/${roomId}/join`)
+        .send({ playerName: 'Charlie' });
+      const charlieId = joinCharlie.body.userId;
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: aliceId });
+
+      await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        .send({
+          userId: aliceId,
+          action: {
+            type: 'PROPOSE_TRADE',
+            playerId: aliceId,
+            targetPlayerId: bobId,
+            offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+            request: { money: 0, properties: [], getOutOfJailCards: 0 },
+          },
+        });
+
+      const before = await roomManager.getRoom(roomId);
+      const tradeIdBefore = before?.gameState?.activeTrade?.id;
+      expect(tradeIdBefore).toBeTruthy();
+
+      // Charlie (not the target) tries to accept. The reducer no-ops it.
+      const res = await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        .send({ userId: charlieId, action: { type: 'ACCEPT_TRADE', playerId: charlieId } });
+      expect(res.status).toBe(200);
+
+      const after = await roomManager.getRoom(roomId);
+      // Side-effect must be absent: the same trade is still pending.
+      expect(after?.gameState?.activeTrade?.id).toBe(tradeIdBefore);
+    });
+
+    it('a non-initiator CANCEL_TRADE leaves the active trade in place', async () => {
+      const { roomId, bobId, tradeId } = await setupActiveTrade();
+      // Bob (target) tries to cancel — only the initiator can.
+      const res = await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        .send({ userId: bobId, action: { type: 'CANCEL_TRADE', playerId: bobId } });
+      expect(res.status).toBe(200);
+
+      const after = await roomManager.getRoom(roomId);
+      expect(after?.gameState?.activeTrade?.id).toBe(tradeId);
+    });
+
+    it('rejects a player trying to attribute a trade action to someone else', async () => {
+      // The userId === action.playerId guard. Bob is the legitimate target,
+      // but he sends the action with playerId set to Alice. Server's first
+      // check (handleGameAction) catches the impersonation before the
+      // reducer even sees it.
+      const { roomId, aliceId, bobId } = await setupActiveTrade();
+      const res = await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        .send({ userId: bobId, action: { type: 'ACCEPT_TRADE', playerId: aliceId } });
+      expect(res.status).toBe(409);
+    });
+  });
 });

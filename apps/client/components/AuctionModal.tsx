@@ -2,6 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, Modal, ScrollView } from 'react-native';
 import { AuctionState, Player, BOARD } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
+import { shouldShowAuctionControls } from './multiplayer-gating';
+
+export { shouldShowAuctionControls };
 
 interface Props {
   visible: boolean;
@@ -28,6 +31,10 @@ interface Props {
    */
   myPlayerId?: string;
 }
+
+// `shouldShowAuctionControls` lives in `./multiplayer-gating` so it can be
+// unit-tested in a plain Node vitest environment without React Native. We
+// re-export it from this module so existing imports keep working.
 
 export const AuctionModal: React.FC<Props> = ({
   visible,
@@ -72,8 +79,13 @@ export const AuctionModal: React.FC<Props> = ({
               // every browser is its own client and should only render
               // buttons it can actually act on. In hotseat (default), every
               // row renders controls so the shared-device user can act for
-              // whichever bidder is active at the moment.
-              const showControlsForThisRow = !isMultiplayer || myPlayerId === playerId;
+              // whichever bidder is active at the moment. See
+              // `shouldShowAuctionControls` (exported above) for the rule.
+              const showControlsForThisRow = shouldShowAuctionControls(
+                playerId,
+                isMultiplayer,
+                myPlayerId
+              );
 
               return (
                 <View

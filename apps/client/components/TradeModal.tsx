@@ -6,6 +6,9 @@ import { CloseButton } from './ui/CloseButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { GROUP_COLORS } from '../constants';
+import { canAcceptTrade, canCancelTrade } from './multiplayer-gating';
+
+export { canAcceptTrade, canCancelTrade };
 
 interface Props {
   visible: boolean;
@@ -19,7 +22,20 @@ interface Props {
   onCancel: (tradeId: string) => void;
   onClose: () => void;
   boardSize?: number;
+  /**
+   * In online multiplayer the modal renders on every client involved in the
+   * trade, so each client must only see the buttons it can actually act on:
+   * the target sees Accept/Reject, the initiator sees Cancel. In local
+   * hotseat play (default `false`) the user passes the device between
+   * players, so all three buttons render and the user clicks whichever one
+   * the active player is supposed to use.
+   */
+  isMultiplayer?: boolean;
 }
+
+// `canAcceptTrade` and `canCancelTrade` live in `./multiplayer-gating` so
+// they can be unit-tested in a plain Node vitest environment without React
+// Native. They are re-exported above so existing imports keep working.
 
 export const TradeModal: React.FC<Props> = ({
   visible,
@@ -33,6 +49,7 @@ export const TradeModal: React.FC<Props> = ({
   onCancel,
   onClose,
   boardSize,
+  isMultiplayer = false,
 }) => {
   const [offerMoney, setOfferMoney] = useState(0);
   const [offerProps, setOfferProps] = useState<string[]>([]);
@@ -183,29 +200,45 @@ export const TradeModal: React.FC<Props> = ({
               })}
             </View>
           </View>
-          <View style={styles.buttonRow}>
-            <IconButton
-              title="Accept"
-              icon="check"
-              onPress={() => onAccept(effectiveActiveTrade.id)}
-              color="green"
-            />
-            <IconButton
-              title="Reject"
-              icon="close"
-              onPress={() => onReject(effectiveActiveTrade.id)}
-              color="red"
-            />
-          </View>
-          <View style={{ marginTop: 20, alignItems: 'center' }}>
-            <IconButton
-              title={`Cancel (by ${tradeInitiator?.name})`}
-              icon="close-circle"
-              onPress={() => onCancel(effectiveActiveTrade.id)}
-              color="#666"
-              size="small"
-            />
-          </View>
+          {canAcceptTrade(currentPlayerId, effectiveActiveTrade, isMultiplayer) && (
+            <View style={styles.buttonRow}>
+              <IconButton
+                title="Accept"
+                icon="check"
+                onPress={() => onAccept(effectiveActiveTrade.id)}
+                color="green"
+              />
+              <IconButton
+                title="Reject"
+                icon="close"
+                onPress={() => onReject(effectiveActiveTrade.id)}
+                color="red"
+              />
+            </View>
+          )}
+          {canCancelTrade(currentPlayerId, effectiveActiveTrade, isMultiplayer) && (
+            <View style={{ marginTop: 20, alignItems: 'center' }}>
+              <IconButton
+                title={`Cancel (by ${tradeInitiator?.name})`}
+                icon="close-circle"
+                onPress={() => onCancel(effectiveActiveTrade.id)}
+                color="#666"
+                size="small"
+              />
+            </View>
+          )}
+          {/* Non-initiator, non-target observers (only possible in
+              multiplayer when somehow both sides involve someone else) get
+              an explanatory line so the modal isn't an empty husk. */}
+          {isMultiplayer &&
+            !canAcceptTrade(currentPlayerId, effectiveActiveTrade, isMultiplayer) &&
+            !canCancelTrade(currentPlayerId, effectiveActiveTrade, isMultiplayer) && (
+              <View style={{ marginTop: 16, alignItems: 'center' }}>
+                <Text style={styles.headerSubtitle}>
+                  Waiting for {tradeTarget?.name} to respond…
+                </Text>
+              </View>
+            )}
         </View>
       );
     }
