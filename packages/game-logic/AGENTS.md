@@ -80,7 +80,7 @@ Two consequences to keep in mind:
 - **Inside this package**, tests for the client-facing wrapper still
   assert state-unchanged via reference equality, while tests that need
   the explicit server contract assert `reduceGameAction(...) ===
-  ACTION_REJECTED`.
+ACTION_REJECTED`.
 - **In the server's HTTP layer**, those rogue trade actions now produce
   HTTP 409, while the higher-level `userId !== action.playerId`
   impersonation guard still rejects earlier in
