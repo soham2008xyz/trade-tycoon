@@ -228,6 +228,17 @@ describe('REST: /api/rooms', () => {
   });
 
   describe('POST /api/rooms/:id/leave', () => {
+    it('returns 404 with session_expired for a stale userId', async () => {
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+
+      const res = await request(app)
+        .post(`/api/rooms/${create.body.roomId}/leave`)
+        .send({ userId: 'stale-user-id' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('session_expired');
+    });
+
     it('removes a lobby player and publishes a lobby_update', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       const { roomId } = create.body;
@@ -265,6 +276,42 @@ describe('REST: /api/rooms', () => {
       expect(gameUpdate.state.players).toHaveLength(1);
       expect(gameUpdate.state.players[0].id).toBe(aliceId);
       expect(gameUpdate.state.winner).toBe(aliceId);
+    });
+
+    it('clears an active trade when a trade participant leaves mid-game', async () => {
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      const { roomId, userId: aliceId } = create.body;
+      const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
+      const bobId = join.body.userId;
+      await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Charlie' });
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: aliceId });
+
+      await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        .send({
+          userId: aliceId,
+          action: {
+            type: 'PROPOSE_TRADE',
+            playerId: aliceId,
+            targetPlayerId: bobId,
+            offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+            request: { money: 0, properties: [], getOutOfJailCards: 0 },
+          },
+        });
+
+      const events: RoomEvent[] = [];
+      await eventBus.subscribe(roomId, (event) => events.push(event));
+
+      const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ userId: bobId });
+
+      expect(res.status).toBe(200);
+      expect(events.map((event) => event.type)).toEqual(['game_state_update', 'lobby_update']);
+      const gameUpdate = events[0];
+      expect(gameUpdate.type).toBe('game_state_update');
+      if (gameUpdate.type !== 'game_state_update') throw new Error('Expected game_state_update');
+      expect(gameUpdate.state.activeTrade).toBeNull();
+      expect(gameUpdate.state.toastMessage).toContain('Active trade cancelled.');
+      expect(gameUpdate.state.players).toHaveLength(2);
     });
   });
 

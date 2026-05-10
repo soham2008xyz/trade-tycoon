@@ -166,6 +166,26 @@ describe('RoomManager', () => {
       expect(result?.gameState?.players).toHaveLength(1);
       expect(result?.gameState?.winner).toBe(hostId);
     });
+
+    it('should advance the turn when the current player leaves a three-player game', async () => {
+      const roomId = await roomManager.createRoom('Player1');
+      const player1Id = (await roomManager.getRoom(roomId))!.players[0].id;
+      const player2Id = (await roomManager.joinRoom(roomId, 'Player2'))!.userId;
+      const player3Id = (await roomManager.joinRoom(roomId, 'Player3'))!.userId;
+      await roomManager.startGame(roomId, player1Id);
+
+      await roomManager.handleGameAction(roomId, player1Id, {
+        type: 'END_TURN',
+        playerId: player1Id,
+      });
+
+      const result = await roomManager.leaveRoom(roomId, player2Id);
+
+      expect(result).not.toBeNull();
+      expect(result?.gameState?.players.map((player) => player.id)).toEqual([player1Id, player3Id]);
+      expect(result?.gameState?.currentPlayerId).toBe(player3Id);
+      expect(result?.gameState?.phase).toBe('roll');
+    });
   });
 
   describe('Game Lifecycle', () => {

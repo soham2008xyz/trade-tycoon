@@ -27,6 +27,48 @@ describe('removePlayerFromGame', () => {
     expect(nextState.toastMessage).toBe('Alice left the game.');
   });
 
+  it('keeps an auction running when a non-leading bidder leaves', () => {
+    const state: GameState = {
+      ...buildThreePlayerState(),
+      phase: 'auction',
+      auction: {
+        propertyId: 'mediterranean',
+        currentBid: 50,
+        highestBidderId: 'p1',
+        participants: ['p1', 'p2', 'p3'],
+        currentBidderIndex: 1,
+      },
+    };
+
+    const nextState = removePlayerFromGame(state, 'p2');
+
+    expect(nextState.phase).toBe('auction');
+    expect(nextState.auction).not.toBeNull();
+    expect(nextState.auction?.participants).toEqual(['p1', 'p3']);
+    expect(nextState.auction?.currentBidderIndex).toBe(1);
+    expect(nextState.toastMessage).toBe('Bob left the game.');
+  });
+
+  it('cancels the auction when the highest bidder leaves', () => {
+    const state: GameState = {
+      ...buildThreePlayerState(),
+      phase: 'auction',
+      auction: {
+        propertyId: 'mediterranean',
+        currentBid: 50,
+        highestBidderId: 'p2',
+        participants: ['p1', 'p2', 'p3'],
+        currentBidderIndex: 2,
+      },
+    };
+
+    const nextState = removePlayerFromGame(state, 'p2');
+
+    expect(nextState.phase).toBe('action');
+    expect(nextState.auction).toBeNull();
+    expect(nextState.toastMessage).toContain('Auction cancelled.');
+  });
+
   it('cancels an active trade when either trade participant leaves', () => {
     const state = {
       ...buildThreePlayerState(),
@@ -61,5 +103,21 @@ describe('removePlayerFromGame', () => {
     expect(nextState.winner).toBe('p1');
     expect(nextState.currentPlayerId).toBe('p1');
     expect(nextState.toastMessage).toBe('Bob left the game. Alice wins!');
+  });
+
+  it('advances to the next remaining player when the current player leaves a three-player game', () => {
+    const state: GameState = {
+      ...buildThreePlayerState(),
+      currentPlayerId: 'p2',
+      phase: 'action',
+      doublesCount: 2,
+    };
+
+    const nextState = removePlayerFromGame(state, 'p2');
+
+    expect(nextState.players.map((player) => player.id)).toEqual(['p1', 'p3']);
+    expect(nextState.currentPlayerId).toBe('p3');
+    expect(nextState.phase).toBe('roll');
+    expect(nextState.doublesCount).toBe(0);
   });
 });
