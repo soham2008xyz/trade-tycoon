@@ -49,6 +49,8 @@ interface Props {
    * true; ignored otherwise.
    */
   myPlayerId?: string;
+  availableWidth?: number;
+  availableHeight?: number;
   onRoll: () => void;
   onBuy: () => void;
   onDeclineBuy: () => void;
@@ -105,13 +107,17 @@ export const Board: React.FC<Props> = ({
   isMyTurn = true,
   isMultiplayer = false,
   myPlayerId,
+  availableWidth,
+  availableHeight,
 }) => {
   const { width, height } = useWindowDimensions();
   const [showPropertyManager, setShowPropertyManager] = useState(false);
   const [tradeTargetId, setTradeTargetId] = useState<string | undefined>(undefined);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const [isTokenMoving, setIsTokenMoving] = useState(false);
-  const size = Math.min(width, height) - 20; // Padding
+  const boardWidth = availableWidth ?? width;
+  const boardHeight = availableHeight ?? height;
+  const size = Math.max(320, Math.min(boardWidth, boardHeight) - 20);
 
   // Slice the board into sections
   const bottomRow = [

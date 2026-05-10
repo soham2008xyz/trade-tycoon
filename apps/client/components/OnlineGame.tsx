@@ -333,6 +333,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
 
           <TextInput
             style={styles.input}
+            nativeID="online-player-name"
+            accessibilityLabel="Your name"
             placeholder="Your Name"
             value={playerName}
             onChangeText={setPlayerName}
@@ -341,6 +343,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
           {initialMode === 'join' && (
             <TextInput
               style={styles.input}
+              nativeID="online-room-code"
+              accessibilityLabel="Room code"
               placeholder="Room Code (e.g. ABCD123)"
               value={inputRoomId}
               onChangeText={(text) => setInputRoomId(text.toUpperCase())}
@@ -435,15 +439,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#333',
+    backgroundColor: 'transparent',
+    padding: 24,
   },
   card: {
     width: '90%',
-    maxWidth: 400,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
+    maxWidth: 460,
+    backgroundColor: '#f8fbff',
+    borderRadius: 28,
+    padding: 24,
     alignItems: 'center',
+    boxShadow: '0px 18px 36px rgba(0,0,0,0.2)',
   },
   title: {
     fontSize: 24,

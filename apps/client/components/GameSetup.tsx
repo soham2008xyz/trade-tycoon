@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-} from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { IconButton } from './ui/IconButton';
 
 interface PlayerConfig {
@@ -16,7 +8,6 @@ interface PlayerConfig {
 }
 
 interface Props {
-  visible: boolean;
   onStartGame: (players: PlayerConfig[]) => void;
   onBack: () => void;
 }
@@ -32,7 +23,7 @@ const COLORS = [
   '#FFC0CB',
 ];
 
-export const GameSetup: React.FC<Props> = ({ visible, onStartGame, onBack }) => {
+export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
   const [playerCount, setPlayerCount] = useState(2);
   const [players, setPlayers] = useState<PlayerConfig[]>([
     { name: 'Player 1', color: COLORS[0] },
@@ -63,72 +54,72 @@ export const GameSetup: React.FC<Props> = ({ visible, onStartGame, onBack }) => 
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={true}>
-      <View style={styles.modalContainer}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Game Setup</Text>
+    <View style={styles.modalContainer}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Game Setup</Text>
 
-          <View style={styles.countContainer}>
-            <Text>Number of Players:</Text>
-            <View style={styles.countButtons}>
-              {[2, 3, 4, 5, 6].map((num) => (
-                <TouchableOpacity
-                  key={num}
-                  style={[styles.countButton, playerCount === num && styles.activeCountButton]}
-                  onPress={() => handlePlayerCountChange(num)}
+        <View style={styles.countContainer}>
+          <Text>Number of Players:</Text>
+          <View style={styles.countButtons}>
+            {[2, 3, 4, 5, 6].map((num) => (
+              <TouchableOpacity
+                key={num}
+                style={[styles.countButton, playerCount === num && styles.activeCountButton]}
+                onPress={() => handlePlayerCountChange(num)}
+              >
+                <Text
+                  style={[
+                    styles.countButtonText,
+                    playerCount === num && styles.activeCountButtonText,
+                  ]}
                 >
-                  <Text
-                    style={[
-                      styles.countButtonText,
-                      playerCount === num && styles.activeCountButtonText,
-                    ]}
-                  >
-                    {num}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <ScrollView style={styles.playersList}>
-            {players.map((player, index) => (
-              <View key={index} style={styles.playerRow}>
-                <Text style={styles.playerLabel}>Player {index + 1}</Text>
-                <TextInput
-                  style={styles.input}
-                  value={player.name}
-                  onChangeText={(text) => updatePlayer(index, 'name', text)}
-                  placeholder="Name"
-                />
-                <View style={styles.colorPicker}>
-                  {COLORS.slice(0, 8).map((color) => (
-                    <TouchableOpacity
-                      key={color}
-                      style={[
-                        styles.colorOption,
-                        { backgroundColor: color },
-                        player.color === color && styles.selectedColor,
-                      ]}
-                      onPress={() => updatePlayer(index, 'color', color)}
-                    />
-                  ))}
-                </View>
-              </View>
+                  {num}
+                </Text>
+              </TouchableOpacity>
             ))}
-          </ScrollView>
-
-          <View style={styles.actionButtons}>
-            <IconButton
-              title="Back"
-              icon="arrow-left"
-              onPress={onBack}
-              style={{ backgroundColor: '#666', flex: 1 }}
-            />
-            <IconButton title="Start Game" icon="play" onPress={handleSubmit} style={{ flex: 2 }} />
           </View>
         </View>
+
+        <ScrollView style={styles.playersList}>
+          {players.map((player, index) => (
+            <View key={index} style={styles.playerRow}>
+              <Text style={styles.playerLabel}>Player {index + 1}</Text>
+              <TextInput
+                style={styles.input}
+                nativeID={`player-name-${index + 1}`}
+                accessibilityLabel={`Player ${index + 1} name`}
+                value={player.name}
+                onChangeText={(text) => updatePlayer(index, 'name', text)}
+                placeholder="Name"
+              />
+              <View style={styles.colorPicker}>
+                {COLORS.slice(0, 8).map((color) => (
+                  <TouchableOpacity
+                    key={color}
+                    style={[
+                      styles.colorOption,
+                      { backgroundColor: color },
+                      player.color === color && styles.selectedColor,
+                    ]}
+                    onPress={() => updatePlayer(index, 'color', color)}
+                  />
+                ))}
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+
+        <View style={styles.actionButtons}>
+          <IconButton
+            title="Back"
+            icon="arrow-left"
+            onPress={onBack}
+            style={{ backgroundColor: '#666', flex: 1 }}
+          />
+          <IconButton title="Start Game" icon="play" onPress={handleSubmit} style={{ flex: 2 }} />
+        </View>
       </View>
-    </Modal>
+    </View>
   );
 };
 
@@ -137,17 +128,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'transparent',
+    padding: 24,
   },
   content: {
     width: '90%',
-    maxWidth: 500,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
+    maxWidth: 560,
+    backgroundColor: '#f8fbff',
+    borderRadius: 28,
+    padding: 24,
     maxHeight: '90%',
     elevation: 5,
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
+    boxShadow: '0px 18px 36px rgba(0,0,0,0.2)',
   },
   title: {
     fontSize: 24,

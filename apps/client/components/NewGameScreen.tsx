@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { IconButton } from './ui/IconButton';
 
 interface Props {
@@ -9,28 +9,30 @@ interface Props {
 
 export const NewGameScreen: React.FC<Props> = ({ onLocalMultiplayer, onOnlineMultiplayer }) => {
   return (
-    <Modal visible={true} animationType="slide" transparent={true}>
-      <View style={styles.modalContainer}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Trade Tycoon</Text>
+    <View style={styles.modalContainer}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Trade Tycoon</Text>
+        <Text style={styles.subtitle}>
+          Launch a local hotseat board or bring friends into the room with the new iPad-friendly web
+          shell.
+        </Text>
 
-          <View style={styles.buttonContainer}>
-            <IconButton
-              title="Local Multiplayer"
-              icon="account-group"
-              onPress={onLocalMultiplayer}
-              style={styles.button}
-            />
-            <IconButton
-              title="Online Multiplayer"
-              icon="earth"
-              onPress={onOnlineMultiplayer}
-              style={styles.button}
-            />
-          </View>
+        <View style={styles.buttonContainer}>
+          <IconButton
+            title="Local Multiplayer"
+            icon="account-group"
+            onPress={onLocalMultiplayer}
+            style={styles.button}
+          />
+          <IconButton
+            title="Online Multiplayer"
+            icon="earth"
+            onPress={onOnlineMultiplayer}
+            style={styles.button}
+          />
         </View>
       </View>
-    </Modal>
+    </View>
   );
 };
 
@@ -39,24 +41,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#333',
+    backgroundColor: 'transparent',
+    padding: 24,
   },
   content: {
     width: '90%',
-    maxWidth: 400,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 30,
+    maxWidth: 460,
+    backgroundColor: '#f8fbff',
+    borderRadius: 28,
+    padding: 32,
     elevation: 5,
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
+    boxShadow: '0px 18px 36px rgba(0,0,0,0.2)',
     alignItems: 'center',
   },
   title: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: 'bold',
-    marginBottom: 40,
+    marginBottom: 16,
     textAlign: 'center',
     color: '#333',
+  },
+  subtitle: {
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 32,
+    textAlign: 'center',
+    color: '#516078',
   },
   buttonContainer: {
     width: '100%',

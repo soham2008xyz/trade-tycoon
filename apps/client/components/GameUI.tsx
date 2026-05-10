@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
 import { Board } from './Board';
 import { Toast } from './ui/Toast';
 import { CustomAlert, AlertOptions } from './ui/Alert';
@@ -37,6 +37,9 @@ export const GameUI: React.FC<GameUIProps> = ({
   const [logVisible, setLogVisible] = React.useState(false);
   const [alertVisible, setAlertVisible] = React.useState(false);
   const [alertOptions, setAlertOptions] = React.useState<AlertOptions | null>(null);
+  const [boardFrame, setBoardFrame] = React.useState<{ width: number; height: number } | null>(
+    null
+  );
 
   const showAlert = (title: string, message: string, buttons: any[]) => {
     if (Platform.OS === 'web') {
@@ -209,6 +212,16 @@ export const GameUI: React.FC<GameUIProps> = ({
     onDispatch({ type: gameFeedback.dismissAction });
   };
 
+  const handleBoardAreaLayout = ({ nativeEvent }: LayoutChangeEvent) => {
+    const { width, height } = nativeEvent.layout;
+    setBoardFrame((previous) => {
+      if (previous && previous.width === width && previous.height === height) {
+        return previous;
+      }
+      return { width, height };
+    });
+  };
+
   return (
     <View style={styles.container}>
       <LogModal
@@ -228,7 +241,7 @@ export const GameUI: React.FC<GameUIProps> = ({
         options={alertOptions}
         onClose={() => setAlertVisible(false)}
       />
-      <View style={styles.boardArea}>
+      <View style={styles.boardArea} onLayout={handleBoardAreaLayout}>
         <Board
           players={state.players}
           currentPlayer={currentPlayer}
@@ -263,6 +276,8 @@ export const GameUI: React.FC<GameUIProps> = ({
           isMyTurn={isMyTurn}
           isMultiplayer={isMultiplayer}
           myPlayerId={myPlayerId}
+          availableWidth={boardFrame?.width}
+          availableHeight={boardFrame?.height}
         />
       </View>
     </View>
@@ -272,7 +287,7 @@ export const GameUI: React.FC<GameUIProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#333',
+    backgroundColor: 'transparent',
     width: '100%',
     height: '100%',
   },

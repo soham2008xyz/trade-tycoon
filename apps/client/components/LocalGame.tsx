@@ -27,7 +27,7 @@ export const LocalGame: React.FC<LocalGameProps> = ({ onBack }) => {
   };
 
   if (isSetup) {
-    return <GameSetup visible={true} onStartGame={handleStartGame} onBack={onBack} />;
+    return <GameSetup onStartGame={handleStartGame} onBack={onBack} />;
   }
 
   return (

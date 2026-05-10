@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
 import { NewGameScreen } from '../components/NewGameScreen';
 import { MultiplayerMenuScreen } from '../components/MultiplayerMenuScreen';
 import { LocalGame } from '../components/LocalGame';
 import { OnlineGame } from '../components/OnlineGame';
+import { AppShell } from '../components/AppShell';
 
 type Screen =
   | 'new-game'
@@ -16,47 +16,47 @@ type Screen =
 export default function GameScreen() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('new-game');
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {currentScreen === 'new-game' && (
-        <NewGameScreen
-          onLocalMultiplayer={() => setCurrentScreen('local-game')}
-          onOnlineMultiplayer={() => setCurrentScreen('multiplayer-menu')}
-        />
-      )}
-
-      {currentScreen === 'local-game' && <LocalGame onBack={() => setCurrentScreen('new-game')} />}
-
-      {currentScreen === 'multiplayer-menu' && (
-        <MultiplayerMenuScreen
-          onBack={() => setCurrentScreen('new-game')}
-          onCreateRoom={() => setCurrentScreen('online-create')}
-          onJoinRoom={() => setCurrentScreen('online-join')}
-          onResumeGame={() => setCurrentScreen('online-resume')}
-        />
-      )}
-
-      {(currentScreen === 'online-create' ||
-        currentScreen === 'online-join' ||
-        currentScreen === 'online-resume') && (
-        <OnlineGame
-          initialMode={
-            currentScreen === 'online-create'
-              ? 'create'
-              : currentScreen === 'online-join'
-                ? 'join'
-                : 'resume'
-          }
-          onBack={() => setCurrentScreen('multiplayer-menu')}
-        />
-      )}
-    </SafeAreaView>
-  );
+  return <AppShell>{renderCurrentScreen(currentScreen, setCurrentScreen)}</AppShell>;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#333',
-  },
-});
+function renderCurrentScreen(
+  currentScreen: Screen,
+  setCurrentScreen: React.Dispatch<React.SetStateAction<Screen>>
+) {
+  if (currentScreen === 'new-game') {
+    return (
+      <NewGameScreen
+        onLocalMultiplayer={() => setCurrentScreen('local-game')}
+        onOnlineMultiplayer={() => setCurrentScreen('multiplayer-menu')}
+      />
+    );
+  }
+
+  if (currentScreen === 'local-game') {
+    return <LocalGame onBack={() => setCurrentScreen('new-game')} />;
+  }
+
+  if (currentScreen === 'multiplayer-menu') {
+    return (
+      <MultiplayerMenuScreen
+        onBack={() => setCurrentScreen('new-game')}
+        onCreateRoom={() => setCurrentScreen('online-create')}
+        onJoinRoom={() => setCurrentScreen('online-join')}
+        onResumeGame={() => setCurrentScreen('online-resume')}
+      />
+    );
+  }
+
+  return (
+    <OnlineGame
+      initialMode={
+        currentScreen === 'online-create'
+          ? 'create'
+          : currentScreen === 'online-join'
+            ? 'join'
+            : 'resume'
+      }
+      onBack={() => setCurrentScreen('multiplayer-menu')}
+    />
+  );
+}
