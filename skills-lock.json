@@ -61,11 +61,29 @@
       "skillPath": "skills/chrome-devtools/SKILL.md",
       "computedHash": "85d9c4ef94e00ddfc937d50aab72a307e80b98bc7e6744ec6e239ef68819c2d7"
     },
+    "create-architectural-decision-record": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/create-architectural-decision-record/SKILL.md",
+      "computedHash": "5c99e32293271aef0270c279c2af8b62301e29257bf85f2ebf7e810c740b4404"
+    },
+    "create-github-action-workflow-specification": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/create-github-action-workflow-specification/SKILL.md",
+      "computedHash": "527e6c77d921d58a9d0059aa95d0d14b441d2166f9c20518263048a56ca8fbbb"
+    },
     "create-github-issue-feature-from-specification": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "skillPath": "skills/create-github-issue-feature-from-specification/SKILL.md",
       "computedHash": "e4d8019e1a7e43b4ab7023117ec9d3332063fdb923a5cc9f2d42159b69cceb04"
+    },
+    "create-github-issues-feature-from-implementation-plan": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/create-github-issues-feature-from-implementation-plan/SKILL.md",
+      "computedHash": "ff0083bd824eaa94c6e4097abe27f1441694a44feb8d6ea43b51bf3f00b883e1"
     },
     "create-github-issues-for-unmet-specification-requirements": {
       "source": "github/awesome-copilot",
@@ -144,6 +162,12 @@
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-tailwind-setup/SKILL.md",
       "computedHash": "d39e806942fe880347f161056729b588a3cb0f1796270eebf52633fe11cfdce1"
+    },
+    "generate-custom-instructions-from-codebase": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/generate-custom-instructions-from-codebase/SKILL.md",
+      "computedHash": "f24a3997ee9034af8b609bd02cd1f5303916ce8399b9ea7d89dcb2ecb3c4de8e"
     },
     "gh-cli": {
       "source": "github/awesome-copilot",
