@@ -10,19 +10,19 @@ Custom patterns extend secret scanning to detect organization-specific secrets n
 
 ### Required Fields
 
-| Field | Description |
-|---|---|
-| **Pattern name** | Human-readable name for the pattern |
+| Field             | Description                            |
+| ----------------- | -------------------------------------- |
+| **Pattern name**  | Human-readable name for the pattern    |
 | **Secret format** | Regular expression matching the secret |
 
 ### Optional Fields (via "More options")
 
-| Field | Description |
-|---|---|
-| **Before secret** | Regex for content that must appear before the secret |
-| **After secret** | Regex for content that must appear after the secret |
-| **Additional match requirements** | Extra constraints on the match |
-| **Sample test string** | Example string to validate the regex |
+| Field                             | Description                                          |
+| --------------------------------- | ---------------------------------------------------- |
+| **Before secret**                 | Regex for content that must appear before the secret |
+| **After secret**                  | Regex for content that must appear after the secret  |
+| **Additional match requirements** | Extra constraints on the match                       |
+| **Sample test string**            | Example string to validate the regex                 |
 
 ### Regex Syntax
 
@@ -70,6 +70,7 @@ Use filter patterns similar to GitHub Actions workflow syntax for glob-style mat
 6. Optionally enable push protection
 
 **Notes:**
+
 - Push protection for org-level custom patterns only applies to repos with push protection enabled
 - Organization owners and repo admins receive alerts
 
@@ -83,6 +84,7 @@ Use filter patterns similar to GitHub Actions workflow syntax for glob-style mat
 6. Optionally enable push protection
 
 **Notes:**
+
 - Only the pattern creator can edit or dry-run enterprise-level patterns
 - Dry runs require admin access to the selected repositories
 - Push protection requires enterprise-level secret scanning push protection to be enabled
@@ -106,6 +108,7 @@ Dry runs test patterns against repository content without creating alerts.
 ### Editing Patterns
 
 After publishing, patterns can be edited:
+
 1. Navigate to the custom pattern
 2. Modify the regex or optional fields
 3. Save and dry run to validate changes
@@ -114,6 +117,7 @@ After publishing, patterns can be edited:
 ### Enabling Push Protection
 
 Push protection can only be enabled after a pattern is published:
+
 1. Navigate to the published pattern
 2. Click **Enable** next to push protection
 
@@ -130,7 +134,7 @@ Use Copilot secret scanning to generate regex automatically:
 
 1. Navigate to custom pattern creation
 2. Select "Generate with Copilot" (if available)
-3. Provide a text description of the secret type (e.g., "internal API key starting with MYORG_ followed by 40 hex characters")
+3. Provide a text description of the secret type (e.g., "internal API key starting with MYORG\_ followed by 40 hex characters")
 4. Optionally provide example strings that should match
 5. Copilot generates a regex pattern
 6. Review and refine the generated regex
@@ -138,11 +142,11 @@ Use Copilot secret scanning to generate regex automatically:
 
 ## Pattern Inheritance
 
-| Scope | Applies To |
-|---|---|
-| Repository | That repository only |
-| Organization | All repos in the org with secret scanning enabled |
-| Enterprise | All repos across all orgs with secret scanning enabled |
+| Scope        | Applies To                                             |
+| ------------ | ------------------------------------------------------ |
+| Repository   | That repository only                                   |
+| Organization | All repos in the org with secret scanning enabled      |
+| Enterprise   | All repos across all orgs with secret scanning enabled |
 
 Organization and enterprise patterns automatically apply to new repositories when secret scanning is enabled.
 

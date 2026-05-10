@@ -31,31 +31,31 @@ Follow this process when creating or optimizing a `dependabot.yml`:
 
 Scan the repository for dependency manifests. Look for:
 
-| Ecosystem | YAML Value | Manifest Files |
-|---|---|---|
-| npm/pnpm/yarn | `npm` | `package.json`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock` |
-| pip/pipenv/poetry/uv | `pip` | `requirements.txt`, `Pipfile`, `pyproject.toml`, `setup.py` |
-| Docker | `docker` | `Dockerfile` |
-| Docker Compose | `docker-compose` | `docker-compose.yml` |
-| GitHub Actions | `github-actions` | `.github/workflows/*.yml` |
-| Go modules | `gomod` | `go.mod` |
-| Bundler (Ruby) | `bundler` | `Gemfile` |
-| Cargo (Rust) | `cargo` | `Cargo.toml` |
-| Composer (PHP) | `composer` | `composer.json` |
-| NuGet (.NET) | `nuget` | `*.csproj`, `packages.config` |
-| .NET SDK | `dotnet-sdk` | `global.json` |
-| Maven (Java) | `maven` | `pom.xml` |
-| Gradle (Java) | `gradle` | `build.gradle` |
-| Terraform | `terraform` | `*.tf` |
-| OpenTofu | `opentofu` | `*.tf` |
-| Helm | `helm` | `Chart.yaml` |
-| Hex (Elixir) | `mix` | `mix.exs` |
-| Swift | `swift` | `Package.swift` |
-| Pub (Dart) | `pub` | `pubspec.yaml` |
-| Bun | `bun` | `bun.lockb` |
-| Dev Containers | `devcontainers` | `devcontainer.json` |
-| Git Submodules | `gitsubmodule` | `.gitmodules` |
-| Pre-commit | `pre-commit` | `.pre-commit-config.yaml` |
+| Ecosystem            | YAML Value       | Manifest Files                                                     |
+| -------------------- | ---------------- | ------------------------------------------------------------------ |
+| npm/pnpm/yarn        | `npm`            | `package.json`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock` |
+| pip/pipenv/poetry/uv | `pip`            | `requirements.txt`, `Pipfile`, `pyproject.toml`, `setup.py`        |
+| Docker               | `docker`         | `Dockerfile`                                                       |
+| Docker Compose       | `docker-compose` | `docker-compose.yml`                                               |
+| GitHub Actions       | `github-actions` | `.github/workflows/*.yml`                                          |
+| Go modules           | `gomod`          | `go.mod`                                                           |
+| Bundler (Ruby)       | `bundler`        | `Gemfile`                                                          |
+| Cargo (Rust)         | `cargo`          | `Cargo.toml`                                                       |
+| Composer (PHP)       | `composer`       | `composer.json`                                                    |
+| NuGet (.NET)         | `nuget`          | `*.csproj`, `packages.config`                                      |
+| .NET SDK             | `dotnet-sdk`     | `global.json`                                                      |
+| Maven (Java)         | `maven`          | `pom.xml`                                                          |
+| Gradle (Java)        | `gradle`         | `build.gradle`                                                     |
+| Terraform            | `terraform`      | `*.tf`                                                             |
+| OpenTofu             | `opentofu`       | `*.tf`                                                             |
+| Helm                 | `helm`           | `Chart.yaml`                                                       |
+| Hex (Elixir)         | `mix`            | `mix.exs`                                                          |
+| Swift                | `swift`          | `Package.swift`                                                    |
+| Pub (Dart)           | `pub`            | `pubspec.yaml`                                                     |
+| Bun                  | `bun`            | `bun.lockb`                                                        |
+| Dev Containers       | `devcontainers`  | `devcontainer.json`                                                |
+| Git Submodules       | `gitsubmodule`   | `.gitmodules`                                                      |
+| Pre-commit           | `pre-commit`     | `.pre-commit-config.yaml`                                          |
 
 Note: pnpm and yarn both use the `npm` ecosystem value.
 
@@ -65,11 +65,11 @@ For each ecosystem, identify where manifests live. Use `directories` (plural) wi
 
 ```yaml
 directories:
-  - "/"           # root
-  - "/apps/*"     # all app subdirs
-  - "/packages/*" # all package subdirs
-  - "/lib-*"      # dirs starting with lib-
-  - "**/*"        # recursive (all subdirs)
+  - '/' # root
+  - '/apps/*' # all app subdirs
+  - '/packages/*' # all package subdirs
+  - '/lib-*' # dirs starting with lib-
+  - '**/*' # recursive (all subdirs)
 ```
 
 Important: `directory` (singular) does NOT support globs. Use `directories` (plural) for wildcards.
@@ -79,10 +79,10 @@ Important: `directory` (singular) does NOT support globs. Use `directories` (plu
 Every entry needs at minimum:
 
 ```yaml
-- package-ecosystem: "npm"
-  directory: "/"
+- package-ecosystem: 'npm'
+  directory: '/'
   schedule:
-    interval: "weekly"
+    interval: 'weekly'
 ```
 
 ### Step 4: Optimize with Grouping, Labels, and Scheduling
@@ -96,14 +96,14 @@ See sections below for each optimization technique.
 For monorepos with many packages, use glob patterns to avoid listing each directory:
 
 ```yaml
-- package-ecosystem: "npm"
+- package-ecosystem: 'npm'
   directories:
-    - "/"
-    - "/apps/*"
-    - "/packages/*"
-    - "/services/*"
+    - '/'
+    - '/apps/*'
+    - '/packages/*'
+    - '/services/*'
   schedule:
-    interval: "weekly"
+    interval: 'weekly'
 ```
 
 ### Cross-Directory Grouping
@@ -119,6 +119,7 @@ groups:
 This creates one PR per dependency across all specified directories, reducing CI costs and review burden.
 
 Limitations:
+
 - All directories must use the same package ecosystem
 - Applies to version updates only
 - Incompatible version constraints create separate PRs
@@ -136,11 +137,11 @@ Reduce PR noise by grouping related dependencies into single PRs.
 ```yaml
 groups:
   dev-dependencies:
-    dependency-type: "development"
-    update-types: ["minor", "patch"]
+    dependency-type: 'development'
+    update-types: ['minor', 'patch']
   production-dependencies:
-    dependency-type: "production"
-    update-types: ["minor", "patch"]
+    dependency-type: 'production'
+    update-types: ['minor', 'patch']
 ```
 
 ### By Name Pattern
@@ -148,10 +149,10 @@ groups:
 ```yaml
 groups:
   angular:
-    patterns: ["@angular*"]
-    update-types: ["minor", "patch"]
+    patterns: ['@angular*']
+    update-types: ['minor', 'patch']
   testing:
-    patterns: ["jest*", "@testing-library*", "ts-jest"]
+    patterns: ['jest*', '@testing-library*', 'ts-jest']
 ```
 
 ### For Security Updates
@@ -160,11 +161,12 @@ groups:
 groups:
   security-patches:
     applies-to: security-updates
-    patterns: ["*"]
-    update-types: ["patch", "minor"]
+    patterns: ['*']
+    update-types: ['patch', 'minor']
 ```
 
 Key behaviors:
+
 - Dependencies matching multiple groups go to the **first** match
 - `applies-to` defaults to `version-updates` when absent
 - Ungrouped dependencies get individual PRs
@@ -179,19 +181,19 @@ version: 2
 multi-ecosystem-groups:
   infrastructure:
     schedule:
-      interval: "weekly"
-    labels: ["infrastructure", "dependencies"]
+      interval: 'weekly'
+    labels: ['infrastructure', 'dependencies']
 
 updates:
-  - package-ecosystem: "docker"
-    directory: "/"
-    patterns: ["nginx", "redis"]
-    multi-ecosystem-group: "infrastructure"
+  - package-ecosystem: 'docker'
+    directory: '/'
+    patterns: ['nginx', 'redis']
+    multi-ecosystem-group: 'infrastructure'
 
-  - package-ecosystem: "terraform"
-    directory: "/"
-    patterns: ["aws*"]
-    multi-ecosystem-group: "infrastructure"
+  - package-ecosystem: 'terraform'
+    directory: '/'
+    patterns: ['aws*']
+    multi-ecosystem-group: 'infrastructure'
 ```
 
 The `patterns` key is required when using `multi-ecosystem-group`.
@@ -202,8 +204,8 @@ The `patterns` key is required when using `multi-ecosystem-group`.
 
 ```yaml
 labels:
-  - "dependencies"
-  - "npm"
+  - 'dependencies'
+  - 'npm'
 ```
 
 Set `labels: []` to disable all labels including defaults. SemVer labels (`major`, `minor`, `patch`) are always applied if present in the repo.
@@ -212,29 +214,29 @@ Set `labels: []` to disable all labels including defaults. SemVer labels (`major
 
 ```yaml
 commit-message:
-  prefix: "deps"
-  prefix-development: "deps-dev"
-  include: "scope"  # adds deps/deps-dev scope after prefix
+  prefix: 'deps'
+  prefix-development: 'deps-dev'
+  include: 'scope' # adds deps/deps-dev scope after prefix
 ```
 
 ### Assignees and Milestones
 
 ```yaml
-assignees: ["security-team-lead"]
-milestone: 4  # numeric ID from milestone URL
+assignees: ['security-team-lead']
+milestone: 4 # numeric ID from milestone URL
 ```
 
 ### Branch Name Separator
 
 ```yaml
 pull-request-branch-name:
-  separator: "-"  # default is /
+  separator: '-' # default is /
 ```
 
 ### Target Branch
 
 ```yaml
-target-branch: "develop"  # PRs target this instead of default branch
+target-branch: 'develop' # PRs target this instead of default branch
 ```
 
 Note: When `target-branch` is set, security updates still target the default branch; all ecosystem config only applies to version updates.
@@ -247,18 +249,18 @@ Supported: `daily`, `weekly`, `monthly`, `quarterly`, `semiannually`, `yearly`, 
 
 ```yaml
 schedule:
-  interval: "weekly"
-  day: "monday"         # for weekly only
-  time: "09:00"         # HH:MM format
-  timezone: "America/New_York"
+  interval: 'weekly'
+  day: 'monday' # for weekly only
+  time: '09:00' # HH:MM format
+  timezone: 'America/New_York'
 ```
 
 ### Cron Expressions
 
 ```yaml
 schedule:
-  interval: "cron"
-  cronjob: "0 9 * * 1"  # Every Monday at 9 AM
+  interval: 'cron'
+  cronjob: '0 9 * * 1' # Every Monday at 9 AM
 ```
 
 ### Cooldown Periods
@@ -271,8 +273,8 @@ cooldown:
   semver-major-days: 30
   semver-minor-days: 7
   semver-patch-days: 3
-  include: ["*"]
-  exclude: ["critical-lib"]
+  include: ['*']
+  exclude: ['critical-lib']
 ```
 
 Cooldown applies to version updates only, not security updates.
@@ -289,14 +291,14 @@ Settings → Advanced Security → Enable Dependabot alerts, security updates, a
 groups:
   security-patches:
     applies-to: security-updates
-    patterns: ["*"]
-    update-types: ["patch", "minor"]
+    patterns: ['*']
+    update-types: ['patch', 'minor']
 ```
 
 ### Disable Version Updates (Security Only)
 
 ```yaml
-open-pull-requests-limit: 0  # disables version update PRs
+open-pull-requests-limit: 0 # disables version update PRs
 ```
 
 ### Auto-Triage Rules
@@ -310,16 +312,17 @@ Interact with Dependabot PRs using `@dependabot` comments.
 > **Note:** As of January 2026, merge/close/reopen commands have been deprecated.
 > Use GitHub's native UI, CLI (`gh pr merge`), or auto-merge instead.
 
-| Command | Effect |
-|---|---|
-| `@dependabot rebase` | Rebase the PR |
-| `@dependabot recreate` | Recreate the PR from scratch |
-| `@dependabot ignore this dependency` | Close and never update this dependency |
-| `@dependabot ignore this major version` | Ignore this major version |
-| `@dependabot ignore this minor version` | Ignore this minor version |
-| `@dependabot ignore this patch version` | Ignore this patch version |
+| Command                                 | Effect                                 |
+| --------------------------------------- | -------------------------------------- |
+| `@dependabot rebase`                    | Rebase the PR                          |
+| `@dependabot recreate`                  | Recreate the PR from scratch           |
+| `@dependabot ignore this dependency`    | Close and never update this dependency |
+| `@dependabot ignore this major version` | Ignore this major version              |
+| `@dependabot ignore this minor version` | Ignore this minor version              |
+| `@dependabot ignore this patch version` | Ignore this patch version              |
 
 For grouped PRs, additional commands:
+
 - `@dependabot ignore DEPENDENCY_NAME` — ignore specific dependency in group
 - `@dependabot unignore DEPENDENCY_NAME` — clear ignores, reopen with updates
 - `@dependabot unignore *` — clear all ignores for all dependencies in group
@@ -333,19 +336,19 @@ For the complete command reference, see `references/pr-commands.md`.
 
 ```yaml
 ignore:
-  - dependency-name: "lodash"
-  - dependency-name: "@types/node"
-    update-types: ["version-update:semver-patch"]
-  - dependency-name: "express"
-    versions: ["5.x"]
+  - dependency-name: 'lodash'
+  - dependency-name: '@types/node'
+    update-types: ['version-update:semver-patch']
+  - dependency-name: 'express'
+    versions: ['5.x']
 ```
 
 ### Allow Only Specific Types
 
 ```yaml
 allow:
-  - dependency-type: "production"
-  - dependency-name: "express"
+  - dependency-type: 'production'
+  - dependency-name: 'express'
 ```
 
 Rule: If a dependency matches both `allow` and `ignore`, it is **ignored**.
@@ -354,8 +357,8 @@ Rule: If a dependency matches both `allow` and `ignore`, it is **ignored**.
 
 ```yaml
 exclude-paths:
-  - "vendor/**"
-  - "test/fixtures/**"
+  - 'vendor/**'
+  - 'test/fixtures/**'
 ```
 
 ## Advanced Options
@@ -364,18 +367,18 @@ exclude-paths:
 
 Controls how Dependabot edits version constraints:
 
-| Value | Behavior |
-|---|---|
-| `auto` | Default — increase for apps, widen for libraries |
-| `increase` | Always increase minimum version |
+| Value                   | Behavior                                          |
+| ----------------------- | ------------------------------------------------- |
+| `auto`                  | Default — increase for apps, widen for libraries  |
+| `increase`              | Always increase minimum version                   |
 | `increase-if-necessary` | Only change if current range excludes new version |
-| `lockfile-only` | Only update lockfiles, ignore manifests |
-| `widen` | Widen range to include both old and new versions |
+| `lockfile-only`         | Only update lockfiles, ignore manifests           |
+| `widen`                 | Widen range to include both old and new versions  |
 
 ### Rebase Strategy
 
 ```yaml
-rebase-strategy: "disabled"  # stop auto-rebasing
+rebase-strategy: 'disabled' # stop auto-rebasing
 ```
 
 Allow rebase over extra commits by including `[dependabot skip]` in commit messages.
@@ -383,7 +386,7 @@ Allow rebase over extra commits by including `[dependabot skip]` in commit messa
 ### Open PR Limit
 
 ```yaml
-open-pull-requests-limit: 10  # default is 5 for version, 10 for security
+open-pull-requests-limit: 10 # default is 5 for version, 10 for security
 ```
 
 Set to `0` to disable version updates entirely.
@@ -398,8 +401,8 @@ registries:
     token: ${{secrets.NPM_TOKEN}}
 
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     registries:
       - npm-private
 ```
@@ -425,21 +428,25 @@ For scanning code changes for vulnerable dependencies inside an AI coding agent 
 Install the **Advanced Security plugin** which provides dedicated dependency scanning tools and the `/dependency-scanning` skill.
 
 **GitHub Copilot CLI (shell):**
+
 ```bash
 # Enable the dependabot toolset for the GitHub MCP Server
 copilot --add-github-mcp-toolset dependabot
 ```
 
 **GitHub Copilot CLI (inside `copilot`):**
+
 ```text
 > /plugin install advanced-security@copilot-plugins
 ```
 
 **Visual Studio Code:**
+
 - Add `"X-MCP-Toolsets": "dependabot"` to your GitHub MCP Server headers, or pick **Dependabot** from the toolset selector in Copilot Chat
 - Install the `advanced-security` plugin, then use `/dependency-scanning` in Copilot Chat
 
 **Example prompt:**
+
 > Scan the dependencies I added on this branch for known vulnerabilities and tell me which versions to upgrade to before I commit.
 
 See: [Advanced Security Plugin — Dependency Scanning Skill](https://github.com/github/copilot-plugins/blob/main/plugins/advanced-security/skills/dependency-scanning/SKILL.md)

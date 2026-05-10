@@ -22,11 +22,11 @@ Generated when a contributor bypasses push protection to push a secret.
 
 **Bypass reasons and their alert behavior:**
 
-| Bypass Reason | Alert Status |
-|---|---|
-| It's used in tests | Closed (resolved as "used in tests") |
+| Bypass Reason         | Alert Status                          |
+| --------------------- | ------------------------------------- |
+| It's used in tests    | Closed (resolved as "used in tests")  |
 | It's a false positive | Closed (resolved as "false positive") |
-| I'll fix it later | Open |
+| I'll fix it later     | Open                                  |
 
 ### Partner Alerts
 
@@ -42,16 +42,19 @@ Generated when GitHub detects a leaked secret matching a partner's pattern.
 ### Default Alerts List
 
 The primary view showing alerts for:
+
 - Supported provider patterns (e.g., GitHub PATs, AWS keys, Stripe keys)
 - Custom patterns defined at repo/org/enterprise level
 
 ### Generic Alerts List
 
 Separate view (toggle from default list) showing:
+
 - Non-provider patterns (private keys, connection strings)
 - AI-detected generic secrets (passwords)
 
 **Limitations:**
+
 - Maximum 5,000 alerts per repository (open + closed)
 - Only first 5 detected locations shown for non-provider patterns
 - Only first detected location shown for AI-detected secrets
@@ -60,6 +63,7 @@ Separate view (toggle from default list) showing:
 ## Paired Credentials
 
 When a resource requires paired credentials (e.g., access key + secret key):
+
 - Alert is only created when BOTH parts are detected in the same file
 - Prevents noise from partial leaks
 - Reduces false positives
@@ -76,11 +80,11 @@ Validity checks verify whether a detected secret is still active.
 
 ### Validation Statuses
 
-| Status | Meaning | Priority |
-|---|---|---|
-| `Active` | Secret is confirmed to be valid and exploitable | 🔴 Immediate |
-| `Inactive` | Secret has been revoked or expired | 🟡 Lower priority |
-| `Unknown` | GitHub cannot determine validity | 🟠 Investigate |
+| Status     | Meaning                                         | Priority          |
+| ---------- | ----------------------------------------------- | ----------------- |
+| `Active`   | Secret is confirmed to be valid and exploitable | 🔴 Immediate      |
+| `Inactive` | Secret has been revoked or expired              | 🟡 Lower priority |
+| `Unknown`  | GitHub cannot determine validity                | 🟠 Investigate    |
 
 ### On-Demand Validation
 
@@ -97,6 +101,7 @@ Provides additional context about detected secrets when validity checks are enab
 ### Available Metadata
 
 Depends on what the service provider shares:
+
 - Secret owner information
 - Scope and permissions of the secret
 - Creation date and expiration
@@ -153,17 +158,18 @@ git push --force --all
 
 Choose the appropriate reason:
 
-| Reason | When to Use |
-|---|---|
-| **False positive** | Detected string is not a real secret |
-| **Revoked** | Credential has already been revoked/rotated |
-| **Used in tests** | Secret is only in test code with acceptable risk |
+| Reason             | When to Use                                      |
+| ------------------ | ------------------------------------------------ |
+| **False positive** | Detected string is not a real secret             |
+| **Revoked**        | Credential has already been revoked/rotated      |
+| **Used in tests**  | Secret is only in test code with acceptable risk |
 
 Add a dismissal comment for audit trail.
 
 ## Alert Notifications
 
 Alerts generate notifications via:
+
 - **Email** — to repository admins, organization owners, security managers
 - **Webhooks** — `secret_scanning_alert` event
 - **GitHub Actions** — `secret_scanning_alert` event trigger
@@ -216,6 +222,7 @@ Lists alerts across all repositories in the organization.
 ### `secret_scanning_alert`
 
 Triggered when a secret scanning alert is:
+
 - Created
 - Resolved
 - Reopened
@@ -231,13 +238,14 @@ Place at `.github/secret_scanning.yml` to auto-close alerts for specific paths:
 
 ```yaml
 paths-ignore:
-  - "docs/**"              # Documentation with example secrets
-  - "test/fixtures/**"     # Test fixture data
-  - "**/*.example"         # Example configuration files
-  - "samples/credentials"  # Sample credential files
+  - 'docs/**' # Documentation with example secrets
+  - 'test/fixtures/**' # Test fixture data
+  - '**/*.example' # Example configuration files
+  - 'samples/credentials' # Sample credential files
 ```
 
 **Limits:**
+
 - Maximum 1,000 entries
 - File must be under 1 MB
 - Excluded paths are also excluded from push protection

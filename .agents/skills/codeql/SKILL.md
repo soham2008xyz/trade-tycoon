@@ -24,18 +24,18 @@ Use this skill when the request involves:
 
 CodeQL supports the following language identifiers:
 
-| Language | Identifier | Alternatives |
-|---|---|---|
-| C/C++ | `c-cpp` | `c`, `cpp` |
-| C# | `csharp` | — |
-| Go | `go` | — |
-| Java/Kotlin | `java-kotlin` | `java`, `kotlin` |
+| Language              | Identifier              | Alternatives               |
+| --------------------- | ----------------------- | -------------------------- |
+| C/C++                 | `c-cpp`                 | `c`, `cpp`                 |
+| C#                    | `csharp`                | —                          |
+| Go                    | `go`                    | —                          |
+| Java/Kotlin           | `java-kotlin`           | `java`, `kotlin`           |
 | JavaScript/TypeScript | `javascript-typescript` | `javascript`, `typescript` |
-| Python | `python` | — |
-| Ruby | `ruby` | — |
-| Rust | `rust` | — |
-| Swift | `swift` | — |
-| GitHub Actions | `actions` | — |
+| Python                | `python`                | —                          |
+| Ruby                  | `ruby`                  | —                          |
+| Rust                  | `rust`                  | —                          |
+| Swift                 | `swift`                 | —                          |
+| GitHub Actions        | `actions`               | —                          |
 
 > Alternative identifiers are equivalent to the standard identifier (e.g., `javascript` does not exclude TypeScript analysis).
 
@@ -59,7 +59,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: '30 6 * * 1'  # Weekly Monday 6:30 UTC
+    - cron: '30 6 * * 1' # Weekly Monday 6:30 UTC
 ```
 
 - `push` — scans on every push to specified branches; results appear in Security tab
@@ -85,9 +85,9 @@ Set least-privilege permissions:
 
 ```yaml
 permissions:
-  security-events: write   # Required to upload SARIF results
-  contents: read            # Required to checkout code
-  actions: read             # Required for private repos using codeql-action
+  security-events: write # Required to upload SARIF results
+  contents: read # Required to checkout code
+  actions: read # Required for private repos using codeql-action
 ```
 
 ### Step 4: Configure Language Matrix
@@ -110,6 +110,7 @@ jobs:
 ```
 
 For compiled languages, set the appropriate `build-mode`:
+
 - `none` — no build required (supported for C/C++, C#, Java, Rust)
 - `autobuild` — automatic build detection
 - `manual` — custom build commands (advanced setup only)
@@ -134,10 +135,11 @@ steps:
   - name: Perform CodeQL Analysis
     uses: github/codeql-action/analyze@v4
     with:
-      category: "/language:${{ matrix.language }}"
+      category: '/language:${{ matrix.language }}'
 ```
 
 **Query suite options:**
+
 - `security-extended` — default security queries plus additional coverage
 - `security-and-quality` — security plus code quality queries
 - Custom query packs via `packs:` input (e.g., `codeql/javascript-queries:AlertSuppression.ql`)
@@ -151,7 +153,7 @@ steps:
 For monorepos with multiple components, use the `category` parameter to separate SARIF results:
 
 ```yaml
-category: "/language:${{ matrix.language }}/component:frontend"
+category: '/language:${{ matrix.language }}/component:frontend'
 ```
 
 To restrict analysis to specific directories, use a CodeQL configuration file (`.github/codeql/codeql-config.yml`):
@@ -267,6 +269,7 @@ codeql execute cli-server
 ### Severity Levels
 
 Alerts have two severity dimensions:
+
 - **Standard severity:** `Error`, `Warning`, `Note`
 - **Security severity:** `Critical`, `High`, `Medium`, `Low` (derived from CVSS scores; takes display precedence)
 
@@ -333,6 +336,7 @@ packs:
 ### Summary Metrics
 
 Workflow logs include key metrics:
+
 - **Lines of code in codebase** — baseline before extraction
 - **Lines extracted** — including external libraries and auto-generated files
 - **Extraction errors/warnings** — files that failed or produced warnings during extraction
@@ -340,6 +344,7 @@ Workflow logs include key metrics:
 ### Debug Logging
 
 To enable detailed diagnostics:
+
 - **GitHub Actions:** re-run the workflow with "Enable debug logging" checked
 - **CodeQL CLI:** use `--verbosity=progress++` and `--logdir=codeql-logs`
 
@@ -347,31 +352,31 @@ To enable detailed diagnostics:
 
 ### Common Issues
 
-| Problem | Solution |
-|---|---|
-| Workflow not triggering | Verify `on:` triggers match event; check `paths`/`branches` filters; ensure workflow exists on target branch |
-| `Resource not accessible` error | Add `security-events: write` and `contents: read` permissions |
-| Autobuild failure | Switch to `build-mode: manual` and add explicit build commands |
-| No source code seen | Verify `--source-root`, build command, and language identifier |
-| C# compiler failure | Check for `/p:EmitCompilerGeneratedFiles=true` conflicts with `.sqlproj` or legacy projects |
-| Fewer lines scanned than expected | Switch from `none` to `autobuild`/`manual`; verify build compiles all source |
-| Kotlin in no-build mode | Disable and re-enable default setup to switch to `autobuild` |
-| Cache miss every run | Verify `dependency-caching: true` on `init` action |
-| Out of disk/memory | Use larger runners; reduce analysis scope via `paths` config; use `build-mode: none` |
-| SARIF upload fails | Ensure token has `security-events: write`; check 10 MB file size limit |
-| SARIF results exceed limits | Split across multiple uploads with different `--sarif-category`; reduce query scope |
-| Two CodeQL workflows | Disable default setup if using advanced setup, or remove old workflow file |
-| Slow analysis | Enable dependency caching; use `--threads=0`; reduce query suite scope |
+| Problem                           | Solution                                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Workflow not triggering           | Verify `on:` triggers match event; check `paths`/`branches` filters; ensure workflow exists on target branch |
+| `Resource not accessible` error   | Add `security-events: write` and `contents: read` permissions                                                |
+| Autobuild failure                 | Switch to `build-mode: manual` and add explicit build commands                                               |
+| No source code seen               | Verify `--source-root`, build command, and language identifier                                               |
+| C# compiler failure               | Check for `/p:EmitCompilerGeneratedFiles=true` conflicts with `.sqlproj` or legacy projects                  |
+| Fewer lines scanned than expected | Switch from `none` to `autobuild`/`manual`; verify build compiles all source                                 |
+| Kotlin in no-build mode           | Disable and re-enable default setup to switch to `autobuild`                                                 |
+| Cache miss every run              | Verify `dependency-caching: true` on `init` action                                                           |
+| Out of disk/memory                | Use larger runners; reduce analysis scope via `paths` config; use `build-mode: none`                         |
+| SARIF upload fails                | Ensure token has `security-events: write`; check 10 MB file size limit                                       |
+| SARIF results exceed limits       | Split across multiple uploads with different `--sarif-category`; reduce query scope                          |
+| Two CodeQL workflows              | Disable default setup if using advanced setup, or remove old workflow file                                   |
+| Slow analysis                     | Enable dependency caching; use `--threads=0`; reduce query suite scope                                       |
 
 > For comprehensive troubleshooting with detailed solutions, search `references/troubleshooting.md`.
 
 ### Hardware Requirements (Self-Hosted Runners)
 
-| Codebase Size | RAM | CPU |
-|---|---|---|
-| Small (<100K LOC) | 8 GB+ | 2 cores |
+| Codebase Size        | RAM    | CPU       |
+| -------------------- | ------ | --------- |
+| Small (<100K LOC)    | 8 GB+  | 2 cores   |
 | Medium (100K–1M LOC) | 16 GB+ | 4–8 cores |
-| Large (>1M LOC) | 64 GB+ | 8 cores |
+| Large (>1M LOC)      | 64 GB+ | 8 cores   |
 
 All sizes: SSD with ≥14 GB free disk space.
 
