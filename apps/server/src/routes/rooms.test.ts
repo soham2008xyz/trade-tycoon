@@ -242,9 +242,7 @@ describe('REST: /api/rooms', () => {
     const setupActiveTrade = async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       const { roomId, userId: aliceId } = create.body;
-      const join = await request(app)
-        .post(`/api/rooms/${roomId}/join`)
-        .send({ playerName: 'Bob' });
+      const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
       const bobId = join.body.userId;
       await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: aliceId });
 

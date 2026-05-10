@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  canAcceptTrade,
-  canCancelTrade,
-  shouldShowAuctionControls,
-} from './multiplayer-gating';
+import { canAcceptTrade, canCancelTrade, shouldShowAuctionControls } from './multiplayer-gating';
 
 const trade = {
   id: 'trade-1',
@@ -20,7 +16,7 @@ describe('multiplayer-gating', () => {
       expect(shouldShowAuctionControls('alice', false, undefined)).toBe(true);
     });
 
-    it('multiplayer: only the local user\'s row shows controls', () => {
+    it("multiplayer: only the local user's row shows controls", () => {
       expect(shouldShowAuctionControls('alice', true, 'alice')).toBe(true);
       expect(shouldShowAuctionControls('bob', true, 'alice')).toBe(false);
     });
