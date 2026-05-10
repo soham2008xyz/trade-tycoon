@@ -22,7 +22,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 
 ```tsx
 // Hermes has native Intl.DateTimeFormat support, so this polyfill is often unnecessary
-import { createHash } from 'react-native-quick-crypto';  // 58x faster
+import { createHash } from 'react-native-quick-crypto'; // 58x faster
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 ```
 
@@ -56,19 +56,19 @@ import '@formatjs/intl-displaynames/polyfill';
 
 **Hermes Support (as of March 2026):**
 
-| API | Hermes | Keep Polyfill? |
-|-----|--------|----------------|
-| `Intl.Collator` | ✅ | No |
-| `Intl.DateTimeFormat` | ✅ | No |
-| `Intl.NumberFormat` | ⚠️ Partial | Maybe |
-| `Intl.getCanonicalLocales()` | ✅ | No |
-| `Intl.supportedValuesOf()` | ✅ | No |
-| `Intl.Locale` | ❌ | Yes |
-| `Intl.PluralRules` | ❌ | Yes |
-| `Intl.RelativeTimeFormat` | ❌ | Yes |
-| `Intl.DisplayNames` | ❌ | Yes |
-| `Intl.ListFormat` | ❌ | Yes |
-| `Intl.Segmenter` | ❌ | Yes |
+| API                          | Hermes     | Keep Polyfill? |
+| ---------------------------- | ---------- | -------------- |
+| `Intl.Collator`              | ✅         | No             |
+| `Intl.DateTimeFormat`        | ✅         | No             |
+| `Intl.NumberFormat`          | ⚠️ Partial | Maybe          |
+| `Intl.getCanonicalLocales()` | ✅         | No             |
+| `Intl.supportedValuesOf()`   | ✅         | No             |
+| `Intl.Locale`                | ❌         | Yes            |
+| `Intl.PluralRules`           | ❌         | Yes            |
+| `Intl.RelativeTimeFormat`    | ❌         | Yes            |
+| `Intl.DisplayNames`          | ❌         | Yes            |
+| `Intl.ListFormat`            | ❌         | Yes            |
+| `Intl.Segmenter`             | ❌         | Yes            |
 
 `Intl.NumberFormat` is not fully covered on Hermes across platforms. In particular, `Intl.NumberFormat.prototype.formatToParts()` still has an iOS gap, so keep `@formatjs/intl-numberformat` if your app relies on that method.
 
@@ -108,6 +108,7 @@ import { createHash } from 'react-native-quick-crypto';
 ```
 
 Essential for:
+
 - Web3 wallet seed generation
 - CSPRNG (Cryptographically Secure Random Numbers)
 - Any heavy cryptographic operations
@@ -131,10 +132,11 @@ const Stack = createNativeStackNavigator();
 <Stack.Navigator>
   <Stack.Screen name="Home" component={HomeScreen} />
   <Stack.Screen name="Details" component={DetailsScreen} />
-</Stack.Navigator>
+</Stack.Navigator>;
 ```
 
 **Benefits:**
+
 - Native navigation animations
 - Platform-specific headers (large titles on iOS)
 - Lower memory usage
@@ -158,27 +160,27 @@ const Tabs = createNativeBottomTabNavigator();
 <Tabs.Navigator>
   <Tabs.Screen name="Home" component={HomeScreen} />
   <Tabs.Screen name="Profile" component={ProfileScreen} />
-</Tabs.Navigator>
+</Tabs.Navigator>;
 ```
 
 ## Recommended Native Libraries
 
-| Category | Library | Description |
-|----------|---------|-------------|
-| Navigation | `react-native-screens` | Native screen containers |
-| Menus | `zeego` | Native menus (Radix-like API) |
-| Slider | `@react-native-community/slider` | Native slider |
-| Date Picker | `react-native-date-picker` | Native date/time picker |
-| Image | `react-native-fast-image` | Native image caching |
+| Category    | Library                          | Description                   |
+| ----------- | -------------------------------- | ----------------------------- |
+| Navigation  | `react-native-screens`           | Native screen containers      |
+| Menus       | `zeego`                          | Native menus (Radix-like API) |
+| Slider      | `@react-native-community/slider` | Native slider                 |
+| Date Picker | `react-native-date-picker`       | Native date/time picker       |
+| Image       | `react-native-fast-image`        | Native image caching          |
 
 ## Decision Matrix
 
-| Scenario | Use Native? | Tradeoff |
-|----------|-------------|----------|
-| Standard navigation | ✅ Yes | Slight API differences |
-| Custom transition animations | ⚠️ Maybe | Native is more limited |
-| Platform-consistent UI | ✅ Yes | Less customization |
-| Unique/branded design | ⚠️ Consider JS | Native may not support |
+| Scenario                     | Use Native?    | Tradeoff               |
+| ---------------------------- | -------------- | ---------------------- |
+| Standard navigation          | ✅ Yes         | Slight API differences |
+| Custom transition animations | ⚠️ Maybe       | Native is more limited |
+| Platform-consistent UI       | ✅ Yes         | Less customization     |
+| Unique/branded design        | ⚠️ Consider JS | Native may not support |
 
 ## Common Pitfalls
 

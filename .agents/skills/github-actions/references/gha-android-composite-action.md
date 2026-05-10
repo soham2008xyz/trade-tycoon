@@ -37,7 +37,7 @@ inputs:
   working-directory:
     description: Project root
     required: false
-    default: "."
+    default: '.'
   variant:
     description: Build variant (Debug by default for emulator flows)
     required: false
@@ -52,7 +52,7 @@ inputs:
   artifact-retention-days:
     description: GitHub artifact retention
     required: false
-    default: "7"
+    default: '7'
 
 outputs:
   artifact-name:

@@ -38,7 +38,7 @@ inputs:
   working-directory:
     description: Project root
     required: false
-    default: "."
+    default: '.'
   scheme:
     description: Xcode scheme
     required: true
@@ -66,7 +66,7 @@ inputs:
   artifact-retention-days:
     description: GitHub artifact retention
     required: false
-    default: "7"
+    default: '7'
 
 outputs:
   artifact-name:
