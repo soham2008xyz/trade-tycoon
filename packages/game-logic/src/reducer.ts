@@ -73,7 +73,10 @@ export const removePlayerFromGame = (state: GameState, playerId: string): GameSt
   const toastParts = [`${player.name} left the game.`];
   const logs = [...state.logs, `[${player.name}] Left the game.`];
 
-  if (activeTrade && (activeTrade.initiatorId === playerId || activeTrade.targetPlayerId === playerId)) {
+  if (
+    activeTrade &&
+    (activeTrade.initiatorId === playerId || activeTrade.targetPlayerId === playerId)
+  ) {
     activeTrade = null;
     toastParts.push('Active trade cancelled.');
     logs.push(`[Game] Cancelled active trade because ${player.name} left.`);
@@ -113,7 +116,9 @@ export const removePlayerFromGame = (state: GameState, playerId: string): GameSt
           };
           players = [...players];
           players[winnerIndex] = updatedWinner;
-          toastParts.push(`${auctionWinner.name} won the auction for $${currentAuction.currentBid}.`);
+          toastParts.push(
+            `${auctionWinner.name} won the auction for $${currentAuction.currentBid}.`
+          );
           logs.push(
             `[${auctionWinner.name}] Won auction for ${propertyName} at $${currentAuction.currentBid}.`
           );

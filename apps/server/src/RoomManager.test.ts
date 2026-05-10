@@ -141,7 +141,10 @@ describe('RoomManager', () => {
       const roomId = await roomManager.createRoom('Host');
       const secondPlayer = (await roomManager.joinRoom(roomId, 'Player2'))!;
 
-      const result = await roomManager.leaveRoom(roomId, (await roomManager.getRoom(roomId))!.players[0].id);
+      const result = await roomManager.leaveRoom(
+        roomId,
+        (await roomManager.getRoom(roomId))!.players[0].id
+      );
 
       expect(result).not.toBeNull();
       expect(result?.state.players).toHaveLength(1);

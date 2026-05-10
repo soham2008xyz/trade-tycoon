@@ -108,9 +108,7 @@ export class RoomManager {
       const remainingPlayers = current.players.filter((entry) => entry.id !== userId);
       const reassignedPlayers = remainingPlayers.map((entry, index) => ({
         ...entry,
-        isHost: remainingPlayers.some((candidate) => candidate.isHost)
-          ? entry.isHost
-          : index === 0,
+        isHost: remainingPlayers.some((candidate) => candidate.isHost) ? entry.isHost : index === 0,
       }));
 
       if (reassignedPlayers.length === 0) {
