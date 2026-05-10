@@ -441,16 +441,18 @@ describe('REST: /api/rooms', () => {
 
     it('preserves the existing trade when another player proposes a new one', async () => {
       const { roomId, aliceId, bobId, tradeId } = await setupActiveTrade();
-      const res = await request(app).post(`/api/rooms/${roomId}/actions`).send({
-        userId: bobId,
-        action: {
-          type: 'PROPOSE_TRADE',
-          playerId: bobId,
-          targetPlayerId: aliceId,
-          offer: { money: 10, properties: [], getOutOfJailCards: 0 },
-          request: { money: 0, properties: [], getOutOfJailCards: 0 },
-        },
-      });
+      const res = await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        .send({
+          userId: bobId,
+          action: {
+            type: 'PROPOSE_TRADE',
+            playerId: bobId,
+            targetPlayerId: aliceId,
+            offer: { money: 10, properties: [], getOutOfJailCards: 0 },
+            request: { money: 0, properties: [], getOutOfJailCards: 0 },
+          },
+        });
 
       expect(res.status).toBe(200);
 
