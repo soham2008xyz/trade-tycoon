@@ -110,13 +110,15 @@ From the repo root:
 - **Default dev loop:** `npm start` (api-server + expo-web in parallel)
 - **Native dev loop:** `npm run start:native` (api-server + expo metro)
 - **Backend only:** `npm run start:server`
+- **Vercel static export:** `npm run export`
 - **All tests:** `npm test` (runs across workspaces — game-logic, server,
   client).
 - **Per-workspace tests:**
   - `npm test --workspace=packages/game-logic`
-  - `npm test --workspace=apps/server`
+  - `npm test --workspace=apps/server` (automatically rebuilds game-logic first)
   - `npm test --workspace=apps/client`
 - **Lint client:** `npm run lint`
+- **Markdown lint:** `npm run lint:md`
 - **Format:** `npm run format` (NOT `npm run prettier` — see Gotchas).
 - **Web build:** `npm run build --workspace=apps/client`
 - **Server build:** `npm run build --workspace=apps/server`
@@ -224,6 +226,11 @@ the bin. Don't rename either back to `prettier`.
   not just the mechanics.
 - **Never write `// eslint-disable-next-line` without a tied comment**
   explaining why. Past dead disables have rotted.
+- **Use `errorMessage` for user-facing rejections.** The reducer's
+  `errorMessage` field is surfaced as an in-game toast by the client.
+  Prefer setting it over silent no-ops when the player needs feedback
+  (e.g., can't afford a purchase). Silent no-ops are still correct for
+  authorization failures (wrong player, game phase mismatch).
 
 ## 8. Verification
 
