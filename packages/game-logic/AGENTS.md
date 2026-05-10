@@ -4,6 +4,11 @@ This file complements the **root `AGENTS.md`**. Read that first for the
 project map, cross-cutting workflows, and the "one fact, one home" rule.
 This file covers only what's specific to the game-logic workspace.
 
+> **Memory reminder:** when you discover a new insight, gotcha, or
+> convention while working in this workspace, add it to the relevant
+> `.claude/memory/` file **and commit that file** alongside your code
+> changes. See the root `AGENTS.md` intro for details.
+
 ## Purpose
 
 Pure-TypeScript reducer + types that encode every game rule. Imported by
@@ -52,7 +57,7 @@ alongside the source: `cards.ts` ↔ `cards.test.ts`.
   immutable; the original state object should not change. If a test
   passes only because of mutation, it's wrong.
 - **Cover the rejection path.** For every "only X can do Y" rule,
-  include a test where someone *else* tries Y and verify the state is
+  include a test where someone _else_ tries Y and verify the state is
   unchanged (`expect(newState).toBe(oldState)` works because the reducer
   returns the input identity-equal when it no-ops).
 
@@ -67,13 +72,13 @@ Two consequences to keep in mind:
 
 - **Inside this package**, tests assert state-unchanged via reference
   equality (`expect(newState).toBe(oldState)`) or by inspecting that the
-  field the action *would* have mutated still has its original value.
+  field the action _would_ have mutated still has its original value.
 - **In the server's HTTP layer**, the route returns HTTP 200 with the
   unchanged state — not 409. Tests in `apps/server` that exercise these
   cases assert "trade is still pending after rogue request", not status
   code. The 409 path is reserved for the higher-level
   `userId !== action.playerId` impersonation guard, which is enforced by
-  `RoomManager.handleGameAction` *before* the reducer runs.
+  `RoomManager.handleGameAction` _before_ the reducer runs.
 
 ## Where things live
 

@@ -5,6 +5,11 @@ project map, cross-cutting architecture invariants, and the "one fact,
 one home" rule. This file covers only what's specific to the server
 workspace.
 
+> **Memory reminder:** when you discover a new insight, gotcha, or
+> convention while working in this workspace, add it to the relevant
+> `.claude/memory/` file **and commit that file** alongside your code
+> changes. See the root `AGENTS.md` intro for details.
+
 ## Layout
 
 ```text
@@ -62,7 +67,7 @@ keep it close to the existing structure.
   test. Reach for it instead of doing the wiring inline.
 - **Subscribe to the bus to assert events.** When a route is supposed
   to emit a `lobby_update` or `game_state_update`, register a subscriber
-  on the in-memory bus *before* calling the route, then assert on the
+  on the in-memory bus _before_ calling the route, then assert on the
   array of received events. The current trade- and start-game tests
   show the pattern.
 - **For SSE**, use `events.test.ts` as the template. It boots a real

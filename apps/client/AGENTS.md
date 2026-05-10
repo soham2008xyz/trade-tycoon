@@ -5,6 +5,11 @@ project map, cross-cutting architecture invariants, and the "one fact,
 one home" rule. This file covers only what's specific to the client
 workspace.
 
+> **Memory reminder:** when you discover a new insight, gotcha, or
+> convention while working in this workspace, add it to the relevant
+> `.claude/memory/` file **and commit that file** alongside your code
+> changes. See the root `AGENTS.md` intro for details.
+
 ## Layout
 
 ```text
@@ -99,7 +104,7 @@ in `multiplayer-gating.ts` then express the rule
 (`!isMultiplayer || playerId === myPlayerId`).
 
 When you add a new modal or interactive surface, the question is:
-*does this control apply to the outer-game active player?* If yes,
+_does this control apply to the outer-game active player?_ If yes,
 use Pattern 1. If no, use Pattern 2.
 
 ## EventSource wiring

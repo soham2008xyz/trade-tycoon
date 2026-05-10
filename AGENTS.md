@@ -5,6 +5,13 @@ Monopoly-style trading game. This document is your operating manual: read it
 fully before making changes, and update it whenever you learn something
 durable that the next session will need to know.
 
+**Memory files:** Whenever you discover a new insight, convention, gotcha, or
+takeaway — whether by reading code, hitting a bug, or receiving feedback —
+record it in the appropriate `.claude/memory/` file (user, feedback, project,
+or reference) **and commit that file to the repo** in the same PR/commit as
+the code that prompted the learning. Memory files that stay uncommitted are
+invisible to the next agent session.
+
 ## 0. How this manual is split
 
 There are **four** `AGENTS.md` files in this repo. Each rule lives in
@@ -206,7 +213,7 @@ the bin. Don't rename either back to `prettier`.
 - **Pure-function bias:** business rules and visibility predicates
   live in pure functions, separate from React or HTTP code, so
   they're testable in isolation.
-- **Comment the *why*, not the what.** Especially for non-obvious
+- **Comment the _why_, not the what.** Especially for non-obvious
   branches (cold-start guards, hotseat-vs-online diverging behaviour,
   security checks). The next agent should understand the constraint,
   not just the mechanics.
