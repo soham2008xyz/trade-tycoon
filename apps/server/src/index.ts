@@ -66,7 +66,7 @@ app.use(createRoomsRouter({ roomManager, eventBus }));
 app.use(createEventsRouter({ roomManager, eventBus }));
 
 app.get('/', (req, res) => {
-  res.send('Trade Tycoon Server is Running');
+  res.json({ status: 'ok', message: 'Trade Tycoon Server is Running' });
 });
 
 // Health check for load balancers / Vercel.
