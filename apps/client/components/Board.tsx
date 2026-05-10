@@ -37,6 +37,18 @@ interface Props {
    * by definition — behaves exactly as it did before this prop existed.
    */
   isMyTurn?: boolean;
+  /**
+   * True when running in online multiplayer. Forwarded to `AuctionModal` so
+   * each client only renders bid / fold controls on the row matching
+   * `myPlayerId`. Defaults to false (hotseat).
+   */
+  isMultiplayer?: boolean;
+  /**
+   * The local user's player id, used by multi-player UI like the auction
+   * modal to scope controls to "my row". Required when `isMultiplayer` is
+   * true; ignored otherwise.
+   */
+  myPlayerId?: string;
   onRoll: () => void;
   onBuy: () => void;
   onDeclineBuy: () => void;
@@ -91,6 +103,8 @@ export const Board: React.FC<Props> = ({
   onRejectTrade,
   onCancelTrade,
   isMyTurn = true,
+  isMultiplayer = false,
+  myPlayerId,
 }) => {
   const { width, height } = useWindowDimensions();
   const [showPropertyManager, setShowPropertyManager] = useState(false);
@@ -341,6 +355,8 @@ export const Board: React.FC<Props> = ({
         onBid={onBid}
         onConcede={onConcedeAuction}
         boardSize={size}
+        isMultiplayer={isMultiplayer}
+        myPlayerId={myPlayerId}
       />
 
       {/* Render Animated Player Tokens */}

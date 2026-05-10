@@ -10,6 +10,23 @@ interface Props {
   onBid: (playerId: string, amount: number) => void;
   onConcede: (playerId: string) => void;
   boardSize?: number;
+  /**
+   * When true, only the row whose `playerId === myPlayerId` shows bid / fold
+   * controls — every client only renders buttons for their own player. The
+   * other participants are still listed (so you can see who's still in and
+   * who's high bidder), just without buttons.
+   *
+   * When false (default — used by local hotseat play), every participant's
+   * row renders controls; each row's buttons are then enabled or disabled by
+   * the existing `isTurn`/`isHighestBidder` checks. The hotseat user keeps
+   * the device and acts on whichever row is currently active.
+   */
+  isMultiplayer?: boolean;
+  /**
+   * The local user's player id. Only meaningful when `isMultiplayer` is
+   * true. Ignored otherwise.
+   */
+  myPlayerId?: string;
 }
 
 export const AuctionModal: React.FC<Props> = ({
@@ -19,6 +36,8 @@ export const AuctionModal: React.FC<Props> = ({
   onBid,
   onConcede,
   boardSize,
+  isMultiplayer = false,
+  myPlayerId,
 }) => {
   if (!auction) return null;
 
@@ -49,6 +68,12 @@ export const AuctionModal: React.FC<Props> = ({
               const isHighestBidder = auction.highestBidderId === playerId;
               const isTurn = index === auction.currentBidderIndex;
               const canAffordBid = (amount: number) => player.money >= amount;
+              // In multiplayer, only the local user's row shows controls —
+              // every browser is its own client and should only render
+              // buttons it can actually act on. In hotseat (default), every
+              // row renders controls so the shared-device user can act for
+              // whichever bidder is active at the moment.
+              const showControlsForThisRow = !isMultiplayer || myPlayerId === playerId;
 
               return (
                 <View
@@ -61,44 +86,41 @@ export const AuctionModal: React.FC<Props> = ({
                   <View style={styles.playerInfo}>
                     <View style={[styles.playerColor, { backgroundColor: player.color }]} />
                     <Text style={[styles.playerName, isTurn && styles.activePlayerName]}>
-                      {player.name} (${player.money}) {isTurn && ' (Your Turn)'}
+                      {player.name} (${player.money}) {isTurn && ' (Bidding)'}
                     </Text>
                   </View>
 
-                  <View style={styles.controls}>
-                    <View style={styles.bidButtons}>
-                      {increments.map((inc) => {
-                        const bidAmount = auction.currentBid + inc;
-                        const disabled = !canAffordBid(bidAmount) || !isTurn;
-                        // Note: Standard rules don't strictly forbid bidding against yourself, but logic blocks it if not turn.
-                        // If I am high bidder, and it's my turn (e.g. everyone else folded?), I win immediately by logic.
-                        // But if there are others, it won't be my turn if I am high bidder (unless I outbid myself which is silly).
-                        // Actually, if I bid, turn passes. So I can't bid again immediately.
-
-                        return (
-                          <View key={inc} style={styles.buttonWrapper}>
-                            <IconButton
-                              title={`+${inc}`}
-                              icon="arrow-up-bold"
-                              onPress={() => onBid(playerId, bidAmount)}
-                              disabled={disabled}
-                              size="small"
-                            />
-                          </View>
-                        );
-                      })}
+                  {showControlsForThisRow && (
+                    <View style={styles.controls}>
+                      <View style={styles.bidButtons}>
+                        {increments.map((inc) => {
+                          const bidAmount = auction.currentBid + inc;
+                          const disabled = !canAffordBid(bidAmount) || !isTurn;
+                          return (
+                            <View key={inc} style={styles.buttonWrapper}>
+                              <IconButton
+                                title={`+${inc}`}
+                                icon="arrow-up-bold"
+                                onPress={() => onBid(playerId, bidAmount)}
+                                disabled={disabled}
+                                size="small"
+                              />
+                            </View>
+                          );
+                        })}
+                      </View>
+                      <View style={styles.foldButton}>
+                        <IconButton
+                          title="Fold"
+                          icon="close-circle"
+                          onPress={() => onConcede(playerId)}
+                          color="#d9534f"
+                          disabled={!isTurn || isHighestBidder}
+                          size="small"
+                        />
+                      </View>
                     </View>
-                    <View style={styles.foldButton}>
-                      <IconButton
-                        title="Fold"
-                        icon="close-circle"
-                        onPress={() => onConcede(playerId)}
-                        color="#d9534f"
-                        disabled={!isTurn || isHighestBidder}
-                        size="small"
-                      />
-                    </View>
-                  </View>
+                  )}
                 </View>
               );
             })}

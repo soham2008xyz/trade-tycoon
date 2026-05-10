@@ -409,6 +409,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         uiToastMessage={uiToastMessage || error}
         setUiToastMessage={setUiToastMessage}
         onLeaveGame={handleLeave}
+        isMultiplayer={true}
       />
     );
   }

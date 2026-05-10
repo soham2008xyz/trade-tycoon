@@ -15,6 +15,13 @@ interface GameUIProps {
   setUiToastMessage: (msg: string | null) => void;
   onLeaveGame: () => void;
   isHost?: boolean; // If needed for host-specific controls
+  /**
+   * True when this UI is rendered inside an online multiplayer game.
+   * Forwarded to `Board` and `AuctionModal` so per-client UIs (like the
+   * auction window) only render controls for the local user, not for every
+   * participant. Defaults to false (local hotseat play).
+   */
+  isMultiplayer?: boolean;
 }
 
 export const GameUI: React.FC<GameUIProps> = ({
@@ -24,6 +31,7 @@ export const GameUI: React.FC<GameUIProps> = ({
   uiToastMessage,
   setUiToastMessage,
   onLeaveGame,
+  isMultiplayer = false,
 }) => {
   const [logVisible, setLogVisible] = React.useState(false);
   const [alertVisible, setAlertVisible] = React.useState(false);
@@ -248,6 +256,8 @@ export const GameUI: React.FC<GameUIProps> = ({
           onShowLog={() => setLogVisible(true)}
           onDeclareBankruptcy={handleDeclareBankruptcy}
           isMyTurn={isMyTurn}
+          isMultiplayer={isMultiplayer}
+          myPlayerId={myPlayerId}
         />
       </View>
     </View>
