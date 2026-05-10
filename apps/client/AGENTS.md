@@ -122,7 +122,9 @@ Online state arrives via `GET /api/rooms/:id/events?userId=...`
   hand-roll reconnect logic.
 - Clean up in the effect's return: `removeEventListener` + `es.close()`.
   Also `eventSourceRef.current?.close()` in `handleLeave` so a manual
-  exit terminates the stream immediately.
+  exit terminates the stream immediately, but still POST
+  `/api/rooms/:id/leave` before navigating away so the server removes the
+  player from the shared lobby/game state for everyone else.
 
 ## Resume is opt-in (not auto)
 

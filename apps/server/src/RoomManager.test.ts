@@ -136,6 +136,35 @@ describe('RoomManager', () => {
     });
   });
 
+  describe('Leaving Rooms', () => {
+    it('should reassign the host when the host leaves the lobby', async () => {
+      const roomId = await roomManager.createRoom('Host');
+      const secondPlayer = (await roomManager.joinRoom(roomId, 'Player2'))!;
+
+      const result = await roomManager.leaveRoom(roomId, (await roomManager.getRoom(roomId))!.players[0].id);
+
+      expect(result).not.toBeNull();
+      expect(result?.state.players).toHaveLength(1);
+      expect(result?.state.players[0].id).toBe(secondPlayer.userId);
+      expect(result?.state.players[0].isHost).toBe(true);
+    });
+
+    it('should remove a player from the running game and award the win when one remains', async () => {
+      const roomId = await roomManager.createRoom('Host');
+      const hostId = (await roomManager.getRoom(roomId))!.players[0].id;
+      const secondPlayer = (await roomManager.joinRoom(roomId, 'Player2'))!;
+      await roomManager.startGame(roomId, hostId);
+
+      const result = await roomManager.leaveRoom(roomId, secondPlayer.userId);
+
+      expect(result).not.toBeNull();
+      expect(result?.state.players).toHaveLength(1);
+      expect(result?.state.players[0].id).toBe(hostId);
+      expect(result?.gameState?.players).toHaveLength(1);
+      expect(result?.gameState?.winner).toBe(hostId);
+    });
+  });
+
   describe('Game Lifecycle', () => {
     it('should start game only by host and with enough players', async () => {
       const roomId = await roomManager.createRoom('Host');

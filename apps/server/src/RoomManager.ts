@@ -5,6 +5,7 @@ import {
   LobbyState,
   createInitialState,
   reduceGameAction,
+  removePlayerFromGame,
   GameAction,
   createPlayer,
 } from '@trade-tycoon/game-logic';
@@ -76,7 +77,7 @@ export class RoomManager {
         id: userId,
         name: playerName,
         color: this.getRandomColor(current.players.map((p) => p.color)),
-        isHost: false,
+        isHost: current.players.length === 0,
         isReady: true,
       };
       return { ...current, players: [...current.players, newPlayer] };
@@ -92,6 +93,66 @@ export class RoomManager {
 
     console.log(`[RoomManager] Player ${playerName} (${userId}) joined room ${roomId}`);
     return { userId, state };
+  }
+
+  async leaveRoom(
+    roomId: string,
+    userId: string
+  ): Promise<{ state: LobbyState; gameState: GameState | null } | null> {
+    roomId = roomId.trim().toUpperCase();
+
+    const updated = await this.store.update(roomId, (current) => {
+      const player = current.players.find((entry) => entry.id === userId);
+      if (!player) return null;
+
+      const remainingPlayers = current.players.filter((entry) => entry.id !== userId);
+      const reassignedPlayers = remainingPlayers.map((entry, index) => ({
+        ...entry,
+        isHost: remainingPlayers.some((candidate) => candidate.isHost)
+          ? entry.isHost
+          : index === 0,
+      }));
+
+      if (reassignedPlayers.length === 0) {
+        return {
+          ...current,
+          players: [],
+          status: 'lobby' as const,
+          gameState: undefined,
+        };
+      }
+
+      if (!current.gameState) {
+        return {
+          ...current,
+          players: reassignedPlayers,
+        };
+      }
+
+      const nextGameState = removePlayerFromGame(current.gameState, userId);
+
+      if (nextGameState.players.length === 0) {
+        return {
+          ...current,
+          players: reassignedPlayers,
+          status: 'lobby' as const,
+          gameState: undefined,
+        };
+      }
+
+      return {
+        ...current,
+        players: reassignedPlayers,
+        gameState: nextGameState,
+      };
+    });
+
+    if (!updated) return null;
+
+    return {
+      state: updated,
+      gameState: updated.gameState ? this.stripBoard(updated.gameState) : null,
+    };
   }
 
   // Handle re-connection

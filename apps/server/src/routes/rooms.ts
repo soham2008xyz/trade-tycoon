@@ -117,6 +117,22 @@ export const createRoomsRouter = (deps: {
     });
   });
 
+  // POST /api/rooms/:roomId/leave { userId }
+  router.post('/api/rooms/:roomId/leave', async (req: Request, res: Response) => {
+    const userId = parseNonEmptyString(req.body?.userId);
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+    const roomId = String(req.params.roomId).trim().toUpperCase();
+    const result = await roomManager.leaveRoom(roomId, userId);
+    if (!result) return res.status(404).json({ error: 'session_expired' });
+
+    if (result.gameState) {
+      await eventBus.publish(roomId, { type: 'game_state_update', state: result.gameState });
+    }
+    await eventBus.publish(roomId, { type: 'lobby_update', state: result.state });
+    res.status(200).json({ ok: true });
+  });
+
   return router;
 };
 

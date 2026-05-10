@@ -265,12 +265,25 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     }
   };
 
-  const handleLeave = () => {
+  const handleLeave = async () => {
+    eventSourceRef.current?.close();
+    eventSourceRef.current = null;
+
+    if (roomId && userId) {
+      try {
+        await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/leave`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId }),
+        });
+      } catch (err) {
+        console.error('Leave request failed', err);
+      }
+    }
+
     if (Platform.OS === 'web') {
       localStorage.removeItem('trade_tycoon_session');
     }
-    eventSourceRef.current?.close();
-    eventSourceRef.current = null;
     onBack();
   };
 

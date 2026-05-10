@@ -150,6 +150,8 @@ workspace's `AGENTS.md`.
 - `POST /api/rooms/:id/join` — join
 - `POST /api/rooms/:id/start` — start (host-only)
 - `POST /api/rooms/:id/actions` — game actions (rolls, buys, trades, …)
+- `POST /api/rooms/:id/leave` — remove the authenticated player from the room
+  and, if the game is running, from the authoritative game state too
 - `POST /api/rooms/:id/reconnect` — resume a session
 - `GET /api/rooms/:id/events?userId=…` — SSE stream
 

@@ -227,6 +227,47 @@ describe('REST: /api/rooms', () => {
     });
   });
 
+  describe('POST /api/rooms/:id/leave', () => {
+    it('removes a lobby player and publishes a lobby_update', async () => {
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      const { roomId } = create.body;
+      const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
+      const bobId = join.body.userId;
+
+      const events: RoomEvent[] = [];
+      await eventBus.subscribe(roomId, (event) => events.push(event));
+
+      const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ userId: bobId });
+
+      expect(res.status).toBe(200);
+      expect(events).toHaveLength(1);
+      expect(events[0].type).toBe('lobby_update');
+      expect(events[0].state.players.map((player) => player.name)).toEqual(['Alice']);
+    });
+
+    it('removes an in-game player and publishes game_state_update plus lobby_update', async () => {
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      const { roomId, userId: aliceId } = create.body;
+      const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
+      const bobId = join.body.userId;
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: aliceId });
+
+      const events: RoomEvent[] = [];
+      await eventBus.subscribe(roomId, (event) => events.push(event));
+
+      const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ userId: bobId });
+
+      expect(res.status).toBe(200);
+      expect(events.map((event) => event.type)).toEqual(['game_state_update', 'lobby_update']);
+      const gameUpdate = events[0];
+      expect(gameUpdate.type).toBe('game_state_update');
+      if (gameUpdate.type !== 'game_state_update') throw new Error('Expected game_state_update');
+      expect(gameUpdate.state.players).toHaveLength(1);
+      expect(gameUpdate.state.players[0].id).toBe(aliceId);
+      expect(gameUpdate.state.winner).toBe(aliceId);
+    });
+  });
+
   /**
    * Trade flow integration tests. The client UI hides Accept/Reject from
    * non-targets and Cancel from non-initiators (`canAcceptTrade` /

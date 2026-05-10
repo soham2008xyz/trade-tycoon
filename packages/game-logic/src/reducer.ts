@@ -53,6 +53,145 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
   return result === ACTION_REJECTED ? state : result;
 };
 
+/**
+ * Server-side helper for removing a player from an in-progress online game.
+ * This is intentionally not a public client action because only the server
+ * should be able to drop a player after they leave the room.
+ */
+export const removePlayerFromGame = (state: GameState, playerId: string): GameState => {
+  const playerIndex = state.players.findIndex((p) => p.id === playerId);
+  if (playerIndex === -1) return state;
+
+  const player = state.players[playerIndex];
+  let players = state.players.filter((p) => p.id !== playerId);
+  let currentPlayerId = state.currentPlayerId;
+  let phase = state.phase;
+  let doublesCount = state.doublesCount;
+  let winner = state.winner;
+  let auction = state.auction;
+  let activeTrade = state.activeTrade;
+  const toastParts = [`${player.name} left the game.`];
+  const logs = [...state.logs, `[${player.name}] Left the game.`];
+
+  if (activeTrade && (activeTrade.initiatorId === playerId || activeTrade.targetPlayerId === playerId)) {
+    activeTrade = null;
+    toastParts.push('Active trade cancelled.');
+    logs.push(`[Game] Cancelled active trade because ${player.name} left.`);
+  }
+
+  if (auction && auction.participants.includes(playerId)) {
+    const currentAuction = auction;
+    const propertyName =
+      BOARD.find((tile) => tile.id === currentAuction.propertyId)?.name ?? 'the property';
+
+    if (currentAuction.highestBidderId === playerId) {
+      auction = null;
+      phase = 'action';
+      toastParts.push('Auction cancelled.');
+      logs.push(
+        `[Game] Cancelled auction for ${propertyName} because ${player.name} left as the high bidder.`
+      );
+    } else {
+      const removedBidderIndex = currentAuction.participants.indexOf(playerId);
+      const participants = currentAuction.participants.filter((id) => id !== playerId);
+
+      if (participants.length === 0) {
+        auction = null;
+        phase = 'action';
+        toastParts.push('Auction cancelled.');
+        logs.push(`[Game] Auction for ${propertyName} was cancelled because no bidders remained.`);
+      } else if (participants.length === 1 && currentAuction.highestBidderId === participants[0]) {
+        const winningBidderId = participants[0];
+        const winnerIndex = players.findIndex((p) => p.id === winningBidderId);
+        const auctionWinner = winnerIndex === -1 ? null : players[winnerIndex];
+
+        if (auctionWinner) {
+          const updatedWinner: Player = {
+            ...auctionWinner,
+            money: auctionWinner.money - currentAuction.currentBid,
+            properties: [...auctionWinner.properties, currentAuction.propertyId],
+          };
+          players = [...players];
+          players[winnerIndex] = updatedWinner;
+          toastParts.push(`${auctionWinner.name} won the auction for $${currentAuction.currentBid}.`);
+          logs.push(
+            `[${auctionWinner.name}] Won auction for ${propertyName} at $${currentAuction.currentBid}.`
+          );
+        }
+
+        auction = null;
+        phase = 'action';
+      } else {
+        let currentBidderIndex = currentAuction.currentBidderIndex;
+        if (removedBidderIndex < currentBidderIndex) {
+          currentBidderIndex -= 1;
+        }
+        currentBidderIndex %= participants.length;
+
+        auction = {
+          ...currentAuction,
+          participants,
+          currentBidderIndex,
+        };
+      }
+    }
+  }
+
+  if (players.length === 0) {
+    return {
+      ...state,
+      players: [],
+      currentPlayerId: '',
+      doublesCount: 0,
+      phase: 'roll',
+      winner: null,
+      auction: null,
+      activeTrade: null,
+      errorMessage: undefined,
+      toastMessage: toastParts.join(' '),
+      logs,
+    };
+  }
+
+  if (state.currentPlayerId === playerId) {
+    const nextIndex = (playerIndex + 1) % state.players.length;
+    currentPlayerId = state.players[nextIndex].id;
+    if (!players.some((p) => p.id === currentPlayerId)) {
+      currentPlayerId = players[0].id;
+    }
+    phase = 'roll';
+    doublesCount = 0;
+  }
+
+  if (players.length === 1) {
+    winner = players[0].id;
+    currentPlayerId = players[0].id;
+    phase = 'roll';
+    doublesCount = 0;
+    auction = null;
+    activeTrade = null;
+    toastParts.length = 0;
+    toastParts.push(`${player.name} left the game. ${players[0].name} wins!`);
+    logs.push(`[Game] ${players[0].name} wins!`);
+  } else if (winner === playerId || (winner && !players.some((p) => p.id === winner))) {
+    winner = null;
+  }
+
+  return {
+    ...state,
+    players,
+    currentPlayerId,
+    doublesCount,
+    phase,
+    winner,
+    auction,
+    activeTrade,
+    errorMessage: undefined,
+    toastMessage: toastParts.join(' '),
+    logs,
+  };
+};
+
 export const reduceGameAction = (state: GameState, action: Action): GameReducerResult => {
   if (state.winner && !POST_GAME_ALLOWED.has(action.type)) {
     return state;
