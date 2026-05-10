@@ -1,0 +1,64 @@
+name: Task / Chore
+description: Technical task, refactor, dependency update, or maintenance work
+title: "[Chore]: "
+labels: ["chore"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for technical work that doesn't add a visible feature — refactoring, upgrades, CI improvements, etc.
+
+  - type: input
+    id: objective
+    attributes:
+      label: Objective
+      description: A one-line summary of what needs to be done
+      placeholder: "e.g., Upgrade game-logic dependencies to latest versions"
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Detailed description of the work required
+      placeholder: Explain what needs to change and why
+    validations:
+      required: true
+
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Subtasks to track progress
+      placeholder: |
+        - [ ] Update package versions
+        - [ ] Fix any breaking changes
+        - [ ] Update tests
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Any blockers, prerequisites, or related issues
+      placeholder: "e.g., Blocked by #42"
+
+  - type: dropdown
+    id: workspace
+    attributes:
+      label: Affected Workspace
+      description: Which part of the codebase would this affect?
+      options:
+        - game-logic (rules / reducer / types)
+        - server (API / SSE / multiplayer)
+        - client (UI / screens / components)
+        - cross-cutting (docs / CI / config)
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Additional context, considerations, or links to references

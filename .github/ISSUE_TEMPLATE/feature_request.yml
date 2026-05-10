@@ -1,0 +1,72 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for the game
+title: "[Feature]: "
+labels: ["enhancement"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please describe what you'd like and why it would be valuable.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: A one-line summary of the feature
+      placeholder: "e.g., Add property trading between players"
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this feature needed? What problem does it solve?
+      placeholder: "e.g., Players need a way to exchange properties to complete sets"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: How should this feature work? Describe the ideal behavior
+      placeholder: "e.g., A new trade screen where players can offer properties and cash..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What conditions must be met for this feature to be considered complete?
+      placeholder: |
+        - [ ] Players can initiate a trade from the game screen
+        - [ ] Both parties must accept the trade
+        - [ ] Trade history is logged
+    validations:
+      required: true
+
+  - type: dropdown
+    id: workspace
+    attributes:
+      label: Affected Workspace
+      description: Which part of the codebase would this affect?
+      options:
+        - game-logic (rules / reducer / types)
+        - server (API / SSE / multiplayer)
+        - client (UI / screens / components)
+        - cross-cutting (docs / CI / config)
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Other approaches you considered and why they weren't chosen
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Mockups, diagrams, examples, or related issues
