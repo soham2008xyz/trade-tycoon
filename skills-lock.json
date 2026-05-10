@@ -97,6 +97,12 @@
       "skillPath": "skills/setup-react-native-storybook/SKILL.md",
       "computedHash": "c991e2752c560169cd632c0b18a00518e3f57a4514e35d9f3ed905bd9bd1efbc"
     },
+    "storybook-upgrade": {
+      "source": "storybookjs/storybook",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/storybook-upgrade/SKILL.md",
+      "computedHash": "f1dd2485f4750289180a9c474b0e311bb3d7d3c695f619fde76ecfbf61de0c93"
+    },
     "upgrading-expo": {
       "source": "expo/skills",
       "sourceType": "github",
