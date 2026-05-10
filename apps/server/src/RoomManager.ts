@@ -1,9 +1,10 @@
 import {
+  ACTION_REJECTED,
   GameState,
   LobbyPlayer,
   LobbyState,
   createInitialState,
-  gameReducer,
+  reduceGameAction,
   GameAction,
   createPlayer,
 } from '@trade-tycoon/game-logic';
@@ -221,7 +222,11 @@ export class RoomManager {
         return null;
       }
 
-      const newState = gameReducer(current.gameState, safeAction);
+      const newState = reduceGameAction(current.gameState, safeAction);
+      if (newState === ACTION_REJECTED) {
+        console.warn(`[RoomManager] Rejected ${safeAction.type} from ${userId}`);
+        return null;
+      }
       return { ...current, gameState: newState };
     });
 

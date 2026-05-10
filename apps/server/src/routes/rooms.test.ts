@@ -287,18 +287,7 @@ describe('REST: /api/rooms', () => {
       expect(room?.gameState?.activeTrade).toBeNull();
     });
 
-    /*
-     * The game-logic reducer silently no-ops on ACCEPT_TRADE from a non-
-     * target and CANCEL_TRADE from a non-initiator (it returns the
-     * unchanged state instead of throwing). The HTTP status that comes
-     * back is therefore 200 — the *action* was processed, the state just
-     * didn't move. We verify the side-effect is absent: `activeTrade`
-     * remains unchanged after the rogue request. The malicious-attribution
-     * case below (where action.playerId is forged) IS a hard 409 because
-     * `handleGameAction`'s `userId === playerId` check rejects it before
-     * the reducer ever sees it.
-     */
-    it('a third-party ACCEPT_TRADE leaves the active trade in place', async () => {
+    it('returns 409 when a third party tries to accept the trade', async () => {
       // 3-player setup so we have a non-target third party.
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       const { roomId, userId: aliceId } = create.body;
@@ -329,24 +318,21 @@ describe('REST: /api/rooms', () => {
       const tradeIdBefore = before?.gameState?.activeTrade?.id;
       expect(tradeIdBefore).toBeTruthy();
 
-      // Charlie (not the target) tries to accept. The reducer no-ops it.
       const res = await request(app)
         .post(`/api/rooms/${roomId}/actions`)
         .send({ userId: charlieId, action: { type: 'ACCEPT_TRADE', playerId: charlieId } });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(409);
 
       const after = await roomManager.getRoom(roomId);
-      // Side-effect must be absent: the same trade is still pending.
       expect(after?.gameState?.activeTrade?.id).toBe(tradeIdBefore);
     });
 
-    it('a non-initiator CANCEL_TRADE leaves the active trade in place', async () => {
+    it('returns 409 when a non-initiator tries to cancel the trade', async () => {
       const { roomId, bobId, tradeId } = await setupActiveTrade();
-      // Bob (target) tries to cancel — only the initiator can.
       const res = await request(app)
         .post(`/api/rooms/${roomId}/actions`)
         .send({ userId: bobId, action: { type: 'CANCEL_TRADE', playerId: bobId } });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(409);
 
       const after = await roomManager.getRoom(roomId);
       expect(after?.gameState?.activeTrade?.id).toBe(tradeId);

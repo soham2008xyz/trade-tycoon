@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { gameReducer } from './reducer';
+import { ACTION_REJECTED, gameReducer, reduceGameAction } from './reducer';
 import { createInitialState, createPlayer } from './index';
 import { GameState } from './types';
 import { BOARD } from './board-data';
@@ -1809,7 +1809,13 @@ describe('Game Reducer', () => {
       });
 
       expect(newState.activeTrade).not.toBeNull(); // Trade still pending
-      expect(newState.errorMessage).toBeDefined();
+      expect(newState).toBe(pendingTrade);
+      expect(
+        reduceGameAction(pendingTrade, {
+          type: 'ACCEPT_TRADE',
+          playerId: 'p1',
+        })
+      ).toBe(ACTION_REJECTED);
     });
 
     it('should clear activeTrade on REJECT_TRADE by target', () => {
@@ -1882,7 +1888,13 @@ describe('Game Reducer', () => {
         playerId: 'p2',
       });
 
-      expect(newState.activeTrade).not.toBeNull();
+      expect(newState).toBe(pendingTrade);
+      expect(
+        reduceGameAction(pendingTrade, {
+          type: 'CANCEL_TRADE',
+          playerId: 'p2',
+        })
+      ).toBe(ACTION_REJECTED);
     });
 
     it('should transfer mortgaged property status in trade', () => {

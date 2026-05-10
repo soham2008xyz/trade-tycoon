@@ -36,6 +36,10 @@ export type Action =
   | { type: 'REJECT_TRADE'; playerId: string }
   | { type: 'CANCEL_TRADE'; playerId: string };
 
+export const ACTION_REJECTED = Symbol('ACTION_REJECTED');
+export type ActionRejected = typeof ACTION_REJECTED;
+export type GameReducerResult = GameState | ActionRejected;
+
 // Actions that must be ignored once a winner is declared. The game is over —
 // only RESET_GAME (start a new game) and DISMISS_* (clear UI banners) remain.
 const POST_GAME_ALLOWED: ReadonlySet<Action['type']> = new Set([
@@ -45,6 +49,11 @@ const POST_GAME_ALLOWED: ReadonlySet<Action['type']> = new Set([
 ]);
 
 export const gameReducer = (state: GameState, action: Action): GameState => {
+  const result = reduceGameAction(state, action);
+  return result === ACTION_REJECTED ? state : result;
+};
+
+export const reduceGameAction = (state: GameState, action: Action): GameReducerResult => {
   if (state.winner && !POST_GAME_ALLOWED.has(action.type)) {
     return state;
   }
@@ -697,8 +706,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
     case 'ACCEPT_TRADE': {
       if (!state.activeTrade) return state;
-      if (state.activeTrade.targetPlayerId !== action.playerId)
-        return { ...state, errorMessage: 'This trade is not for you.' };
+      if (state.activeTrade.targetPlayerId !== action.playerId) return ACTION_REJECTED;
 
       const trade = state.activeTrade;
       const initiatorIndex = state.players.findIndex((p) => p.id === trade.initiatorId);
@@ -803,7 +811,7 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 
     case 'CANCEL_TRADE': {
       if (!state.activeTrade) return state;
-      if (state.activeTrade.initiatorId !== action.playerId) return state; // Only initiator can cancel
+      if (state.activeTrade.initiatorId !== action.playerId) return ACTION_REJECTED;
 
       return {
         ...state,

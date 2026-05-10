@@ -79,11 +79,13 @@ keep it close to the existing structure.
   `await redis.flushall()` in `beforeEach`** — `new RedisMock()`
   instances share an underlying in-memory map and one test will
   pollute the next.
-- **For boundaries the reducer no-ops** (third-party ACCEPT_TRADE,
-  non-initiator CANCEL_TRADE, …) the route returns HTTP 200 with the
-  unchanged state. Tests assert state-is-unchanged, not 409. The 409
-  path is for the `userId !== action.playerId` impersonation guard
-  alone.
+- **For explicit trade-authorization rejections** (third-party
+  `ACCEPT_TRADE`, non-initiator `CANCEL_TRADE`) the route returns HTTP
+  409 because `RoomManager.handleGameAction` uses the detailed reducer
+  helper and maps its rejection sentinel to `null`. Tests assert both
+  the 409 and that the pending trade stayed in place. The
+  `userId !== action.playerId` impersonation guard is still a separate,
+  earlier 409 path.
 
 ## SSE handler lifecycle
 

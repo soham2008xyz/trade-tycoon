@@ -167,22 +167,25 @@ on Create/Join intent** — it caused a host-impersonation bug whose
 debugging history is in `git log`. Implementation lives in
 `apps/client/AGENTS.md`.
 
-### Reducer no-ops on illegitimate actions
+### Trade authorization rejections are explicit on the server path
 
-The game-logic reducer **silently returns the input state** when an
-action is illegitimate (non-host START_GAME, non-target ACCEPT_TRADE,
-non-initiator CANCEL_TRADE, …). It does not throw, it does not return
-a sentinel. Two consequences:
+Most illegitimate actions in game logic still no-op by returning the
+input state unchanged. But there is one important exception:
+`ACCEPT_TRADE` from a non-target and `CANCEL_TRADE` from a
+non-initiator now produce an explicit rejection sentinel in the
+detailed reducer path used by the server.
 
-- Game-logic tests assert state-unchanged via reference equality
-  (see `packages/game-logic/AGENTS.md`).
-- Server tests for these boundaries assert HTTP 200 with state-not-
-  changed, **not** 409 (see `apps/server/AGENTS.md`). The 409 path is
-  reserved for the higher-level `userId !== action.playerId`
-  impersonation guard.
+Two consequences:
+
+- Game-logic exposes a server-facing helper that can return the
+  sentinel, while the client-facing `gameReducer` wrapper still
+  collapses that back to "unchanged state" for `useReducer`.
+- Server tests for those rogue trade actions now assert HTTP 409
+  `Action rejected`, while the higher-level `userId !== action.playerId`
+  impersonation guard remains its own earlier rejection path.
 
 If you change this behaviour, both workspace files need updating —
-they're the only places that document this contract.
+they're the only places that document this contract in detail.
 
 ## 6. Cross-cutting gotchas
 

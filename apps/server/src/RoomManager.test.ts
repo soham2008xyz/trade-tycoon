@@ -219,6 +219,53 @@ describe('RoomManager', () => {
       expect(newState).toBeNull();
     });
 
+    it('should return null when a non-target tries to accept a trade', async () => {
+      const roomId = await roomManager.createRoom('Host');
+      const hostId = (await roomManager.getRoom(roomId))!.players[0].id;
+      const p2Id = (await roomManager.joinRoom(roomId, 'P2'))!.userId;
+      const p3Id = (await roomManager.joinRoom(roomId, 'P3'))!.userId;
+      await roomManager.startGame(roomId, hostId);
+
+      await roomManager.handleGameAction(roomId, hostId, {
+        type: 'PROPOSE_TRADE',
+        playerId: hostId,
+        targetPlayerId: p2Id,
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      const result = await roomManager.handleGameAction(roomId, p3Id, {
+        type: 'ACCEPT_TRADE',
+        playerId: p3Id,
+      });
+
+      expect(result).toBeNull();
+      expect((await roomManager.getRoom(roomId))?.gameState?.activeTrade).toBeTruthy();
+    });
+
+    it('should return null when a non-initiator tries to cancel a trade', async () => {
+      const roomId = await roomManager.createRoom('Host');
+      const hostId = (await roomManager.getRoom(roomId))!.players[0].id;
+      const p2Id = (await roomManager.joinRoom(roomId, 'P2'))!.userId;
+      await roomManager.startGame(roomId, hostId);
+
+      await roomManager.handleGameAction(roomId, hostId, {
+        type: 'PROPOSE_TRADE',
+        playerId: hostId,
+        targetPlayerId: p2Id,
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      const result = await roomManager.handleGameAction(roomId, p2Id, {
+        type: 'CANCEL_TRADE',
+        playerId: p2Id,
+      });
+
+      expect(result).toBeNull();
+      expect((await roomManager.getRoom(roomId))?.gameState?.activeTrade).toBeTruthy();
+    });
+
     it('should reject client-issued RESET_GAME', async () => {
       const roomId = await roomManager.createRoom('Host');
       const hostId = (await roomManager.getRoom(roomId))!.players[0].id;
