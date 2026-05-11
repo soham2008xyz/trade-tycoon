@@ -21,9 +21,7 @@ export const isNativeIpadShell = ({ platform, isPad }: ViewportSnapshot): boolea
   return platform === 'ios' && isPad;
 };
 
-export const getIpadNativePresentation = (
-  snapshot: ViewportSnapshot
-): IpadNativePresentation => {
+export const getIpadNativePresentation = (snapshot: ViewportSnapshot): IpadNativePresentation => {
   const isLandscape = snapshot.width >= snapshot.height;
   const nativeIpadShell = isNativeIpadShell(snapshot);
 

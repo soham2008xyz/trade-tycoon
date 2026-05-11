@@ -6,9 +6,9 @@ describe('ipad-native-presentation', () => {
     expect(isNativeIpadShell({ platform: 'ios', isPad: false, width: 1024, height: 768 })).toBe(
       false
     );
-    expect(
-      isNativeIpadShell({ platform: 'android', isPad: false, width: 1024, height: 768 })
-    ).toBe(false);
+    expect(isNativeIpadShell({ platform: 'android', isPad: false, width: 1024, height: 768 })).toBe(
+      false
+    );
     expect(isNativeIpadShell({ platform: 'web', isPad: false, width: 1366, height: 1024 })).toBe(
       false
     );
