@@ -1,1 +1,4 @@
 node_modules/
+.expo/
+apps/client/ios/
+apps/client/android/

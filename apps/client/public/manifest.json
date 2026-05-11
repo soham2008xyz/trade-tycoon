@@ -1,15 +1,10 @@
 {
   "name": "Trade Tycoon",
   "short_name": "TradeTycoon",
-  "description": "A Monopoly-style trading game tuned for installable iPad web play.",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": ".",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui", "browser"],
-  "orientation": "any",
-  "background_color": "#1c2434",
-  "theme_color": "#1c2434",
-  "categories": ["games", "entertainment"],
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "/icon-192.png",

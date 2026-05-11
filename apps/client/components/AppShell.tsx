@@ -1,6 +1,6 @@
 import React from 'react';
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { getIpadWebPresentation } from './ipad-web-presentation';
+import { getIpadNativePresentation } from './ipad-native-presentation';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -8,13 +8,14 @@ interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const { width, height } = useWindowDimensions();
-  const presentation = getIpadWebPresentation({
+  const presentation = getIpadNativePresentation({
     platform: Platform.OS,
+    isPad: Platform.OS === 'ios' ? Platform.isPad : false,
     width,
     height,
   });
 
-  if (!presentation.isTabletWebViewport) {
+  if (!presentation.isNativeIpadShell) {
     return <View style={styles.phoneShell}>{children}</View>;
   }
 
@@ -34,22 +35,25 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       >
         {presentation.isLandscape && (
           <View style={[styles.sidebar, { width: presentation.sidebarWidth }]}>
-            <Text style={styles.eyebrow}>iPad Web App</Text>
+            <Text style={styles.eyebrow}>Native iPad App</Text>
             <Text style={styles.sidebarTitle}>Trade Tycoon</Text>
             <Text style={styles.sidebarBody}>
-              The Expo web client now ships with tablet-first browser chrome, standalone PWA
-              metadata, and a board viewport that sizes itself to the app stage instead of the whole
-              tab.
+              This layout is reserved for the native iPad build so the board can breathe, the action
+              flow can stay visible, and the game feels at home on a tablet screen.
             </Text>
 
             <View style={styles.sidebarCard}>
-              <Text style={styles.cardLabel}>Install Flow</Text>
-              <Text style={styles.cardValue}>Safari → Share → Add to Home Screen</Text>
+              <Text style={styles.cardLabel}>Orientation</Text>
+              <Text style={styles.cardValue}>
+                Full-screen landscape on iPad, portrait preserved on phones
+              </Text>
             </View>
 
             <View style={styles.sidebarCard}>
-              <Text style={styles.cardLabel}>Layout Target</Text>
-              <Text style={styles.cardValue}>1024×768 and larger tablet-class web viewports</Text>
+              <Text style={styles.cardLabel}>Board Stage</Text>
+              <Text style={styles.cardValue}>
+                Measured from the live app stage so the sidebar never crowds the board
+              </Text>
             </View>
           </View>
         )}

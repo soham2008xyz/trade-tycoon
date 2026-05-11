@@ -12,7 +12,7 @@
   package shape, so the server workspace test script must rebuild
   `packages/game-logic` first or reducer changes can be invisible to server
   tests.
-- The installable iPad web shell in `apps/client` is driven by the pure
-  `ipad-web-presentation.ts` helper, and the board must size itself from the
-  measured `GameUI` stage rather than raw `useWindowDimensions()` or the board
-  will overflow when the tablet shell adds a sidebar.
+- The native iPad shell in `apps/client` is driven by the pure
+  `ipad-native-presentation.ts` helper, and the board must size itself from
+  the measured `GameUI` stage rather than raw `useWindowDimensions()` or the
+  board will overflow when the tablet shell adds a sidebar.
