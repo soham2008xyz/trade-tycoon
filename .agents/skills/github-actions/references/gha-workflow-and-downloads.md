@@ -11,7 +11,6 @@ Use this workflow to run iOS simulator and Android emulator builds in cloud CI a
 ## Minimum Required Inputs
 
 Set these before first run:
-
 - iOS scheme: exact Xcode scheme name (for example `YourApp`).
 - Android variant: Gradle variant for emulator artifacts (usually `Debug`).
 - Branch strategy: branches for `push` and `pull_request` triggers (default below uses `main`).
@@ -239,12 +238,12 @@ PY
 
 ## Troubleshooting
 
-| Symptom                                      | Likely Cause                               | Fix                                                                          |
-| -------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------- |
-| `ruby/setup-ruby` or Bundler fails           | Repo does not require Ruby toolchain in CI | Remove Ruby setup and run plain `pod install`                                |
-| `xcodebuild: Scheme ... not found`           | Wrong iOS scheme value                     | Use exact shared scheme from Xcode project/workspace                         |
-| `Task ':app:assembledebug' not found`        | Wrong Android variant casing               | Use Gradle-style casing (`Debug`, `Release`, `StagingDebug`)                 |
-| `pod install --repo-update` is slow or flaky | CocoaPods spec repo updates                | Retry, cache Pods, or drop `--repo-update` when lockfile + mirror are stable |
+| Symptom | Likely Cause | Fix |
+|---|---|---|
+| `ruby/setup-ruby` or Bundler fails | Repo does not require Ruby toolchain in CI | Remove Ruby setup and run plain `pod install` |
+| `xcodebuild: Scheme ... not found` | Wrong iOS scheme value | Use exact shared scheme from Xcode project/workspace |
+| `Task ':app:assembledebug' not found` | Wrong Android variant casing | Use Gradle-style casing (`Debug`, `Release`, `StagingDebug`) |
+| `pod install --repo-update` is slow or flaky | CocoaPods spec repo updates | Retry, cache Pods, or drop `--repo-update` when lockfile + mirror are stable |
 
 ## Download Artifacts with `gh`
 

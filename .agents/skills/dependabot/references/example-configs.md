@@ -11,10 +11,10 @@ Minimal configuration for a single npm project:
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: 'npm'
-    directory: '/'
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
 ```
 
 ---
@@ -26,28 +26,28 @@ Turborepo/pnpm monorepo with multiple workspace packages:
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: 'npm'
+  - package-ecosystem: "npm"
     directories:
-      - '/'
-      - '/apps/*'
-      - '/packages/*'
-      - '/services/*'
+      - "/"
+      - "/apps/*"
+      - "/packages/*"
+      - "/services/*"
     schedule:
-      interval: 'weekly'
-      day: 'monday'
+      interval: "weekly"
+      day: "monday"
     groups:
       dev-dependencies:
-        dependency-type: 'development'
-        update-types: ['minor', 'patch']
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
       production-dependencies:
-        dependency-type: 'production'
-        update-types: ['minor', 'patch']
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
     labels:
-      - 'dependencies'
-      - 'npm'
+      - "dependencies"
+      - "npm"
     commit-message:
-      prefix: 'deps'
-      include: 'scope'
+      prefix: "deps"
+      include: "scope"
 ```
 
 ---
@@ -59,22 +59,22 @@ Separate dev and production updates to prioritize review of production changes:
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: 'npm'
-    directory: '/'
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
     groups:
       production-deps:
-        dependency-type: 'production'
+        dependency-type: "production"
       dev-deps:
-        dependency-type: 'development'
+        dependency-type: "development"
         exclude-patterns:
-          - 'eslint*'
+          - "eslint*"
       linting:
         patterns:
-          - 'eslint*'
-          - 'prettier*'
-          - '@typescript-eslint*'
+          - "eslint*"
+          - "prettier*"
+          - "@typescript-eslint*"
 ```
 
 ---
@@ -86,13 +86,13 @@ Create one PR per shared dependency across directories:
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: 'npm'
+  - package-ecosystem: "npm"
     directories:
-      - '/frontend'
-      - '/admin-panel'
-      - '/mobile-app'
+      - "/frontend"
+      - "/admin-panel"
+      - "/mobile-app"
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
     groups:
       monorepo-dependencies:
         group-by: dependency-name
@@ -112,20 +112,20 @@ version: 2
 multi-ecosystem-groups:
   infrastructure:
     schedule:
-      interval: 'weekly'
-    labels: ['infrastructure', 'dependencies']
-    assignees: ['@platform-team']
+      interval: "weekly"
+    labels: ["infrastructure", "dependencies"]
+    assignees: ["@platform-team"]
 
 updates:
-  - package-ecosystem: 'docker'
-    directory: '/'
-    patterns: ['nginx', 'redis', 'postgres']
-    multi-ecosystem-group: 'infrastructure'
+  - package-ecosystem: "docker"
+    directory: "/"
+    patterns: ["nginx", "redis", "postgres"]
+    multi-ecosystem-group: "infrastructure"
 
-  - package-ecosystem: 'terraform'
-    directory: '/'
-    patterns: ['aws*', 'terraform-*']
-    multi-ecosystem-group: 'infrastructure'
+  - package-ecosystem: "terraform"
+    directory: "/"
+    patterns: ["aws*", "terraform-*"]
+    multi-ecosystem-group: "infrastructure"
 ```
 
 ---
@@ -137,21 +137,21 @@ Monitor for security vulnerabilities without version update PRs:
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: 'npm'
-    directory: '/'
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: 'daily'
-    open-pull-requests-limit: 0 # disables version update PRs
+      interval: "daily"
+    open-pull-requests-limit: 0  # disables version update PRs
     groups:
       security-all:
         applies-to: security-updates
-        patterns: ['*']
-        update-types: ['patch', 'minor']
+        patterns: ["*"]
+        update-types: ["patch", "minor"]
 
-  - package-ecosystem: 'pip'
-    directory: '/'
+  - package-ecosystem: "pip"
+    directory: "/"
     schedule:
-      interval: 'daily'
+      interval: "daily"
     open-pull-requests-limit: 0
 ```
 
@@ -177,19 +177,19 @@ registries:
     password: ${{secrets.GHCR_TOKEN}}
 
 updates:
-  - package-ecosystem: 'npm'
-    directory: '/'
+  - package-ecosystem: "npm"
+    directory: "/"
     registries:
       - npm-private
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
 
-  - package-ecosystem: 'docker'
-    directory: '/'
+  - package-ecosystem: "docker"
+    directory: "/"
     registries:
       - docker-ghcr
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
 ```
 
 ---
@@ -201,19 +201,19 @@ Delay updates for newly released versions to avoid early-adopter bugs:
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: 'npm'
-    directory: '/'
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
     cooldown:
       default-days: 5
       semver-major-days: 30
       semver-minor-days: 14
       semver-patch-days: 3
-      include: ['*']
+      include: ["*"]
       exclude:
-        - 'security-critical-lib'
-        - '@company/internal-*'
+        - "security-critical-lib"
+        - "@company/internal-*"
 ```
 
 ---
@@ -225,18 +225,18 @@ Run updates at a specific time using cron expressions:
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: 'npm'
-    directory: '/'
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: 'cron'
-      cronjob: '0 9 * * 1' # Every Monday at 9:00 AM
-      timezone: 'America/New_York'
+      interval: "cron"
+      cronjob: "0 9 * * 1"  # Every Monday at 9:00 AM
+      timezone: "America/New_York"
 
-  - package-ecosystem: 'github-actions'
-    directory: '/'
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: 'cron'
-      cronjob: '0 6 1 * *' # First day of each month at 6:00 AM
+      interval: "cron"
+      cronjob: "0 6 1 * *"  # First day of each month at 6:00 AM
 ```
 
 ---
@@ -256,99 +256,99 @@ registries:
 
 updates:
   # npm — monorepo workspaces
-  - package-ecosystem: 'npm'
+  - package-ecosystem: "npm"
     directories:
-      - '/'
-      - '/apps/*'
-      - '/packages/*'
-      - '/services/*'
+      - "/"
+      - "/apps/*"
+      - "/packages/*"
+      - "/services/*"
     registries:
       - npm-private
     schedule:
-      interval: 'weekly'
-      day: 'monday'
-      time: '09:00'
-      timezone: 'America/New_York'
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
     groups:
       dev-dependencies:
-        dependency-type: 'development'
-        update-types: ['minor', 'patch']
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
       production-dependencies:
-        dependency-type: 'production'
-        update-types: ['minor', 'patch']
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
       angular:
-        patterns: ['@angular*']
-        update-types: ['minor', 'patch']
+        patterns: ["@angular*"]
+        update-types: ["minor", "patch"]
       security-patches:
         applies-to: security-updates
-        patterns: ['*']
-        update-types: ['patch', 'minor']
+        patterns: ["*"]
+        update-types: ["patch", "minor"]
     ignore:
-      - dependency-name: 'aws-sdk'
-        update-types: ['version-update:semver-major']
+      - dependency-name: "aws-sdk"
+        update-types: ["version-update:semver-major"]
     cooldown:
       default-days: 3
       semver-major-days: 14
     labels:
-      - 'dependencies'
-      - 'npm'
+      - "dependencies"
+      - "npm"
     commit-message:
-      prefix: 'deps'
-      prefix-development: 'deps-dev'
-      include: 'scope'
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
     assignees:
-      - 'security-lead'
+      - "security-lead"
     open-pull-requests-limit: 15
 
   # GitHub Actions
-  - package-ecosystem: 'github-actions'
-    directory: '/'
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: 'weekly'
-      day: 'monday'
+      interval: "weekly"
+      day: "monday"
     groups:
       actions:
-        patterns: ['*']
+        patterns: ["*"]
     labels:
-      - 'dependencies'
-      - 'ci'
+      - "dependencies"
+      - "ci"
     commit-message:
-      prefix: 'ci'
+      prefix: "ci"
 
   # Docker
-  - package-ecosystem: 'docker'
+  - package-ecosystem: "docker"
     directories:
-      - '/services/*'
+      - "/services/*"
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
     labels:
-      - 'dependencies'
-      - 'docker'
+      - "dependencies"
+      - "docker"
     commit-message:
-      prefix: 'deps'
+      prefix: "deps"
 
   # pip
-  - package-ecosystem: 'pip'
-    directory: '/scripts'
+  - package-ecosystem: "pip"
+    directory: "/scripts"
     schedule:
-      interval: 'monthly'
+      interval: "monthly"
     labels:
-      - 'dependencies'
-      - 'python'
-    versioning-strategy: 'increase-if-necessary'
+      - "dependencies"
+      - "python"
+    versioning-strategy: "increase-if-necessary"
     commit-message:
-      prefix: 'deps'
+      prefix: "deps"
 
   # Terraform
-  - package-ecosystem: 'terraform'
-    directory: '/infra'
+  - package-ecosystem: "terraform"
+    directory: "/infra"
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
     labels:
-      - 'dependencies'
-      - 'terraform'
+      - "dependencies"
+      - "terraform"
     commit-message:
-      prefix: 'infra'
+      prefix: "infra"
 ```
 
 ---
@@ -360,25 +360,25 @@ Control exactly what gets updated and how:
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: 'npm'
-    directory: '/'
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: 'daily'
-    versioning-strategy: 'increase'
+      interval: "daily"
+    versioning-strategy: "increase"
     ignore:
       # Never auto-update to Express 5.x (breaking changes)
-      - dependency-name: 'express'
-        versions: ['5.x']
+      - dependency-name: "express"
+        versions: ["5.x"]
       # Skip patch updates for type definitions
-      - dependency-name: '@types/*'
-        update-types: ['version-update:semver-patch']
+      - dependency-name: "@types/*"
+        update-types: ["version-update:semver-patch"]
       # Ignore all updates for a vendored package
-      - dependency-name: 'legacy-internal-lib'
+      - dependency-name: "legacy-internal-lib"
     allow:
-      - dependency-type: 'all'
+      - dependency-type: "all"
     exclude-paths:
-      - 'vendor/**'
-      - 'test/fixtures/**'
+      - "vendor/**"
+      - "test/fixtures/**"
 ```
 
 ---
@@ -390,20 +390,20 @@ Test updates on a development branch before production:
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: 'npm'
-    directory: '/'
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: 'weekly'
-    target-branch: 'develop'
+      interval: "weekly"
+    target-branch: "develop"
     labels:
-      - 'dependencies'
-      - 'staging'
+      - "dependencies"
+      - "staging"
 
-  - package-ecosystem: 'pip'
-    directory: '/'
+  - package-ecosystem: "pip"
+    directory: "/"
     schedule:
-      interval: 'weekly'
-    target-branch: 'develop'
+      interval: "weekly"
+    target-branch: "develop"
 ```
 
 Note: Security updates always target the default branch regardless of `target-branch`.

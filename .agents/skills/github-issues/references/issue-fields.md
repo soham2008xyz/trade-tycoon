@@ -19,27 +19,10 @@ Fields are defined at the org level. List them before trying to set values:
     issueFields(first: 30) {
       nodes {
         __typename
-        ... on IssueFieldDate {
-          id
-          name
-        }
-        ... on IssueFieldText {
-          id
-          name
-        }
-        ... on IssueFieldNumber {
-          id
-          name
-        }
-        ... on IssueFieldSingleSelect {
-          id
-          name
-          options {
-            id
-            name
-            color
-          }
-        }
+        ... on IssueFieldDate { id name }
+        ... on IssueFieldText { id name }
+        ... on IssueFieldNumber { id name }
+        ... on IssueFieldSingleSelect { id name options { id name color } }
       }
     }
   }
@@ -62,40 +45,20 @@ For single-select fields, you need the option `id` (not the name) to set values.
           __typename
           ... on IssueFieldDateValue {
             value
-            field {
-              ... on IssueFieldDate {
-                id
-                name
-              }
-            }
+            field { ... on IssueFieldDate { id name } }
           }
           ... on IssueFieldTextValue {
             value
-            field {
-              ... on IssueFieldText {
-                id
-                name
-              }
-            }
+            field { ... on IssueFieldText { id name } }
           }
           ... on IssueFieldNumberValue {
             value
-            field {
-              ... on IssueFieldNumber {
-                id
-                name
-              }
-            }
+            field { ... on IssueFieldNumber { id name } }
           }
           ... on IssueFieldSingleSelectValue {
             name
             color
-            field {
-              ... on IssueFieldSingleSelect {
-                id
-                name
-              }
-            }
+            field { ... on IssueFieldSingleSelect { id name } }
           }
         }
       }
@@ -111,33 +74,28 @@ Use `setIssueFieldValue` to set one or more fields at once. You need the issue's
 ```graphql
 # Header: GraphQL-Features: issue_fields
 mutation {
-  setIssueFieldValue(
-    input: {
-      issueId: "ISSUE_NODE_ID"
-      issueFields: [
-        { fieldId: "IFD_xxx", dateValue: "2026-04-15" }
-        { fieldId: "IFT_xxx", textValue: "some text" }
-        { fieldId: "IFN_xxx", numberValue: 3.0 }
-        { fieldId: "IFSS_xxx", singleSelectOptionId: "OPTION_ID" }
-      ]
-    }
-  ) {
-    issue {
-      id
-      title
-    }
+  setIssueFieldValue(input: {
+    issueId: "ISSUE_NODE_ID"
+    issueFields: [
+      { fieldId: "IFD_xxx", dateValue: "2026-04-15" }
+      { fieldId: "IFT_xxx", textValue: "some text" }
+      { fieldId: "IFN_xxx", numberValue: 3.0 }
+      { fieldId: "IFSS_xxx", singleSelectOptionId: "OPTION_ID" }
+    ]
+  }) {
+    issue { id title }
   }
 }
 ```
 
 Each entry in `issueFields` takes a `fieldId` plus exactly one value parameter:
 
-| Field type    | Value parameter        | Format                                    |
-| ------------- | ---------------------- | ----------------------------------------- |
-| Date          | `dateValue`            | ISO 8601 date string, e.g. `"2026-04-15"` |
-| Text          | `textValue`            | String                                    |
-| Number        | `numberValue`          | Float                                     |
-| Single select | `singleSelectOptionId` | ID from the field's `options` list        |
+| Field type | Value parameter | Format |
+|-----------|----------------|--------|
+| Date | `dateValue` | ISO 8601 date string, e.g. `"2026-04-15"` |
+| Text | `textValue` | String |
+| Number | `numberValue` | Float |
+| Single select | `singleSelectOptionId` | ID from the field's `options` list |
 
 To clear a field value, set `delete: true` instead of a value parameter.
 
@@ -207,7 +165,6 @@ gh api graphql -H "GraphQL-Features: issue_fields" -f query='
 ```
 
 **Schema notes for `IssueFieldSingleSelectValue`:**
-
 - The selected option's display text is in `.name` (not `.value`)
 - Also available: `.color`, `.description`, `.id`
 - The parent field reference is in `.field` (use inline fragment to get the field name)

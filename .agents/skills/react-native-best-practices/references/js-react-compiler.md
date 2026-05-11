@@ -259,7 +259,9 @@ The compiler transforms your code to automatically cache values:
 ```jsx
 export default function MyApp() {
   const [value, setValue] = useState('');
-  return <TextInput onChangeText={() => setValue(value)}>Hello World</TextInput>;
+  return (
+    <TextInput onChangeText={() => setValue(value)}>Hello World</TextInput>
+  );
 }
 ```
 
@@ -274,7 +276,9 @@ export default function MyApp() {
 
   let t0;
   if ($[0] !== value) {
-    t0 = <TextInput onChangeText={() => setValue(value)}>Hello World</TextInput>;
+    t0 = (
+      <TextInput onChangeText={() => setValue(value)}>Hello World</TextInput>
+    );
     $[0] = value;
     $[1] = t0;
   } else {

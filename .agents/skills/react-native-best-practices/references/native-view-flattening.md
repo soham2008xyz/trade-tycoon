@@ -14,7 +14,7 @@ Understand and debug React Native's view flattening optimization.
 
 ```jsx
 <NativeTabBar>
-  <Tab1 /> // May be flattened, breaking native component
+  <Tab1 />  // May be flattened, breaking native component
   <Tab2 />
 </NativeTabBar>
 ```
@@ -40,7 +40,6 @@ Understand and debug React Native's view flattening optimization.
 ## What is View Flattening?
 
 React Native's renderer automatically removes "layout-only" views that:
-
 - Only affect layout (no visual rendering)
 - Don't need to exist in native view hierarchy
 
@@ -62,9 +61,9 @@ If `Child1` is flattened, its internal views become direct children:
 ```tsx
 // Native side receives 5 views instead of 3!
 <MyNativeComponent>
-  <View /> // Was inside Child1
-  <View /> // Was inside Child1
-  <View /> // Was inside Child1
+  <View />   // Was inside Child1
+  <View />   // Was inside Child1  
+  <View />   // Was inside Child1
   <Child2 />
   <Child3 />
 </MyNativeComponent>
@@ -95,7 +94,6 @@ Use native debugging tools to see the actual view hierarchy:
 3. Inspect 3D view of native hierarchy
 
 **React Native components map to:**
-
 - `<View />` → `RCTViewComponentView`
 - `<Text />` → `RCTTextView`
 
@@ -106,7 +104,6 @@ Use native debugging tools to see the actual view hierarchy:
 3. Select running process
 
 **React Native components map to:**
-
 - `<View />` → `ReactViewGroup`
 - `<Text />` → `ReactTextView`
 
@@ -122,14 +119,10 @@ const NativeTabBar = requireNativeComponent('RCTTabBar');
 const MyTabs = () => (
   <NativeTabBar>
     <TabContent title="Home">
-      <View>
-        <Text>Home content</Text>
-      </View>
+      <View><Text>Home content</Text></View>
     </TabContent>
     <TabContent title="Profile">
-      <View>
-        <Text>Profile content</Text>
-      </View>
+      <View><Text>Profile content</Text></View>
     </TabContent>
   </NativeTabBar>
 );
@@ -138,14 +131,10 @@ const MyTabs = () => (
 const MyTabs = () => (
   <NativeTabBar>
     <TabContent title="Home" collapsable={false}>
-      <View>
-        <Text>Home content</Text>
-      </View>
+      <View><Text>Home content</Text></View>
     </TabContent>
     <TabContent title="Profile" collapsable={false}>
-      <View>
-        <Text>Profile content</Text>
-      </View>
+      <View><Text>Profile content</Text></View>
     </TabContent>
   </NativeTabBar>
 );
@@ -166,13 +155,12 @@ const NativeChildWrapper = ({ children, ...props }) => (
   <NativeChildWrapper>
     <ComplexChild />
   </NativeChildWrapper>
-</NativeComponent>;
+</NativeComponent>
 ```
 
 ## When Views Get Flattened
 
 Views are considered "layout-only" when they:
-
 - Have no `backgroundColor`
 - Have no `borderWidth`, `borderColor`
 - Have no `shadowColor`, `elevation`

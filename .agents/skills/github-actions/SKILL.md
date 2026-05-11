@@ -16,7 +16,6 @@ Reusable GitHub Actions patterns to build React Native apps for iOS simulators a
 ## When to Apply
 
 Use this skill when:
-
 - Creating CI workflows that build React Native simulator/emulator artifacts.
 - Uploading iOS simulator and Android emulator installables from PRs or manual dispatch runs.
 - Replacing local-only mobile builds with downloadable CI artifacts.
@@ -31,20 +30,20 @@ Use this skill when:
 
 ## References
 
-| File                                                            | Description                                                                       |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| [gha-ios-composite-action.md][gha-ios-composite-action]         | Composite `action.yml` for iOS simulator `.app.tar.gz` builds and artifact upload |
-| [gha-android-composite-action.md][gha-android-composite-action] | Composite `action.yml` for Android emulator `.apk` builds and artifact upload     |
-| [gha-workflow-and-downloads.md][gha-workflow-and-downloads]     | End-to-end workflow wiring plus `gh` and REST download commands                   |
+| File | Description |
+|------|-------------|
+| [gha-ios-composite-action.md][gha-ios-composite-action] | Composite `action.yml` for iOS simulator `.app.tar.gz` builds and artifact upload |
+| [gha-android-composite-action.md][gha-android-composite-action] | Composite `action.yml` for Android emulator `.apk` builds and artifact upload |
+| [gha-workflow-and-downloads.md][gha-workflow-and-downloads] | End-to-end workflow wiring plus `gh` and REST download commands |
 
 ## Problem -> Skill Mapping
 
-| Problem                                         | Start With                                                      |
-| ----------------------------------------------- | --------------------------------------------------------------- |
-| Need CI iOS simulator `.app.tar.gz` artifact    | [gha-ios-composite-action.md][gha-ios-composite-action]         |
-| Need CI Android emulator `.apk` artifact        | [gha-android-composite-action.md][gha-android-composite-action] |
-| Need one workflow to trigger both platform jobs | [gha-workflow-and-downloads.md][gha-workflow-and-downloads]     |
-| Need scripted artifact download                 | [gha-workflow-and-downloads.md][gha-workflow-and-downloads]     |
+| Problem | Start With |
+|---------|------------|
+| Need CI iOS simulator `.app.tar.gz` artifact | [gha-ios-composite-action.md][gha-ios-composite-action] |
+| Need CI Android emulator `.apk` artifact | [gha-android-composite-action.md][gha-android-composite-action] |
+| Need one workflow to trigger both platform jobs | [gha-workflow-and-downloads.md][gha-workflow-and-downloads] |
+| Need scripted artifact download | [gha-workflow-and-downloads.md][gha-workflow-and-downloads] |
 
 ## Source Inspiration
 

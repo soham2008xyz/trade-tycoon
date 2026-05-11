@@ -46,7 +46,6 @@ Find native memory leaks using Xcode Leaks and Android Studio Memory Profiler.
 6. Stop recording
 
 The template picker shows all available Instruments:
-
 - **Leaks**: Memory leak detection (what we need)
 - **Allocations**: All memory allocations over time
 - **Time Profiler**: CPU usage profiling
@@ -57,7 +56,6 @@ The template picker shows all available Instruments:
 **Red markers** = Leaked memory detected
 
 Click on leak to see:
-
 - **Leaked Object**: Type and size
 - **Responsible Library**: Which code leaked
 - **Responsible Frame**: Exact function
@@ -105,7 +103,6 @@ void createNewStrings() {
 ### Analyzing Allocations
 
 Memory profiler shows:
-
 - **Allocations count**: Objects created
 - **Deallocations count**: Objects freed
 - **Live objects**: Still in memory
@@ -130,7 +127,7 @@ class MainActivity : AppCompatActivity(), Callback {
         super.onCreate(savedInstanceState)
         EventManager.addListener(this)
     }
-
+    
     override fun onDestroy() {
         EventManager.removeListener(this)
         super.onDestroy()
@@ -141,7 +138,6 @@ class MainActivity : AppCompatActivity(), Callback {
 ### Activity Recreation Test
 
 Android recreates activities on:
-
 - Screen rotation
 - Dark mode change
 - Locale change
@@ -224,7 +220,6 @@ object Cache {
 ## Verification
 
 After fixing:
-
 1. Re-run profiler
 2. Perform same actions
 3. Verify:
