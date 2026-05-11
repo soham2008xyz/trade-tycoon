@@ -40,11 +40,7 @@ describe('online-platform', () => {
 
   it('uses SSE only for browser builds that expose EventSource', () => {
     expect(supportsOnlineEventStream({ platform: 'web', eventSourceAvailable: true })).toBe(true);
-    expect(supportsOnlineEventStream({ platform: 'web', eventSourceAvailable: false })).toBe(
-      false
-    );
-    expect(supportsOnlineEventStream({ platform: 'ios', eventSourceAvailable: false })).toBe(
-      false
-    );
+    expect(supportsOnlineEventStream({ platform: 'web', eventSourceAvailable: false })).toBe(false);
+    expect(supportsOnlineEventStream({ platform: 'ios', eventSourceAvailable: false })).toBe(false);
   });
 });
