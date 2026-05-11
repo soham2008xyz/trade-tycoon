@@ -3,10 +3,12 @@ import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
 import { GameUI } from './GameUI';
 import { IconButton } from './ui/IconButton';
 import { LobbyState, GameState, GameAction } from '@trade-tycoon/game-logic';
+import { getOnlineServerUrl, supportsOnlineEventStream } from './online-platform';
 
-const SERVER_URL =
-  process.env.EXPO_PUBLIC_SERVER_URL ||
-  (Platform.OS === 'web' ? 'http://localhost:3001' : 'http://10.0.2.2:3001');
+const SERVER_URL = getOnlineServerUrl({
+  platform: Platform.OS,
+  expoPublicServerUrl: process.env.EXPO_PUBLIC_SERVER_URL,
+});
 
 interface OnlineGameProps {
   onBack: () => void;
@@ -136,7 +138,66 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   // Subscribe to the server's SSE stream for the current room. Re-runs when we
   // join/create a room and we have both a roomId and userId.
   useEffect(() => {
-    if (!roomId || !userId || typeof EventSource === 'undefined') return;
+    if (!roomId || !userId) return;
+
+    if (
+      !supportsOnlineEventStream({
+        platform: Platform.OS,
+        eventSourceAvailable: typeof EventSource !== 'undefined',
+      })
+    ) {
+      let cancelled = false;
+      let syncInFlight = false;
+
+      const syncRoomSnapshot = async () => {
+        if (syncInFlight) return;
+        syncInFlight = true;
+        try {
+          const res = await fetch(
+            `${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/reconnect`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId }),
+            }
+          );
+          if (cancelled) return;
+          if (!res.ok) {
+            if (res.status === 404) {
+              setTransientError('Session expired');
+              onBack();
+            }
+            return;
+          }
+
+          const body = (await res.json()) as ReconnectResponse;
+          if (cancelled) return;
+          setLobbyState(body.lobby);
+          if (body.gameState) {
+            setGameState(body.gameState);
+            setStep('game');
+            return;
+          }
+          setStep('lobby');
+        } catch (err) {
+          if (!cancelled) {
+            console.warn('Native room sync failed', err);
+          }
+        } finally {
+          syncInFlight = false;
+        }
+      };
+
+      void syncRoomSnapshot();
+      const pollHandle = setInterval(() => {
+        void syncRoomSnapshot();
+      }, 2000);
+
+      return () => {
+        cancelled = true;
+        clearInterval(pollHandle);
+      };
+    }
 
     const url = `${SERVER_URL}/api/rooms/${encodeURIComponent(
       roomId
@@ -178,7 +239,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       es.close();
       eventSourceRef.current = null;
     };
-  }, [roomId, userId]);
+  }, [roomId, userId, onBack]);
 
   const handleCreate = async () => {
     if (!playerName.trim()) {

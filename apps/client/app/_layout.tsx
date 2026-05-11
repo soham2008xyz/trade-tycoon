@@ -35,10 +35,12 @@ export default function RootLayout() {
 
   return (
     <>
-      <Head>
-        <title>Trade Tycoon</title>
-        <link rel="manifest" href="/manifest.json" />
-      </Head>
+      {Platform.OS === 'web' ? (
+        <Head>
+          <title>Trade Tycoon</title>
+          <link rel="manifest" href="/manifest.json" />
+        </Head>
+      ) : null}
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
       </Stack>

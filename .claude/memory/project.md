@@ -16,3 +16,7 @@
   `ipad-native-presentation.ts` helper, and the board must size itself from
   the measured `GameUI` stage rather than raw `useWindowDimensions()` or the
   board will overflow when the tablet shell adds a sidebar.
+- Native online multiplayer in `apps/client` cannot rely on browser-only
+  `EventSource`; use `online-platform.ts` to select the right local server URL
+  (`127.0.0.1` on iOS simulator, `10.0.2.2` on Android emulator) and fall
+  back to reconnect polling on native builds.

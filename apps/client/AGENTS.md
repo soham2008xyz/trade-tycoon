@@ -150,7 +150,9 @@ opt-in design is what's correct; the test in
   native.
 - `EventSource` is web-only. `OnlineGame.tsx` guards on
   `typeof EventSource === 'undefined'` before subscribing. Native
-  multiplayer doesn't currently have an SSE alternative wired in.
+  multiplayer uses a reconnect-polling fallback instead, via
+  `components/online-platform.ts`, so lobby/game state still refreshes
+  on iOS and Android without a browser SSE implementation.
 
 ## Test command
 
