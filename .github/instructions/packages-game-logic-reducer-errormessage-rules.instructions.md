@@ -9,7 +9,7 @@ Keep user-facing failures explicit, but keep authorization failures silent.
 
 ## When To Set errorMessage
 
-Set `errorMessage` when the local player needs actionable feedback, such as:
+Set `errorMessage` when the acting player attempted a valid kind of action, but the current game state makes that action fail in a way the player can correct, such as:
 
 - invalid phase for a player-initiated operation
 - insufficient funds or unmet economic preconditions
@@ -18,15 +18,19 @@ Set `errorMessage` when the local player needs actionable feedback, such as:
 
 Use short, clear strings that explain what the player can infer from the failure.
 
+Rule of thumb: if the same player could succeed after changing game conditions, `errorMessage` is appropriate.
+
 ## When To Keep A Silent No-op
 
-Do not set `errorMessage` for authorization or identity boundaries. Return unchanged state for:
+Do not set `errorMessage` for authorization, identity, or role-enforcement boundaries. Return unchanged state for:
 
 - wrong player attempting the action (`currentPlayerId` mismatch)
 - phase/turn ownership boundaries that are enforcement-only
 - non-host/non-target/non-initiator role violations in client-facing reducer behavior
 
 For these paths, preserve reference-equality no-op behavior (`return state`) where applicable.
+
+Rule of thumb: if the failure is about who is acting, rather than board/economic state the player could fix, keep it silent.
 
 ## Trade Authorization Contract
 
