@@ -9,12 +9,7 @@ import { Platform } from 'react-native';
 export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS !== 'web') {
-      const targetLock =
-        Platform.OS === 'ios' && Platform.isPad
-          ? ScreenOrientation.OrientationLock.LANDSCAPE
-          : ScreenOrientation.OrientationLock.PORTRAIT;
-
-      ScreenOrientation.lockAsync(targetLock).catch((error) => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch((error) => {
         console.warn('Screen orientation lock failed', error);
       });
     }

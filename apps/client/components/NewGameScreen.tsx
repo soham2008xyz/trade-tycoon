@@ -13,8 +13,8 @@ export const NewGameScreen: React.FC<Props> = ({ onLocalMultiplayer, onOnlineMul
       <View style={styles.content}>
         <Text style={styles.title}>Trade Tycoon</Text>
         <Text style={styles.subtitle}>
-          Launch a local hotseat board or bring friends into the room with the native iPad layout
-          and roomier board stage.
+          Launch a local hotseat board or bring friends into the room for a full board game
+          experience.
         </Text>
 
         <View style={styles.buttonContainer}>

@@ -3,7 +3,6 @@ import { NewGameScreen } from '../components/NewGameScreen';
 import { MultiplayerMenuScreen } from '../components/MultiplayerMenuScreen';
 import { LocalGame } from '../components/LocalGame';
 import { OnlineGame } from '../components/OnlineGame';
-import { AppShell } from '../components/AppShell';
 
 type Screen =
   | 'new-game'
@@ -16,7 +15,7 @@ type Screen =
 export default function GameScreen() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('new-game');
 
-  return <AppShell>{renderCurrentScreen(currentScreen, setCurrentScreen)}</AppShell>;
+  return renderCurrentScreen(currentScreen, setCurrentScreen);
 }
 
 function renderCurrentScreen(
