@@ -9,7 +9,7 @@ Keep the reducer contract stable across client and server usage.
 
 ## Contract Layers
 
-- `reduceGameAction` is the detailed reducer API and may return `ACTION_REJECTED` for explicit authorization rejections.
+- `reduceGameAction` is the detailed reducer API and may return `ACTION_REJECTED` only for the explicit trade-role rejection cases listed below.
 - `gameReducer` is the React-safe wrapper and must collapse `ACTION_REJECTED` to unchanged state.
 - Do not return `ACTION_REJECTED` from `gameReducer`.
 
@@ -22,12 +22,16 @@ Use `ACTION_REJECTED` only for explicit trade-role authorization boundaries:
 
 Keep other invalid actions as unchanged-state no-ops unless the cross-workspace contract is intentionally updated.
 
+This includes other authorization failures, phase mismatches, and invalid gameplay attempts unless they are one of the two trade-role cases above.
+
 ## Stability Rules
 
 - Keep `ACTION_REJECTED` identity stable as a single exported sentinel.
 - Preserve `GameReducerResult` as `GameState | ActionRejected`.
 - Avoid introducing additional sentinel values.
 - Maintain no-throw behavior for invalid action paths.
+
+Rule of thumb: if the caller is not violating one of the two documented trade-role boundaries, prefer unchanged-state behavior over a new rejection sentinel.
 
 ## Cross-Workspace Implications
 
