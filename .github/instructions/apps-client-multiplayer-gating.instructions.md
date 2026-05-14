@@ -1,7 +1,8 @@
 ---
 description: Rules for client multiplayer gating in hotseat vs online modes. Use when editing OnlineGame, LocalGame, GameUI, Board, AuctionModal, TradeModal, or multiplayer-gating helpers/tests.
-applyTo: "apps/client/components/{multiplayer-gating.ts,multiplayer-gating.test.ts,GameUI.tsx,Board.tsx,AuctionModal.tsx,TradeModal.tsx,LocalGame.tsx,OnlineGame.tsx,MultiplayerMenuScreen.tsx}"
+applyTo: 'apps/client/components/{multiplayer-gating.ts,multiplayer-gating.test.ts,GameUI.tsx,Board.tsx,AuctionModal.tsx,TradeModal.tsx,LocalGame.tsx,OnlineGame.tsx,MultiplayerMenuScreen.tsx}'
 ---
+
 # Client Multiplayer Gating Rules
 
 Keep multiplayer visibility and identity rules centralized and testable.
