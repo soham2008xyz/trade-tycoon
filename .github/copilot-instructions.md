@@ -96,9 +96,9 @@ npm run test --workspace=apps/server                 # Server tests
 - Add/adjust server tests in `apps/server/src/*.test.ts`
 
 3. **Update `apps/client`**:
-   - Create/modify components in `components/`
-   - Connect to state via props from `app/index.tsx`
 
+- Create/modify components in `components/`
+- Connect to state via props from `app/index.tsx`
 - For local/offline flow, dispatch actions in `LocalGame`
 - For online flow, route actions through `OnlineGame.handleGameDispatch`
 - Keep visibility and identity checks in `multiplayer-gating.ts`
