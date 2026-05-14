@@ -90,17 +90,17 @@ animations stay where they are — they are positional and unaffected.
 
 ### New components
 
-| Component | Responsibility | Location |
-| --- | --- | --- |
-| `useGameLayout` | Returns `'phone' \| 'tablet'` based on window size | `apps/client/hooks/useGameLayout.ts` |
-| `StatusPanel.Peek` | Current player chip, dice, position, action buttons | `apps/client/components/StatusPanel/Peek.tsx` |
-| `StatusPanel.Expanded` | Full player list with per-player Trade, Restart, Log | `apps/client/components/StatusPanel/Expanded.tsx` |
-| `StatusPanel.TabletCenter` | Existing center-hole UI extracted from `Board.tsx` | `apps/client/components/StatusPanel/TabletCenter.tsx` |
-| `PhoneGameLayout` | Board on top + `BottomSheet` with peek/expanded snaps | `apps/client/components/layouts/PhoneGameLayout.tsx` |
-| `TabletGameLayout` | Current center-hole composition | `apps/client/components/layouts/TabletGameLayout.tsx` |
-| `Tile` (extended) | New `compact` prop — edge tiles render without name | `apps/client/components/Tile.tsx` |
-| `FullScreenModalShell` | Phone-aware modal wrapper (full screen + close header) | `apps/client/components/ui/FullScreenModalShell.tsx` |
-| `useStatusPanelActions` | Given `(state, myPlayerId)`, returns enabled phase actions | `apps/client/hooks/useStatusPanelActions.ts` |
+| Component                  | Responsibility                                             | Location                                              |
+| -------------------------- | ---------------------------------------------------------- | ----------------------------------------------------- |
+| `useGameLayout`            | Returns `'phone' \| 'tablet'` based on window size         | `apps/client/hooks/useGameLayout.ts`                  |
+| `StatusPanel.Peek`         | Current player chip, dice, position, action buttons        | `apps/client/components/StatusPanel/Peek.tsx`         |
+| `StatusPanel.Expanded`     | Full player list with per-player Trade, Restart, Log       | `apps/client/components/StatusPanel/Expanded.tsx`     |
+| `StatusPanel.TabletCenter` | Existing center-hole UI extracted from `Board.tsx`         | `apps/client/components/StatusPanel/TabletCenter.tsx` |
+| `PhoneGameLayout`          | Board on top + `BottomSheet` with peek/expanded snaps      | `apps/client/components/layouts/PhoneGameLayout.tsx`  |
+| `TabletGameLayout`         | Current center-hole composition                            | `apps/client/components/layouts/TabletGameLayout.tsx` |
+| `Tile` (extended)          | New `compact` prop — edge tiles render without name        | `apps/client/components/Tile.tsx`                     |
+| `FullScreenModalShell`     | Phone-aware modal wrapper (full screen + close header)     | `apps/client/components/ui/FullScreenModalShell.tsx`  |
+| `useStatusPanelActions`    | Given `(state, myPlayerId)`, returns enabled phase actions | `apps/client/hooks/useStatusPanelActions.ts`          |
 
 `StatusPanel.Peek`, `StatusPanel.Expanded`, and `StatusPanel.TabletCenter`
 share the same `StatusPanelProps` so the action-button enablement logic
