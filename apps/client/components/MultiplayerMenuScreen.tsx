@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { IconButton } from './ui/IconButton';
 
 interface Props {
@@ -48,42 +48,40 @@ export const MultiplayerMenuScreen: React.FC<Props> = ({
   }, []);
 
   return (
-    <Modal visible={true} animationType="slide" transparent={true}>
-      <View style={styles.modalContainer}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Online Multiplayer</Text>
+    <View style={styles.modalContainer}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Online Multiplayer</Text>
 
-          <View style={styles.buttonContainer}>
-            {savedSession && (
-              <IconButton
-                title={`Resume Game (${savedSession.roomId})`}
-                icon="play-circle"
-                onPress={onResumeGame}
-                style={styles.button}
-              />
-            )}
+        <View style={styles.buttonContainer}>
+          {savedSession && (
             <IconButton
-              title="Create New Room"
-              icon="plus-circle"
-              onPress={onCreateRoom}
+              title={`Resume Game (${savedSession.roomId})`}
+              icon="play-circle"
+              onPress={onResumeGame}
               style={styles.button}
             />
-            <IconButton
-              title="Join Existing Room"
-              icon="login"
-              onPress={onJoinRoom}
-              style={styles.button}
-            />
-            <IconButton
-              title="Back"
-              icon="arrow-left"
-              onPress={onBack}
-              style={styles.secondaryButton}
-            />
-          </View>
+          )}
+          <IconButton
+            title="Create New Room"
+            icon="plus-circle"
+            onPress={onCreateRoom}
+            style={styles.button}
+          />
+          <IconButton
+            title="Join Existing Room"
+            icon="login"
+            onPress={onJoinRoom}
+            style={styles.button}
+          />
+          <IconButton
+            title="Back"
+            icon="arrow-left"
+            onPress={onBack}
+            style={styles.secondaryButton}
+          />
         </View>
       </View>
-    </Modal>
+    </View>
   );
 };
 
