@@ -8,7 +8,7 @@ Trade Tycoon is a **Monopoly-style trading game** built as an NPM Workspaces mon
 trade-tycoon/
 ├── apps/
 │   ├── client/          # Expo (React Native) - Web, iOS, Android
-│   └── server/          # Node.js (Express/Socket.io) - future multiplayer
+│   └── server/          # Node.js (Express) - online multiplayer via REST + SSE
 ├── packages/
 │   └── game-logic/      # Pure TypeScript game engine (NO React/Node APIs)
 ```
@@ -40,6 +40,25 @@ Key types defined in `packages/game-logic/src/types.ts`:
 - `Player` - Player data (money, position, properties, houses, mortgaged, jail status)
 - `Action` - Union type of all game actions (JOIN_GAME, ROLL_DICE, BUY_PROPERTY, etc.)
 
+## Gameplay Modes
+
+### Local Offline Mode (single device)
+
+- Uses `LocalGame` in `apps/client/components/LocalGame.tsx`
+- Runs reducer locally with `useReducer(gameReducer, initialState)`
+- Supports single-player and hotseat multiplayer on one device
+- Requires **no server**
+
+### Online Multiplayer Mode (implemented)
+
+- Uses `OnlineGame` in `apps/client/components/OnlineGame.tsx`
+- Sends actions with REST (`POST /api/rooms/:id/actions`)
+- Receives state updates over Server-Sent Events (`GET /api/rooms/:id/events`)
+- Server is authoritative and runs shared `gameReducer`
+- Uses in-memory backends in local/test and Redis-backed store/event bus in production when `REDIS_URL` is set
+
+See [ARCHITECTURE.md](../ARCHITECTURE.md) and [AGENTS.md](../AGENTS.md) for detailed online architecture contracts.
+
 ## Essential Commands
 
 ```bash
@@ -49,11 +68,17 @@ npm install                                          # Install all dependencies
 npm run test --workspace=packages/game-logic         # Run vitest tests (MANDATORY)
 npm run build --workspace=packages/game-logic        # Build for production
 
+# Monorepo dev loops
+npm start                                             # client web + api-server
+npm run start:native                                  # client native + api-server
+npm run start:server                                  # api-server only
+
 # Client
 npm run web --workspace=apps/client                  # Start Expo web dev server
 npm run lint --workspace=apps/client                 # ESLint check
 
 npm run test                                         # Run all workspace tests
+npm run test --workspace=apps/server                 # Server tests
 ```
 
 ## Development Workflow for Features
@@ -64,10 +89,25 @@ npm run test                                         # Run all workspace tests
    - **Write tests** in `src/reducer.test.ts` or `src/*.test.ts`
    - Run `npm run test --workspace=packages/game-logic`
 
-2. **Update `apps/client`**:
+2. **Update `apps/server` only when multiplayer transport/auth needs changes**:
+
+- Keep room API contracts in sync with client usage
+- Keep SSE event payload shape stable (`lobby_update`, `game_state_update`)
+- Add/adjust server tests in `apps/server/src/*.test.ts`
+
+3. **Update `apps/client`**:
    - Create/modify components in `components/`
    - Connect to state via props from `app/index.tsx`
-   - Dispatch actions to trigger logic
+
+- For local/offline flow, dispatch actions in `LocalGame`
+- For online flow, route actions through `OnlineGame.handleGameDispatch`
+- Keep visibility and identity checks in `multiplayer-gating.ts`
+
+4. **Verify both gameplay paths when relevant**:
+
+- Local reducer behavior (offline/hotseat)
+- Online reducer behavior via REST + SSE
+- Turn/identity checks and resume behavior
 
 ## Key Patterns
 
@@ -149,45 +189,43 @@ describe('Feature Name', () => {
    ```
 5. **Test turn enforcement** - verify actions fail when wrong player attempts them
 
-## Multiplayer Architecture (Planned)
-
-The architecture is designed for future online multiplayer via Socket.io.
+## Multiplayer Architecture (Implemented)
 
 ### Server Role
 
 - **Authoritative Source of Truth**: Server holds the canonical `GameState`
-- **Technology**: Node.js (Express) + Socket.io in `apps/server`
-- **State Storage**: In-memory (or Redis for scaling)
+- **Technology**: Node.js (Express) with REST + SSE in `apps/server`
+- **State Storage + Fan-out**: In-memory for tests/dev; Redis-backed room store + event bus in production
 
 ### Data Flow
 
 ```
-┌─────────────┐        WebSocket         ┌─────────────┐
-│   Client    │ ──── socket.emit() ───→  │   Server    │
-│  (Expo/RN)  │                          │  (Node.js)  │
-│             │                          │             │
-│  useReducer │ ←── state_update() ────  │  reducer()  │
-│  (sync)     │                          │  (authoritative)
+┌─────────────┐       REST + SSE         ┌─────────────┐
+│   Client    │ ─── POST /actions ───→   │   Server    │
+│  (Expo/RN)  │                          │  (Express)  │
+│             │  ←── SSE state_update ─  │             │
+│  OnlineGame │                          │  reducer()  │
 └─────────────┘                          └─────────────┘
 ```
 
-1. **Client Action**: User clicks "Roll Dice" → `socket.emit('action', { type: 'ROLL_DICE', ... })`
-2. **Server Validation**: Server validates turn/rules → Runs `gameReducer(serverState, action)`
-3. **State Broadcast**: Server emits `socket.emit('state_update', newState)` to all clients
-4. **Client Sync**: Clients replace local state → Re-render UI
+1. **Client Action**: User triggers an action in `OnlineGame` and client POSTs to `/api/rooms/:id/actions`
+2. **Server Validation**: Server checks room/game/user/action ownership before reducing
+3. **Reduce + Persist**: Shared reducer executes inside atomic room-store updates
+4. **Broadcast**: Server publishes room events and active SSE subscribers receive `lobby_update` / `game_state_update`
+5. **Client Sync**: Client replaces local view state from server payload and re-renders
 
 ### Implementation Steps
 
-1. Initialize `apps/server` workspace with Express + Socket.io
-2. Setup room management (create/join lobbies)
-3. Integrate `@trade-tycoon/game-logic` reducer into socket event loop
-4. Handle player disconnection and reconnection
+1. Keep all rules in `packages/game-logic`
+2. Expose/maintain room lifecycle and action routes in `apps/server/src/routes`
+3. Use `RoomManager` for atomic state transitions and pub/sub-backed fan-out
+4. Keep reconnect/resume flow explicit (opt-in, never silent auto-resume)
 
 ### Shared Logic Advantage
 
 The `packages/game-logic` package is **framework-agnostic**:
 
-- Client imports it for local single-player mode
+- Client imports it for local single-player/hotseat mode
 - Server imports the same package for authoritative multiplayer
 - Guarantees identical game rules across environments
 
@@ -205,5 +243,8 @@ The `packages/game-logic` package is **framework-agnostic**:
 | Reducer (all game logic) | `packages/game-logic/src/reducer.ts`    |
 | Board data (40 tiles)    | `packages/game-logic/src/board-data.ts` |
 | Main game component      | `apps/client/app/index.tsx`             |
+| Local game loop          | `apps/client/components/LocalGame.tsx`  |
+| Online game loop         | `apps/client/components/OnlineGame.tsx` |
+| Multiplayer room manager | `apps/server/src/RoomManager.ts`        |
 | Feature status           | `SPECIFICATION.md`                      |
 | Full agent guide         | `AGENTS.md`                             |
