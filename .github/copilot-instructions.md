@@ -178,7 +178,7 @@ describe('Feature Name', () => {
 ### Key Testing Patterns
 
 1. **Use `beforeEach`** to reset state for isolation
-2. **Test both success and failure paths** - verify `errorMessage` is set on failures
+2. **Test both success and failure paths** - verify `errorMessage` only for user-correctable failures, and unchanged-state behavior for silent auth/identity boundaries
 3. **Use `die1`/`die2` params** to control dice for deterministic movement tests
 4. **Mock `Math.random`** with `vi.spyOn` for card draw tests:
    ```typescript
