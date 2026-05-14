@@ -27,5 +27,8 @@ jobs:
       - name: Build game logic package
         run: npm run build:game-logic
 
+      - name: Type check client
+        run: npm run type-check --workspace=apps/client
+
       - name: Run tests
         run: npm test
