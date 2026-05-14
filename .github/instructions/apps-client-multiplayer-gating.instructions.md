@@ -18,7 +18,7 @@ Keep multiplayer visibility and identity rules centralized and testable.
 - Use implicit turn-gating (`isMyTurn`) only for controls tied to the outer game turn.
 - Use explicit multiplayer gating (`isMultiplayer` plus player identity) for role-based surfaces like auction and trade controls.
 - In hotseat (`isMultiplayer === false`), controls remain visible for the user holding the device.
-- In online mode (`isMultiplayer === true`), only the local user role should see actionable controls.
+- In online mode (`isMultiplayer === true`), only the local user role should see actionable controls; missing/unknown local identity must default to hidden.
 
 ## Testing Requirements
 
@@ -29,13 +29,13 @@ When gating behavior changes:
   - hotseat visibility
   - multiplayer as actor
   - multiplayer as non-actor
-  - missing identity safety case
+  - missing identity safety case (hidden in multiplayer, visible in hotseat)
 - Keep parity tests that document hotseat and online behavior side by side.
 
 ## Session and Platform Constraints
 
 - Resume must remain opt-in via the multiplayer menu. Do not add silent auto-resume on create/join paths.
-- Guard web-only APIs (`localStorage`, `EventSource`) and preserve native fallback behavior.
+- Guard web-only APIs (`localStorage`, `EventSource`) behind platform checks and preserve the native fallback behavior.
 
 ## Verification
 
