@@ -11,15 +11,15 @@ Preserve server-side authorization checks even when client UI already hides inva
 
 - Treat every client action payload as untrusted input.
 - Enforce action ownership: if an action carries `playerId`, it must match authenticated `userId`.
-- Reject client-issued `RESET_GAME` from route/manager paths.
+- Reject client-issued `RESET_GAME` on the action route path (enforced in `RoomManager.handleGameAction`).
 - Ignore client-supplied dice values on `ROLL_DICE`; server RNG remains authoritative.
-- Keep explicit reducer rejection handling (`ACTION_REJECTED`) mapped to route-level action failure.
+- Keep explicit reducer rejection handling (`ACTION_REJECTED`) mapped to route-level `409 Action rejected`.
 
 ## Route Contract For POST /api/rooms/:roomId/actions
 
 - `404` when room does not exist.
 - `409` when game has not started.
-- `403` when authenticated user is not part of the running game.
+- `403` only when authenticated user is not part of the running game.
 - `409` when `handleGameAction` rejects the action (ownership, trade-role, reducer rejection).
 - `200` only when action is accepted and published.
 
