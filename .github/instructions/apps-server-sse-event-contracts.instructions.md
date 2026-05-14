@@ -1,5 +1,5 @@
 ---
-description: Server SSE event contracts for room streams. Use when editing events route, EventBus contracts, or SSE integration tests.
+description: Server SSE event contracts for room-scoped streams. Use when editing events route, EventBus contracts, or SSE integration tests.
 applyTo: 'apps/server/src/{routes/events.ts,routes/events.test.ts,events/EventBus.ts,events/InMemoryEventBus.ts,events/RedisEventBus.ts}'
 ---
 
@@ -11,7 +11,7 @@ Keep SSE behavior stable for reconnecting clients and cross-instance fan-out.
 
 - Emit only typed room events:
   - `lobby_update` with `LobbyState`
-  - `game_state_update` with `GameState`
+  - `game_state_update` with the server-safe `GameState` snapshot shape used by clients
 - Preserve the SSE frame format:
   - `event: <type>`
   - `data: <json>`
