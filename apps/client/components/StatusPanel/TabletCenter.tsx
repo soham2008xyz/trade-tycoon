@@ -23,9 +23,10 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
   onOpenTrade,
   isTokenMoving,
 }) => {
-  const { isMyTurn, currentPlayer, currentTile, canBuy, canAuction } = useStatusPanelActions(
+  const { currentPlayer, currentTile, buttons } = useStatusPanelActions(
     state,
-    myPlayerId
+    myPlayerId,
+    isTokenMoving
   );
   const selfId = myPlayerId;
 
@@ -55,8 +56,11 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
                 </Text>
               </View>
               <View
-                style={{ marginLeft: 10, opacity: player.id !== selfId ? 1 : 0 }}
-                pointerEvents={player.id !== selfId ? 'auto' : 'none'}
+                style={{
+                  marginLeft: 10,
+                  opacity: player.id !== selfId ? 1 : 0,
+                  pointerEvents: player.id !== selfId ? 'auto' : 'none',
+                }}
               >
                 <IconButton
                   title="Trade"
@@ -90,88 +94,59 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
         </View>
 
         <View style={styles.actions}>
-          {isMyTurn ? (
-            <>
-              {state.phase === 'roll' && (
-                <>
-                  <IconButton title="Roll Dice" icon="dice-5" onPress={onRoll} />
-                  {currentPlayer.isInJail && (
-                    <>
-                      <IconButton
-                        title="Pay Fine ($50)"
-                        icon="cash-remove"
-                        onPress={onPayFine}
-                        disabled={currentPlayer.money < 50}
-                        color="#d9534f"
-                      />
-                      {currentPlayer.getOutOfJailCards > 0 && (
-                        <IconButton
-                          title={`Use Card (${currentPlayer.getOutOfJailCards})`}
-                          icon="card-account-details"
-                          onPress={onUseGOOJCard}
-                          color="#5bc0de"
-                        />
-                      )}
-                    </>
-                  )}
-                </>
-              )}
-              {currentPlayer.money < 0 && (
-                <IconButton
-                  title="Declare Bankruptcy"
-                  icon="alert-circle"
-                  onPress={onDeclareBankruptcy}
-                  color="#444"
-                />
-              )}
-
-              {state.phase === 'action' && (
-                <>
-                  {canBuy && !isTokenMoving && (
-                    <IconButton
-                      title={`Buy ($${currentTile?.price || 0})`}
-                      icon="cart"
-                      onPress={onBuy}
-                    />
-                  )}
-                  {canAuction && !isTokenMoving && (
-                    <IconButton
-                      title="Auction"
-                      icon="gavel"
-                      onPress={onDeclineBuy}
-                      color="#f0ad4e"
-                    />
-                  )}
-                  {state.doublesCount === 0 && !isTokenMoving && (
-                    <IconButton
-                      title="Manage Properties"
-                      icon="city"
-                      onPress={onOpenPropertyManager}
-                      color="#841584"
-                    />
-                  )}
-                  {state.doublesCount > 0
-                    ? !isTokenMoving && (
-                        <IconButton
-                          title="Roll Again"
-                          icon="dice-multiple"
-                          onPress={onRollAgain}
-                          color="orange"
-                        />
-                      )
-                    : !isTokenMoving && (
-                        <IconButton
-                          title="End Turn"
-                          icon="check"
-                          onPress={onEndTurn}
-                          color="#d9534f"
-                        />
-                      )}
-                </>
-              )}
-            </>
-          ) : (
+          {buttons.waiting.visible && (
             <Text style={styles.waitingText}>Waiting for {currentPlayer.name} to play…</Text>
+          )}
+          {buttons.roll.visible && <IconButton title="Roll Dice" icon="dice-5" onPress={onRoll} />}
+          {buttons.payFine.visible && (
+            <IconButton
+              title="Pay Fine ($50)"
+              icon="cash-remove"
+              onPress={onPayFine}
+              disabled={!buttons.payFine.enabled}
+              color="#d9534f"
+            />
+          )}
+          {buttons.useGOOJCard.visible && (
+            <IconButton
+              title={`Use Card (${buttons.useGOOJCard.count})`}
+              icon="card-account-details"
+              onPress={onUseGOOJCard}
+              color="#5bc0de"
+            />
+          )}
+          {buttons.declareBankruptcy.visible && (
+            <IconButton
+              title="Declare Bankruptcy"
+              icon="alert-circle"
+              onPress={onDeclareBankruptcy}
+              color="#444"
+            />
+          )}
+          {buttons.buy.visible && (
+            <IconButton title={`Buy ($${buttons.buy.price})`} icon="cart" onPress={onBuy} />
+          )}
+          {buttons.auction.visible && (
+            <IconButton title="Auction" icon="gavel" onPress={onDeclineBuy} color="#f0ad4e" />
+          )}
+          {buttons.manage.visible && (
+            <IconButton
+              title="Manage Properties"
+              icon="city"
+              onPress={onOpenPropertyManager}
+              color="#841584"
+            />
+          )}
+          {buttons.rollAgain.visible && (
+            <IconButton
+              title="Roll Again"
+              icon="dice-multiple"
+              onPress={onRollAgain}
+              color="orange"
+            />
+          )}
+          {buttons.endTurn.visible && (
+            <IconButton title="End Turn" icon="check" onPress={onEndTurn} color="#d9534f" />
           )}
         </View>
       </View>
