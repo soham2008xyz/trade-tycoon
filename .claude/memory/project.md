@@ -12,10 +12,24 @@
   package shape, so the server workspace test script must rebuild
   `packages/game-logic` first or reducer changes can be invisible to server
   tests.
-- The native iPad shell in `apps/client` is driven by the pure
-  `ipad-native-presentation.ts` helper, and the board must size itself from
-  the measured `GameUI` stage rather than raw `useWindowDimensions()` or the
-  board will overflow when the tablet shell adds a sidebar.
+- ~~iPad shell~~ removed (2026-05-15): `AppShell.tsx`,
+  `ipad-native-presentation.ts`, and their tests were deleted. All platforms
+  now lock to `PORTRAIT_UP` via `ScreenOrientation.lockAsync` in `_layout.tsx`.
+  `index.tsx` renders screens directly — no intermediate wrapper. Board sizing
+  can use `useWindowDimensions()` without accounting for any sidebar offset.
+- `Modal visible={true}` used as a full-screen layout wrapper crashes on iPad
+  with Fabric (new architecture) — it creates a second UIKit presentation
+  context inside an already-managed view. Fixed in `MultiplayerMenuScreen` by
+  replacing the Modal wrapper with a plain `<View>`. All other modals
+  (`AuctionModal`, `LogModal`, `TradeModal`, `PropertyManager`) use controlled
+  `visible` props and are fine.
+- `expo-screen-orientation` must appear in the `plugins` array in `app.json`
+  for its native iOS module to initialise; omitting it causes silent failures
+  when `ScreenOrientation.lockAsync` is called from `_layout.tsx`.
+- CI (`.github/workflows/test.yml`) runs `tsc --noEmit` via
+  `npm run type-check --workspace=apps/client` before the vitest step. Native
+  iOS crashes cannot be caught by the Ubuntu CI runner; only EAS Build or a
+  `macos-latest` runner can exercise native code paths.
 - Native online multiplayer in `apps/client` cannot rely on browser-only
   `EventSource`; use `online-platform.ts` to select the right local server URL
   (`127.0.0.1` on iOS simulator, `10.0.2.2` on Android emulator) and fall
