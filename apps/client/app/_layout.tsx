@@ -5,6 +5,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import 'react-native-reanimated';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function RootLayout() {
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       {Platform.OS === 'web' ? (
         <Head>
           <title>Trade Tycoon</title>
@@ -40,6 +41,6 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
-    </>
+    </GestureHandlerRootView>
   );
 }
