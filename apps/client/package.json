@@ -9,7 +9,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "type-check": "tsc --noEmit",
-    "test": "vitest run components",
+    "test": "vitest run",
     "build": "npm run build:web",
     "build:web": "expo export --platform web",
     "generate:pwa": "node ./scripts/generate-pwa-assets.js && node ./scripts/generate-sw.js",
