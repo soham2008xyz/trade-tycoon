@@ -1,27 +1,26 @@
 import React from 'react';
-import { LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
-import { Board } from './Board';
+import { StyleSheet, View } from 'react-native';
+import { GameState, GameAction, BOARD, TradeOffer } from '@trade-tycoon/game-logic';
 import { Toast } from './ui/Toast';
 import { CustomAlert, AlertOptions } from './ui/Alert';
-
 import { LogModal } from './LogModal';
-import { GameState, GameAction, BOARD, isTileBuyable, TradeOffer } from '@trade-tycoon/game-logic';
+import { TradeModal } from './TradeModal';
+import { PropertyManager } from './PropertyManager';
+import { TileInfoModal } from './TileInfoModal';
+import { AuctionModal } from './AuctionModal';
+import { TabletGameLayout } from './layouts/TabletGameLayout';
+import { PhoneGameLayout } from './layouts/PhoneGameLayout';
+import { useGameLayout } from '../hooks/useGameLayout';
 import { getGameFeedback } from './game-feedback';
 
 interface GameUIProps {
   state: GameState;
-  currentPlayerId: string; // The ID of the "local" player (me)
+  currentPlayerId: string;
   onDispatch: (action: GameAction) => void;
   uiToastMessage: string | null;
   setUiToastMessage: (msg: string | null) => void;
   onLeaveGame: () => void;
-  isHost?: boolean; // If needed for host-specific controls
-  /**
-   * True when this UI is rendered inside an online multiplayer game.
-   * Forwarded to `Board` and `AuctionModal` so per-client UIs (like the
-   * auction window) only render controls for the local user, not for every
-   * participant. Defaults to false (local hotseat play).
-   */
+  isHost?: boolean;
   isMultiplayer?: boolean;
 }
 
@@ -34,149 +33,64 @@ export const GameUI: React.FC<GameUIProps> = ({
   onLeaveGame,
   isMultiplayer = false,
 }) => {
+  const layout = useGameLayout();
+
   const [logVisible, setLogVisible] = React.useState(false);
   const [alertVisible, setAlertVisible] = React.useState(false);
   const [alertOptions, setAlertOptions] = React.useState<AlertOptions | null>(null);
-  const [boardFrame, setBoardFrame] = React.useState<{ width: number; height: number } | null>(
-    null
-  );
+  const [tradeTargetId, setTradeTargetId] = React.useState<string | undefined>(undefined);
+  const [selectedTileId, setSelectedTileId] = React.useState<string | null>(null);
+  const [showPropertyManager, setShowPropertyManager] = React.useState(false);
+  const [isTokenMoving, setIsTokenMoving] = React.useState(false);
 
-  const showAlert = (title: string, message: string, buttons: any[]) => {
-    if (Platform.OS === 'web') {
-      setAlertOptions({ title, message, buttons });
-      setAlertVisible(true);
-    } else {
-      // Native alert handling would go here, but for now using web custom alert logic mostly
-      // Or use React Native Alert
-      // Alert.alert(title, message, buttons);
-      // For consistency in this component, let's use CustomAlert for web and native Alert for native
-      // But CustomAlert is rendered below.
-      setAlertOptions({ title, message, buttons });
-      setAlertVisible(true);
-    }
+  const showAlert = (title: string, message: string, buttons: AlertOptions['buttons']) => {
+    setAlertOptions({ title, message, buttons });
+    setAlertVisible(true);
   };
 
   const currentPlayer = state.players.find((p) => p.id === state.currentPlayerId);
-  const currentTile = currentPlayer ? BOARD[currentPlayer.position] : null;
+  const selfId = myPlayerId;
+  const getOwner = (tileId: string) => state.players.find((p) => p.properties.includes(tileId));
 
-  // Actions
-  const handleRoll = () => {
-    onDispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId });
-  };
-
-  const handleRollAgain = () => {
-    onDispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId });
-  };
-
-  const handleEndTurn = () => {
-    onDispatch({ type: 'END_TURN', playerId: state.currentPlayerId });
-  };
-
+  const handleRoll = () => onDispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId });
+  const handleEndTurn = () => onDispatch({ type: 'END_TURN', playerId: state.currentPlayerId });
   const handleBuy = () => {
-    if (state.currentPlayerId && currentTile) {
-      onDispatch({
-        type: 'BUY_PROPERTY',
-        playerId: state.currentPlayerId,
-        propertyId: currentTile.id,
-      });
+    const tile = currentPlayer ? BOARD[currentPlayer.position] : null;
+    if (state.currentPlayerId && tile) {
+      onDispatch({ type: 'BUY_PROPERTY', playerId: state.currentPlayerId, propertyId: tile.id });
     }
   };
-
-  const handleBuild = (propertyId: string) => {
-    onDispatch({
-      type: 'BUILD_HOUSE',
-      playerId: state.currentPlayerId,
-      propertyId,
-    });
-  };
-
-  const handleSell = (propertyId: string) => {
-    onDispatch({
-      type: 'SELL_HOUSE',
-      playerId: state.currentPlayerId,
-      propertyId,
-    });
-  };
-
-  const handleMortgage = (propertyId: string) => {
-    onDispatch({
-      type: 'MORTGAGE_PROPERTY',
-      playerId: state.currentPlayerId,
-      propertyId,
-    });
-  };
-
-  const handleUnmortgage = (propertyId: string) => {
-    onDispatch({
-      type: 'UNMORTGAGE_PROPERTY',
-      playerId: state.currentPlayerId,
-      propertyId,
-    });
-  };
-
-  const handlePayFine = () => {
-    onDispatch({ type: 'PAY_FINE', playerId: state.currentPlayerId });
-  };
-
-  const handleUseGOOJCard = () => {
-    onDispatch({ type: 'USE_GOOJ_CARD', playerId: state.currentPlayerId });
-  };
-
-  const handleDeclareBankruptcy = () => {
-    if (myPlayerId) {
-      showAlert(
-        'Declare Bankruptcy',
-        'Are you sure you want to declare bankruptcy? You will be removed from the game.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Yes',
-            style: 'destructive',
-            onPress: () => onDispatch({ type: 'DECLARE_BANKRUPTCY', playerId: myPlayerId }),
-          },
-        ]
-      );
-    }
-  };
-
-  const handleDeclineBuy = () => {
-    onDispatch({ type: 'DECLINE_BUY', playerId: state.currentPlayerId });
-  };
-
-  const handleBid = (playerId: string, amount: number) => {
-    onDispatch({ type: 'PLACE_BID', playerId, amount });
-  };
-
-  const handleConcedeAuction = (playerId: string) => {
-    onDispatch({ type: 'CONCEDE_AUCTION', playerId });
-  };
-
-  const handleProposeTrade = (targetPlayerId: string, offer: TradeOffer, request: TradeOffer) => {
-    onDispatch({
-      type: 'PROPOSE_TRADE',
-      playerId: myPlayerId,
-      targetPlayerId,
-      offer,
-      request,
-    });
-  };
-
+  const handleDeclineBuy = () => onDispatch({ type: 'DECLINE_BUY', playerId: state.currentPlayerId });
+  const handlePayFine = () => onDispatch({ type: 'PAY_FINE', playerId: state.currentPlayerId });
+  const handleUseGOOJ = () => onDispatch({ type: 'USE_GOOJ_CARD', playerId: state.currentPlayerId });
+  const handleRollAgain = () => handleRoll();
+  const handleBuild = (id: string) => onDispatch({ type: 'BUILD_HOUSE', playerId: state.currentPlayerId, propertyId: id });
+  const handleSell = (id: string) => onDispatch({ type: 'SELL_HOUSE', playerId: state.currentPlayerId, propertyId: id });
+  const handleMortgage = (id: string) => onDispatch({ type: 'MORTGAGE_PROPERTY', playerId: state.currentPlayerId, propertyId: id });
+  const handleUnmortgage = (id: string) => onDispatch({ type: 'UNMORTGAGE_PROPERTY', playerId: state.currentPlayerId, propertyId: id });
+  const handleBid = (playerId: string, amount: number) => onDispatch({ type: 'PLACE_BID', playerId, amount });
+  const handleConcedeAuction = (playerId: string) => onDispatch({ type: 'CONCEDE_AUCTION', playerId });
+  const handleProposeTrade = (target: string, offer: TradeOffer, request: TradeOffer) =>
+    onDispatch({ type: 'PROPOSE_TRADE', playerId: myPlayerId, targetPlayerId: target, offer, request });
   const handleAcceptTrade = (tradeId: string) => {
     if (state.activeTrade && state.activeTrade.id === tradeId) {
       onDispatch({ type: 'ACCEPT_TRADE', playerId: state.activeTrade.targetPlayerId });
     }
   };
-
   const handleRejectTrade = (tradeId: string) => {
     if (state.activeTrade && state.activeTrade.id === tradeId) {
       onDispatch({ type: 'REJECT_TRADE', playerId: state.activeTrade.targetPlayerId });
     }
   };
-
-  const handleCancelTrade = (tradeId: string) => {
-    onDispatch({ type: 'CANCEL_TRADE', playerId: myPlayerId });
+  const handleCancelTrade = () => onDispatch({ type: 'CANCEL_TRADE', playerId: myPlayerId });
+  const handleDeclareBankruptcy = () => {
+    if (myPlayerId) {
+      showAlert('Declare Bankruptcy', 'Are you sure you want to declare bankruptcy? You will be removed from the game.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Yes', style: 'destructive', onPress: () => onDispatch({ type: 'DECLARE_BANKRUPTCY', playerId: myPlayerId }) },
+      ]);
+    }
   };
-
   const handleRestart = () => {
     showAlert('Leave Game', 'Are you sure you want to leave/restart the game?', [
       { text: 'No', style: 'cancel' },
@@ -184,42 +98,27 @@ export const GameUI: React.FC<GameUIProps> = ({
     ]);
   };
 
-  // For online multiplayer the action buttons (Roll, Buy, End Turn, etc.)
-  // must only render for the player whose turn it is — otherwise idle
-  // viewers see buttons that the server's `playerId === userId` check
-  // rejects on click. In local hotseat play `myPlayerId` is set to the
-  // active player by the parent, so this stays true and the UI is
-  // unchanged. The Board component receives this and gates its `<actions>`
-  // block accordingly.
-  const isMyTurn = state.currentPlayerId === myPlayerId;
-
-  const isPropertyUnowned =
-    state.phase === 'action' &&
-    !!currentPlayer &&
-    !!currentTile &&
-    isTileBuyable(currentTile) &&
-    !state.players.some((p) => p.properties.includes(currentTile.id));
-
-  const canAfford =
-    currentPlayer && currentTile ? currentPlayer.money >= (currentTile.price || 0) : false;
-
-  const canBuy = isPropertyUnowned && canAfford;
-  const canAuction = isPropertyUnowned;
   const gameFeedback = getGameFeedback(state);
 
-  const handleDismissGameFeedback = () => {
-    if (!gameFeedback) return;
-    onDispatch({ type: gameFeedback.dismissAction });
-  };
-
-  const handleBoardAreaLayout = ({ nativeEvent }: LayoutChangeEvent) => {
-    const { width, height } = nativeEvent.layout;
-    setBoardFrame((previous) => {
-      if (previous && previous.width === width && previous.height === height) {
-        return previous;
-      }
-      return { width, height };
-    });
+  const sharedProps = {
+    state,
+    myPlayerId,
+    isMultiplayer,
+    onRoll: handleRoll,
+    onBuy: handleBuy,
+    onDeclineBuy: handleDeclineBuy,
+    onEndTurn: handleEndTurn,
+    onRollAgain: handleRollAgain,
+    onPayFine: handlePayFine,
+    onUseGOOJCard: handleUseGOOJ,
+    onDeclareBankruptcy: handleDeclareBankruptcy,
+    onShowLog: () => setLogVisible(true),
+    onRestart: handleRestart,
+    onOpenPropertyManager: () => setShowPropertyManager(true),
+    onOpenTrade: (target: string) => setTradeTargetId(target),
+    isTokenMoving,
+    onTilePress: setSelectedTileId,
+    onTokenMovingChange: setIsTokenMoving,
   };
 
   return (
@@ -231,70 +130,67 @@ export const GameUI: React.FC<GameUIProps> = ({
         onClose={() => setLogVisible(false)}
       />
       {gameFeedback && (
-        <Toast message={gameFeedback.message} onDismiss={handleDismissGameFeedback} />
+        <Toast message={gameFeedback.message} onDismiss={() => onDispatch({ type: gameFeedback.dismissAction })} />
       )}
-      {uiToastMessage && (
-        <Toast message={uiToastMessage} onDismiss={() => setUiToastMessage(null)} />
-      )}
-      <CustomAlert
-        visible={alertVisible}
-        options={alertOptions}
-        onClose={() => setAlertVisible(false)}
+      {uiToastMessage && <Toast message={uiToastMessage} onDismiss={() => setUiToastMessage(null)} />}
+      <CustomAlert visible={alertVisible} options={alertOptions} onClose={() => setAlertVisible(false)} />
+
+      {layout === 'phone' ? <PhoneGameLayout {...sharedProps} /> : <TabletGameLayout {...sharedProps} />}
+
+      <AuctionModal
+        visible={state.phase === 'auction'}
+        auction={state.auction || null}
+        players={state.players}
+        onBid={handleBid}
+        onConcede={handleConcedeAuction}
+        isMultiplayer={isMultiplayer}
+        myPlayerId={myPlayerId}
       />
-      <View style={styles.boardArea} onLayout={handleBoardAreaLayout}>
-        <Board
+
+      {currentPlayer && selfId && (
+        <TradeModal
+          visible={!!tradeTargetId || (!!state.activeTrade && (state.activeTrade.initiatorId === selfId || state.activeTrade.targetPlayerId === selfId))}
           players={state.players}
-          currentPlayer={currentPlayer}
-          currentTile={currentTile}
-          dice={state.dice}
-          doublesCount={state.doublesCount}
-          phase={state.phase}
-          auction={state.auction}
+          currentPlayerId={selfId}
+          targetPlayerId={tradeTargetId || state.activeTrade?.targetPlayerId}
           activeTrade={state.activeTrade}
-          canBuy={canBuy}
-          canAuction={canAuction}
-          onRoll={handleRoll}
-          onBuy={handleBuy}
-          onDeclineBuy={handleDeclineBuy}
-          onBid={handleBid}
-          onConcedeAuction={handleConcedeAuction}
-          onEndTurn={handleEndTurn}
-          onProposeTrade={handleProposeTrade}
-          onAcceptTrade={handleAcceptTrade}
-          onRejectTrade={handleRejectTrade}
-          onCancelTrade={handleCancelTrade}
-          onRollAgain={handleRollAgain}
+          isMultiplayer={isMultiplayer}
+          onPropose={(t, o, r) => {
+            handleProposeTrade(t, o, r);
+            setTradeTargetId(undefined);
+          }}
+          onAccept={handleAcceptTrade}
+          onReject={handleRejectTrade}
+          onCancel={() => {
+            handleCancelTrade();
+            setTradeTargetId(undefined);
+          }}
+          onClose={() => setTradeTargetId(undefined)}
+        />
+      )}
+
+      {currentPlayer && (
+        <PropertyManager
+          visible={showPropertyManager}
+          player={currentPlayer}
+          onClose={() => setShowPropertyManager(false)}
           onBuild={handleBuild}
           onSell={handleSell}
           onMortgage={handleMortgage}
           onUnmortgage={handleUnmortgage}
-          onPayFine={handlePayFine}
-          onUseGOOJCard={handleUseGOOJCard}
-          onRestart={handleRestart}
-          onShowLog={() => setLogVisible(true)}
-          onDeclareBankruptcy={handleDeclareBankruptcy}
-          isMyTurn={isMyTurn}
-          isMultiplayer={isMultiplayer}
-          myPlayerId={myPlayerId}
-          availableWidth={boardFrame?.width}
-          availableHeight={boardFrame?.height}
         />
-      </View>
+      )}
+
+      <TileInfoModal
+        visible={!!selectedTileId}
+        tile={selectedTileId ? BOARD.find((t) => t.id === selectedTileId) || null : null}
+        owner={selectedTileId ? getOwner(selectedTileId) : undefined}
+        onClose={() => setSelectedTileId(null)}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    width: '100%',
-    height: '100%',
-  },
-  boardArea: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 10,
-  },
+  container: { flex: 1, backgroundColor: 'transparent', width: '100%', height: '100%' },
 });

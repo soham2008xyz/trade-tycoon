@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Tile, Player } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { GROUP_COLORS } from '../constants';
+import { FullScreenModalShell } from './ui/FullScreenModalShell';
 
 interface Props {
   visible: boolean;
@@ -13,7 +14,7 @@ interface Props {
 
 // Descriptions for special tiles
 export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }) => {
-  if (!tile || !visible) return null;
+  if (!tile) return null;
 
   const isStreet = tile.type === 'street';
   const isRailroad = tile.type === 'railroad';
@@ -96,13 +97,11 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
     return null;
   };
 
-  // We are NOT using Modal here because of Z-Index issues on web with Board.
-  // Instead we are using an absolute positioned view which will overlay everything in Board
-  // because it is rendered LAST in the Board component.
   return (
-    <View style={styles.overlayContainer}>
-      <View style={styles.backdrop} onTouchEnd={onClose} />
-      <View style={styles.modalContent}>
+    <FullScreenModalShell visible={visible} onClose={onClose} title={tile?.name ?? 'Tile'}>
+      <View style={styles.overlayContainer}>
+        <View style={styles.backdrop} onTouchEnd={onClose} />
+        <View style={styles.modalContent}>
         {/* Header Card */}
         <View style={[styles.header, { backgroundColor: color }]}>
           <Text style={[styles.title, { color: textColor }]}>{tile.name}</Text>
@@ -163,8 +162,9 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
         <View style={styles.footer}>
           <IconButton title="Close" icon="close" onPress={onClose} size="small" />
         </View>
+        </View>
       </View>
-    </View>
+    </FullScreenModalShell>
   );
 };
 

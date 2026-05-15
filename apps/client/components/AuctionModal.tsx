@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { AuctionState, Player, BOARD } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { shouldShowAuctionControls } from './multiplayer-gating';
@@ -56,7 +57,7 @@ export const AuctionModal: React.FC<Props> = ({
   const increments = [1, 10, 50, 100];
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={true}>
+    <FullScreenModalShell visible={visible} onClose={() => {}} title="Auction" showClose={false}>
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
           <View style={styles.header}>
@@ -142,7 +143,7 @@ export const AuctionModal: React.FC<Props> = ({
           </View>
         </View>
       </View>
-    </Modal>
+    </FullScreenModalShell>
   );
 };
 

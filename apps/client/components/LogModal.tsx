@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Player } from '@trade-tycoon/game-logic';
 import { CloseButton } from './ui/CloseButton';
+import { FullScreenModalShell } from './ui/FullScreenModalShell';
 
 interface Props {
   visible: boolean;
@@ -12,7 +13,7 @@ interface Props {
 
 export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose }) => {
   return (
-    <Modal visible={visible} animationType="slide" transparent={true}>
+    <FullScreenModalShell visible={visible} onClose={onClose} title="Game Log">
       <View style={styles.modalContainer}>
         <View style={styles.content}>
           <View style={styles.header}>
@@ -48,7 +49,7 @@ export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose }) =
           </ScrollView>
         </View>
       </View>
-    </Modal>
+    </FullScreenModalShell>
   );
 };
 

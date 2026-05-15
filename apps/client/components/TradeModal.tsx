@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { Player, TradeOffer, TradeRequest, BOARD } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { CloseButton } from './ui/CloseButton';
@@ -441,9 +442,9 @@ export const TradeModal: React.FC<Props> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <FullScreenModalShell visible={visible} onClose={onClose} title="Trade">
       <View style={styles.modalOverlay}>{renderContent()}</View>
-    </Modal>
+    </FullScreenModalShell>
   );
 };
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import {
   Player,
   BOARD,
@@ -10,6 +10,7 @@ import {
 } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { CloseButton } from './ui/CloseButton';
+import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { GROUP_COLORS, GROUP_DISPLAY_NAMES } from '../constants';
 
 interface Props {
@@ -57,7 +58,7 @@ export const PropertyManager: React.FC<Props> = ({
   });
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <FullScreenModalShell visible={visible} onClose={onClose} title="Manage Properties">
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.header}>
@@ -175,7 +176,7 @@ export const PropertyManager: React.FC<Props> = ({
           </ScrollView>
         </View>
       </View>
-    </Modal>
+    </FullScreenModalShell>
   );
 };
 
