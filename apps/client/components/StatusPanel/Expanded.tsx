@@ -47,13 +47,7 @@ export const Expanded: React.FC<StatusPanelProps> = ({
 
       <View style={styles.footerRow}>
         <IconButton title="Log" icon="script-text" onPress={onShowLog} color="#666" size="small" />
-        <IconButton
-          title="Restart"
-          icon="restart"
-          onPress={onRestart}
-          color="#666"
-          size="small"
-        />
+        <IconButton title="Restart" icon="restart" onPress={onRestart} color="#666" size="small" />
       </View>
     </ScrollView>
   );

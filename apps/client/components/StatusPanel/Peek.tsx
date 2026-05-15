@@ -43,9 +43,7 @@ export const Peek: React.FC<StatusPanelProps> = ({
       <View style={styles.positionRow}>
         <Text style={styles.positionLabel}>Position: </Text>
         {!isTokenMoving && currentTile?.group && GROUP_COLORS[currentTile.group] && (
-          <View
-            style={[styles.tileColor, { backgroundColor: GROUP_COLORS[currentTile.group] }]}
-          />
+          <View style={[styles.tileColor, { backgroundColor: GROUP_COLORS[currentTile.group] }]} />
         )}
         <Text style={styles.positionText}>{isTokenMoving ? '…' : currentTile?.name}</Text>
       </View>
@@ -95,12 +93,7 @@ export const Peek: React.FC<StatusPanelProps> = ({
                   />
                 )}
                 {canAuction && !isTokenMoving && (
-                  <IconButton
-                    title="Auction"
-                    icon="gavel"
-                    onPress={onDeclineBuy}
-                    color="#f0ad4e"
-                  />
+                  <IconButton title="Auction" icon="gavel" onPress={onDeclineBuy} color="#f0ad4e" />
                 )}
                 {state.doublesCount === 0 && !isTokenMoving && (
                   <IconButton

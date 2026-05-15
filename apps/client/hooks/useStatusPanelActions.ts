@@ -15,10 +15,7 @@ export interface StatusPanelActions {
  * user. Extracted out of GameUI/Board so the three StatusPanel variants
  * (Peek, Expanded, TabletCenter) share one source of truth.
  */
-export function getStatusPanelActions(
-  state: GameState,
-  myPlayerId: string
-): StatusPanelActions {
+export function getStatusPanelActions(state: GameState, myPlayerId: string): StatusPanelActions {
   const currentPlayer = state.players.find((p) => p.id === state.currentPlayerId);
   const currentTile = currentPlayer ? BOARD[currentPlayer.position] : null;
   const isMyTurn = state.currentPlayerId === myPlayerId;
