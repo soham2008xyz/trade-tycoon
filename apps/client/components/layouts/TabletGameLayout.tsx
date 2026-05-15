@@ -14,7 +14,9 @@ export const TabletGameLayout: React.FC<Props> = (props) => {
 
   const onLayout = ({ nativeEvent }: LayoutChangeEvent) => {
     const { width, height } = nativeEvent.layout;
-    setFrame((prev) => (prev && prev.width === width && prev.height === height ? prev : { width, height }));
+    setFrame((prev) =>
+      prev && prev.width === width && prev.height === height ? prev : { width, height }
+    );
   };
 
   return (

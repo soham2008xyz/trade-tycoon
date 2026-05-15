@@ -60,18 +60,32 @@ export const GameUI: React.FC<GameUIProps> = ({
       onDispatch({ type: 'BUY_PROPERTY', playerId: state.currentPlayerId, propertyId: tile.id });
     }
   };
-  const handleDeclineBuy = () => onDispatch({ type: 'DECLINE_BUY', playerId: state.currentPlayerId });
+  const handleDeclineBuy = () =>
+    onDispatch({ type: 'DECLINE_BUY', playerId: state.currentPlayerId });
   const handlePayFine = () => onDispatch({ type: 'PAY_FINE', playerId: state.currentPlayerId });
-  const handleUseGOOJ = () => onDispatch({ type: 'USE_GOOJ_CARD', playerId: state.currentPlayerId });
+  const handleUseGOOJ = () =>
+    onDispatch({ type: 'USE_GOOJ_CARD', playerId: state.currentPlayerId });
   const handleRollAgain = () => handleRoll();
-  const handleBuild = (id: string) => onDispatch({ type: 'BUILD_HOUSE', playerId: state.currentPlayerId, propertyId: id });
-  const handleSell = (id: string) => onDispatch({ type: 'SELL_HOUSE', playerId: state.currentPlayerId, propertyId: id });
-  const handleMortgage = (id: string) => onDispatch({ type: 'MORTGAGE_PROPERTY', playerId: state.currentPlayerId, propertyId: id });
-  const handleUnmortgage = (id: string) => onDispatch({ type: 'UNMORTGAGE_PROPERTY', playerId: state.currentPlayerId, propertyId: id });
-  const handleBid = (playerId: string, amount: number) => onDispatch({ type: 'PLACE_BID', playerId, amount });
-  const handleConcedeAuction = (playerId: string) => onDispatch({ type: 'CONCEDE_AUCTION', playerId });
+  const handleBuild = (id: string) =>
+    onDispatch({ type: 'BUILD_HOUSE', playerId: state.currentPlayerId, propertyId: id });
+  const handleSell = (id: string) =>
+    onDispatch({ type: 'SELL_HOUSE', playerId: state.currentPlayerId, propertyId: id });
+  const handleMortgage = (id: string) =>
+    onDispatch({ type: 'MORTGAGE_PROPERTY', playerId: state.currentPlayerId, propertyId: id });
+  const handleUnmortgage = (id: string) =>
+    onDispatch({ type: 'UNMORTGAGE_PROPERTY', playerId: state.currentPlayerId, propertyId: id });
+  const handleBid = (playerId: string, amount: number) =>
+    onDispatch({ type: 'PLACE_BID', playerId, amount });
+  const handleConcedeAuction = (playerId: string) =>
+    onDispatch({ type: 'CONCEDE_AUCTION', playerId });
   const handleProposeTrade = (target: string, offer: TradeOffer, request: TradeOffer) =>
-    onDispatch({ type: 'PROPOSE_TRADE', playerId: myPlayerId, targetPlayerId: target, offer, request });
+    onDispatch({
+      type: 'PROPOSE_TRADE',
+      playerId: myPlayerId,
+      targetPlayerId: target,
+      offer,
+      request,
+    });
   const handleAcceptTrade = (tradeId: string) => {
     if (state.activeTrade && state.activeTrade.id === tradeId) {
       onDispatch({ type: 'ACCEPT_TRADE', playerId: state.activeTrade.targetPlayerId });
@@ -85,10 +99,18 @@ export const GameUI: React.FC<GameUIProps> = ({
   const handleCancelTrade = () => onDispatch({ type: 'CANCEL_TRADE', playerId: myPlayerId });
   const handleDeclareBankruptcy = () => {
     if (myPlayerId) {
-      showAlert('Declare Bankruptcy', 'Are you sure you want to declare bankruptcy? You will be removed from the game.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Yes', style: 'destructive', onPress: () => onDispatch({ type: 'DECLARE_BANKRUPTCY', playerId: myPlayerId }) },
-      ]);
+      showAlert(
+        'Declare Bankruptcy',
+        'Are you sure you want to declare bankruptcy? You will be removed from the game.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Yes',
+            style: 'destructive',
+            onPress: () => onDispatch({ type: 'DECLARE_BANKRUPTCY', playerId: myPlayerId }),
+          },
+        ]
+      );
     }
   };
   const handleRestart = () => {
@@ -130,12 +152,25 @@ export const GameUI: React.FC<GameUIProps> = ({
         onClose={() => setLogVisible(false)}
       />
       {gameFeedback && (
-        <Toast message={gameFeedback.message} onDismiss={() => onDispatch({ type: gameFeedback.dismissAction })} />
+        <Toast
+          message={gameFeedback.message}
+          onDismiss={() => onDispatch({ type: gameFeedback.dismissAction })}
+        />
       )}
-      {uiToastMessage && <Toast message={uiToastMessage} onDismiss={() => setUiToastMessage(null)} />}
-      <CustomAlert visible={alertVisible} options={alertOptions} onClose={() => setAlertVisible(false)} />
+      {uiToastMessage && (
+        <Toast message={uiToastMessage} onDismiss={() => setUiToastMessage(null)} />
+      )}
+      <CustomAlert
+        visible={alertVisible}
+        options={alertOptions}
+        onClose={() => setAlertVisible(false)}
+      />
 
-      {layout === 'phone' ? <PhoneGameLayout {...sharedProps} /> : <TabletGameLayout {...sharedProps} />}
+      {layout === 'phone' ? (
+        <PhoneGameLayout {...sharedProps} />
+      ) : (
+        <TabletGameLayout {...sharedProps} />
+      )}
 
       <AuctionModal
         visible={state.phase === 'auction'}
@@ -149,7 +184,12 @@ export const GameUI: React.FC<GameUIProps> = ({
 
       {currentPlayer && selfId && (
         <TradeModal
-          visible={!!tradeTargetId || (!!state.activeTrade && (state.activeTrade.initiatorId === selfId || state.activeTrade.targetPlayerId === selfId))}
+          visible={
+            !!tradeTargetId ||
+            (!!state.activeTrade &&
+              (state.activeTrade.initiatorId === selfId ||
+                state.activeTrade.targetPlayerId === selfId))
+          }
           players={state.players}
           currentPlayerId={selfId}
           targetPlayerId={tradeTargetId || state.activeTrade?.targetPlayerId}

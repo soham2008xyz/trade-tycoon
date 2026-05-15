@@ -64,33 +64,73 @@ export const Board: React.FC<Props> = ({
         <Tile tile={corners.go} orientation="corner" onPress={() => onTilePress(corners.go.id)} />
       </View>
       <View style={[styles.corner, styles.bottomLeft]}>
-        <Tile tile={corners.jail} orientation="corner" onPress={() => onTilePress(corners.jail.id)} />
+        <Tile
+          tile={corners.jail}
+          orientation="corner"
+          onPress={() => onTilePress(corners.jail.id)}
+        />
       </View>
       <View style={[styles.corner, styles.topLeft]}>
-        <Tile tile={corners.parking} orientation="corner" onPress={() => onTilePress(corners.parking.id)} />
+        <Tile
+          tile={corners.parking}
+          orientation="corner"
+          onPress={() => onTilePress(corners.parking.id)}
+        />
       </View>
       <View style={[styles.corner, styles.topRight]}>
-        <Tile tile={corners.gotojail} orientation="corner" onPress={() => onTilePress(corners.gotojail.id)} />
+        <Tile
+          tile={corners.gotojail}
+          orientation="corner"
+          onPress={() => onTilePress(corners.gotojail.id)}
+        />
       </View>
 
       <View style={styles.rowBottom}>
         {bottomRow.map((t) => (
-          <Tile key={t.id} tile={t} orientation="bottom" owner={getOwner(t.id)} onPress={() => onTilePress(t.id)} compact={compact} />
+          <Tile
+            key={t.id}
+            tile={t}
+            orientation="bottom"
+            owner={getOwner(t.id)}
+            onPress={() => onTilePress(t.id)}
+            compact={compact}
+          />
         ))}
       </View>
       <View style={styles.colLeft}>
         {leftRow.map((t) => (
-          <Tile key={t.id} tile={t} orientation="left" owner={getOwner(t.id)} onPress={() => onTilePress(t.id)} compact={compact} />
+          <Tile
+            key={t.id}
+            tile={t}
+            orientation="left"
+            owner={getOwner(t.id)}
+            onPress={() => onTilePress(t.id)}
+            compact={compact}
+          />
         ))}
       </View>
       <View style={styles.rowTop}>
         {topRow.map((t) => (
-          <Tile key={t.id} tile={t} orientation="top" owner={getOwner(t.id)} onPress={() => onTilePress(t.id)} compact={compact} />
+          <Tile
+            key={t.id}
+            tile={t}
+            orientation="top"
+            owner={getOwner(t.id)}
+            onPress={() => onTilePress(t.id)}
+            compact={compact}
+          />
         ))}
       </View>
       <View style={styles.colRight}>
         {rightRow.map((t) => (
-          <Tile key={t.id} tile={t} orientation="right" owner={getOwner(t.id)} onPress={() => onTilePress(t.id)} compact={compact} />
+          <Tile
+            key={t.id}
+            tile={t}
+            orientation="right"
+            owner={getOwner(t.id)}
+            onPress={() => onTilePress(t.id)}
+            compact={compact}
+          />
         ))}
       </View>
     </View>
@@ -98,7 +138,12 @@ export const Board: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  boardContainer: { backgroundColor: '#CDE6D0', position: 'relative', borderWidth: 2, borderColor: '#000' },
+  boardContainer: {
+    backgroundColor: '#CDE6D0',
+    position: 'relative',
+    borderWidth: 2,
+    borderColor: '#000',
+  },
   center: {
     position: 'absolute',
     left: `${CORNER_SIZE_PCT}%`,
@@ -109,13 +154,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 20,
   },
-  corner: { position: 'absolute', width: `${CORNER_SIZE_PCT}%`, height: `${CORNER_SIZE_PCT}%`, zIndex: 10 },
+  corner: {
+    position: 'absolute',
+    width: `${CORNER_SIZE_PCT}%`,
+    height: `${CORNER_SIZE_PCT}%`,
+    zIndex: 10,
+  },
   bottomRight: { bottom: 0, right: 0 },
   bottomLeft: { bottom: 0, left: 0 },
   topLeft: { top: 0, left: 0 },
   topRight: { top: 0, right: 0 },
-  rowBottom: { position: 'absolute', bottom: 0, left: `${CORNER_SIZE_PCT}%`, right: `${CORNER_SIZE_PCT}%`, height: `${CORNER_SIZE_PCT}%`, flexDirection: 'row' },
-  rowTop: { position: 'absolute', top: 0, left: `${CORNER_SIZE_PCT}%`, right: `${CORNER_SIZE_PCT}%`, height: `${CORNER_SIZE_PCT}%`, flexDirection: 'row' },
-  colLeft: { position: 'absolute', top: `${CORNER_SIZE_PCT}%`, bottom: `${CORNER_SIZE_PCT}%`, left: 0, width: `${CORNER_SIZE_PCT}%`, flexDirection: 'column' },
-  colRight: { position: 'absolute', top: `${CORNER_SIZE_PCT}%`, bottom: `${CORNER_SIZE_PCT}%`, right: 0, width: `${CORNER_SIZE_PCT}%`, flexDirection: 'column' },
+  rowBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: `${CORNER_SIZE_PCT}%`,
+    right: `${CORNER_SIZE_PCT}%`,
+    height: `${CORNER_SIZE_PCT}%`,
+    flexDirection: 'row',
+  },
+  rowTop: {
+    position: 'absolute',
+    top: 0,
+    left: `${CORNER_SIZE_PCT}%`,
+    right: `${CORNER_SIZE_PCT}%`,
+    height: `${CORNER_SIZE_PCT}%`,
+    flexDirection: 'row',
+  },
+  colLeft: {
+    position: 'absolute',
+    top: `${CORNER_SIZE_PCT}%`,
+    bottom: `${CORNER_SIZE_PCT}%`,
+    left: 0,
+    width: `${CORNER_SIZE_PCT}%`,
+    flexDirection: 'column',
+  },
+  colRight: {
+    position: 'absolute',
+    top: `${CORNER_SIZE_PCT}%`,
+    bottom: `${CORNER_SIZE_PCT}%`,
+    right: 0,
+    width: `${CORNER_SIZE_PCT}%`,
+    flexDirection: 'column',
+  },
 });

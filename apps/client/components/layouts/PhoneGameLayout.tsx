@@ -14,11 +14,15 @@ interface Props extends StatusPanelProps {
 export const PhoneGameLayout: React.FC<Props> = (props) => {
   const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['28%', '85%'], []);
-  const [boardFrame, setBoardFrame] = React.useState<{ width: number; height: number } | null>(null);
+  const [boardFrame, setBoardFrame] = React.useState<{ width: number; height: number } | null>(
+    null
+  );
 
   const handleBoardLayout = ({ nativeEvent }: LayoutChangeEvent) => {
     const { width, height } = nativeEvent.layout;
-    setBoardFrame((prev) => (prev && prev.width === width && prev.height === height ? prev : { width, height }));
+    setBoardFrame((prev) =>
+      prev && prev.width === width && prev.height === height ? prev : { width, height }
+    );
   };
 
   return (

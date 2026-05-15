@@ -102,66 +102,68 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
       <View style={styles.overlayContainer}>
         <View style={styles.backdrop} onTouchEnd={onClose} />
         <View style={styles.modalContent}>
-        {/* Header Card */}
-        <View style={[styles.header, { backgroundColor: color }]}>
-          <Text style={[styles.title, { color: textColor }]}>{tile.name}</Text>
-        </View>
-
-        <ScrollView style={styles.scrollContent}>
-          {/* Price & Status */}
-          <View style={styles.section}>
-            {tile.price && (
-              <View style={styles.row}>
-                {isTax ? (
-                  <Text style={styles.text}>Tax Amount:</Text>
-                ) : (
-                  <Text style={styles.text}>Price:</Text>
-                )}
-                <Text style={styles.text}>${tile.price}</Text>
-              </View>
-            )}
-
-            {owner ? (
-              <>
-                <Text style={styles.text}>Owned by: {owner.name}</Text>
-                {isMortgaged && <Text style={styles.mortgagedText}>MORTGAGED</Text>}
-                {isStreet && !isMortgaged && (
-                  <Text style={styles.text}>Houses: {houseCount === 5 ? 'Hotel' : houseCount}</Text>
-                )}
-              </>
-            ) : // Show "Unowned" only if it's buyable (has price and NOT tax)
-            // Actually, taxes have price but aren't ownable.
-            tile.price && !isTax ? (
-              <Text style={[styles.text, { fontStyle: 'italic', marginTop: 5 }]}>Unowned</Text>
-            ) : null}
+          {/* Header Card */}
+          <View style={[styles.header, { backgroundColor: color }]}>
+            <Text style={[styles.title, { color: textColor }]}>{tile.name}</Text>
           </View>
 
-          {/* Special Tile Description */}
-          {renderDescription()}
+          <ScrollView style={styles.scrollContent}>
+            {/* Price & Status */}
+            <View style={styles.section}>
+              {tile.price && (
+                <View style={styles.row}>
+                  {isTax ? (
+                    <Text style={styles.text}>Tax Amount:</Text>
+                  ) : (
+                    <Text style={styles.text}>Price:</Text>
+                  )}
+                  <Text style={styles.text}>${tile.price}</Text>
+                </View>
+              )}
 
-          {/* Rent Details */}
-          {renderRentDetails()}
+              {owner ? (
+                <>
+                  <Text style={styles.text}>Owned by: {owner.name}</Text>
+                  {isMortgaged && <Text style={styles.mortgagedText}>MORTGAGED</Text>}
+                  {isStreet && !isMortgaged && (
+                    <Text style={styles.text}>
+                      Houses: {houseCount === 5 ? 'Hotel' : houseCount}
+                    </Text>
+                  )}
+                </>
+              ) : // Show "Unowned" only if it's buyable (has price and NOT tax)
+              // Actually, taxes have price but aren't ownable.
+              tile.price && !isTax ? (
+                <Text style={[styles.text, { fontStyle: 'italic', marginTop: 5 }]}>Unowned</Text>
+              ) : null}
+            </View>
 
-          {/* Costs */}
-          <View style={styles.section}>
-            {tile.houseCost && (
-              <View style={styles.row}>
-                <Text style={styles.text}>Cost of Houses/Hotels:</Text>
-                <Text style={styles.text}>${tile.houseCost} each</Text>
-              </View>
-            )}
-            {tile.mortgageValue && (
-              <View style={styles.row}>
-                <Text style={styles.text}>Mortgage Value:</Text>
-                <Text style={styles.text}>${tile.mortgageValue}</Text>
-              </View>
-            )}
+            {/* Special Tile Description */}
+            {renderDescription()}
+
+            {/* Rent Details */}
+            {renderRentDetails()}
+
+            {/* Costs */}
+            <View style={styles.section}>
+              {tile.houseCost && (
+                <View style={styles.row}>
+                  <Text style={styles.text}>Cost of Houses/Hotels:</Text>
+                  <Text style={styles.text}>${tile.houseCost} each</Text>
+                </View>
+              )}
+              {tile.mortgageValue && (
+                <View style={styles.row}>
+                  <Text style={styles.text}>Mortgage Value:</Text>
+                  <Text style={styles.text}>${tile.mortgageValue}</Text>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+
+          <View style={styles.footer}>
+            <IconButton title="Close" icon="close" onPress={onClose} size="small" />
           </View>
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <IconButton title="Close" icon="close" onPress={onClose} size="small" />
-        </View>
         </View>
       </View>
     </FullScreenModalShell>
