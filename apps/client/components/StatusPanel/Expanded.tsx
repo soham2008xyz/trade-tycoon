@@ -30,8 +30,11 @@ export const Expanded: React.FC<StatusPanelProps> = ({
             </Text>
           </View>
           <View
-            style={{ marginLeft: 10, opacity: player.id !== myPlayerId ? 1 : 0 }}
-            pointerEvents={player.id !== myPlayerId ? 'auto' : 'none'}
+            style={{
+              marginLeft: 10,
+              opacity: player.id !== myPlayerId ? 1 : 0,
+              pointerEvents: player.id !== myPlayerId ? 'auto' : 'none',
+            }}
           >
             <IconButton
               title="Trade"

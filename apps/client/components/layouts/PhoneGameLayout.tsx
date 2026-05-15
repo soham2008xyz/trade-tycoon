@@ -42,6 +42,10 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
         index={0}
         snapPoints={snapPoints}
         enablePanDownToClose={false}
+        // Disable sheet panning while the auction modal is open so its gestures
+        // don't fight the modal's. Spec § "Error handling and edge cases".
+        enableContentPanningGesture={props.state.phase !== 'auction'}
+        enableHandlePanningGesture={props.state.phase !== 'auction'}
         keyboardBehavior="interactive"
       >
         <View style={styles.peek}>
