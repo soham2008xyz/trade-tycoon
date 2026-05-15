@@ -10,11 +10,25 @@ interface Props {
   owner?: Player;
   onPress?: () => void;
   testID?: string;
+  /**
+   * When true, edge tiles render without the name text. Used on narrow
+   * boards (phone, narrow web window) where 33pt-wide tiles can't fit a
+   * readable label. Corners are unaffected.
+   */
+  compact?: boolean;
 }
 
 const STRIPES = Array.from({ length: 40 });
 
-export const Tile: React.FC<Props> = ({ tile, orientation, style, owner, onPress, testID }) => {
+export const Tile: React.FC<Props> = ({
+  tile,
+  orientation,
+  style,
+  owner,
+  onPress,
+  testID,
+  compact = false,
+}) => {
   const isStreet = tile.type === 'street';
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
   const houseCount = owner?.houses[tile.id] || 0;
@@ -74,9 +88,11 @@ export const Tile: React.FC<Props> = ({ tile, orientation, style, owner, onPress
       )}
       <View style={styles.content}>
         {owner && <View style={[styles.ownerIndicator, { backgroundColor: owner.color }]} />}
-        <Text style={[styles.text, { fontSize: orientation === 'corner' ? 10 : 8 }]}>
-          {tile.name}
-        </Text>
+        {!(compact && orientation !== 'corner') && (
+          <Text style={[styles.text, { fontSize: orientation === 'corner' ? 10 : 8 }]}>
+            {tile.name}
+          </Text>
+        )}
         {tile.price && <Text style={styles.price}>${tile.price}</Text>}
       </View>
       {isMortgaged && (
