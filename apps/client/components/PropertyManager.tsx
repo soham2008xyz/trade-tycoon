@@ -13,6 +13,13 @@ import { CloseButton } from './ui/CloseButton';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { GROUP_COLORS, GROUP_DISPLAY_NAMES } from '../constants';
 
+// Both `GROUP_COLORS` and `GROUP_DISPLAY_NAMES` are imported as `Record<string, string>`.
+// Wrapping them in `Map`s once at module load lets us read with `.get()` instead of
+// `OBJ[key]` — the latter trips `eslint-plugin-security`'s detect-object-injection
+// rule even though the keys here come from a finite set of `PropertyGroup` values.
+const groupColorMap = new Map(Object.entries(GROUP_COLORS));
+const groupDisplayNameMap = new Map(Object.entries(GROUP_DISPLAY_NAMES));
+
 interface Props {
   visible: boolean;
   player: Player;
@@ -196,12 +203,12 @@ const GroupSection: React.FC<GroupSectionProps> = ({
   const groupTiles = getPropertiesInGroup(group as PropertyGroup) ?? [];
   const totalCount = groupTiles.length;
   const hasCompleteGroup = ownsCompleteGroup(player, group as PropertyGroup);
-  const displayName = GROUP_DISPLAY_NAMES[group] || group.toUpperCase();
+  const displayName = groupDisplayNameMap.get(group) ?? group.toUpperCase();
   const groupHasHouses = groupTiles.some((t) => (housesByTile.get(t.id) ?? 0) > 0);
 
   return (
     <View style={styles.groupContainer}>
-      <View style={[styles.groupHeader, { backgroundColor: GROUP_COLORS[group] || '#ccc' }]}>
+      <View style={[styles.groupHeader, { backgroundColor: groupColorMap.get(group) ?? '#ccc' }]}>
         <Text style={styles.groupTitle}>
           {displayName} ({ownedCount}/{totalCount} properties owned)
         </Text>
