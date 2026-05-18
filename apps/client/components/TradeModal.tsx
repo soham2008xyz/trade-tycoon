@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { Player, TradeOffer, TradeRequest, BOARD } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { CloseButton } from './ui/CloseButton';
@@ -21,7 +22,6 @@ interface Props {
   onReject: (tradeId: string) => void;
   onCancel: (tradeId: string) => void;
   onClose: () => void;
-  boardSize?: number;
   /**
    * In online multiplayer the modal renders on every client involved in the
    * trade, so each client must only see the buttons it can actually act on:
@@ -48,7 +48,6 @@ export const TradeModal: React.FC<Props> = ({
   onReject,
   onCancel,
   onClose,
-  boardSize,
   isMultiplayer = false,
 }) => {
   const [offerMoney, setOfferMoney] = useState(0);
@@ -132,7 +131,7 @@ export const TradeModal: React.FC<Props> = ({
       const tradeTarget = players.find((p) => p.id === effectiveActiveTrade.targetPlayerId);
 
       return (
-        <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
+        <View style={styles.modalContent}>
           <Text style={styles.title}>Trade Proposal</Text>
           <View style={[styles.headerSubtitle, styles.nameRow, { flexWrap: 'wrap' }]}>
             <View style={[styles.playerColor, { backgroundColor: tradeInitiator?.color }]} />
@@ -245,7 +244,7 @@ export const TradeModal: React.FC<Props> = ({
 
     if (initiator && target) {
       return (
-        <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
+        <View style={styles.modalContent}>
           <View style={styles.headerRow}>
             <View style={styles.nameRow}>
               <Text style={styles.title}>Propose Trade to</Text>
@@ -441,9 +440,9 @@ export const TradeModal: React.FC<Props> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <FullScreenModalShell visible={visible} onClose={onClose} title="Trade">
       <View style={styles.modalOverlay}>{renderContent()}</View>
-    </Modal>
+    </FullScreenModalShell>
   );
 };
 

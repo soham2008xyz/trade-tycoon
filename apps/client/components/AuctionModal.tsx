@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { AuctionState, Player, BOARD } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { shouldShowAuctionControls } from './multiplayer-gating';
@@ -12,7 +13,6 @@ interface Props {
   players: Player[];
   onBid: (playerId: string, amount: number) => void;
   onConcede: (playerId: string) => void;
-  boardSize?: number;
   /**
    * When true, only the row whose `playerId === myPlayerId` shows bid / fold
    * controls — every client only renders buttons for their own player. The
@@ -36,13 +36,22 @@ interface Props {
 // unit-tested in a plain Node vitest environment without React Native. We
 // re-export it from this module so existing imports keep working.
 
+/**
+ * The auction modal cannot be dismissed by the user — visibility is owned by
+ * `state.phase === 'auction'` and only resolves when bidding ends. We still
+ * have to satisfy `FullScreenModalShell`'s required `onClose` prop, so this
+ * named no-op stands in (also avoids `@typescript-eslint/no-empty-function`).
+ */
+function noopClose(): void {
+  /* auction is controlled by reducer state — no user-driven close */
+}
+
 export const AuctionModal: React.FC<Props> = ({
   visible,
   auction,
   players,
   onBid,
   onConcede,
-  boardSize,
   isMultiplayer = false,
   myPlayerId,
 }) => {
@@ -56,9 +65,9 @@ export const AuctionModal: React.FC<Props> = ({
   const increments = [1, 10, 50, 100];
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={true}>
+    <FullScreenModalShell visible={visible} onClose={noopClose} title="Auction" showClose={false}>
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
+        <View style={styles.modalContent}>
           <View style={styles.header}>
             <Text style={styles.title}>Auction for {property?.name}</Text>
             <Text style={styles.currentBid}>
@@ -142,7 +151,7 @@ export const AuctionModal: React.FC<Props> = ({
           </View>
         </View>
       </View>
-    </Modal>
+    </FullScreenModalShell>
   );
 };
 
