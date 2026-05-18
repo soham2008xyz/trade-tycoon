@@ -11,6 +11,22 @@ import { canAcceptTrade, canCancelTrade } from './multiplayer-gating';
 
 export { canAcceptTrade, canCancelTrade };
 
+/**
+ * One property line in the trade-proposal display (color swatch + tile name).
+ * Extracted from `renderContent` so the two property-list `.map()` callbacks
+ * stop pumping cyclomatic complexity into the parent.
+ */
+const TradePropertyLine: React.FC<{ tileId: string }> = ({ tileId }) => {
+  const tile = BOARD.find((t) => t.id === tileId);
+  const groupColor = tile?.group ? GROUP_COLORS[tile.group] : null;
+  return (
+    <View style={[styles.propItem, styles.nameRow, { justifyContent: 'flex-start' }]}>
+      {groupColor && <View style={[styles.propertyColor, { backgroundColor: groupColor }]} />}
+      <Text>• {tile?.name}</Text>
+    </View>
+  );
+};
+
 interface Props {
   visible: boolean;
   players: Player[];
@@ -149,25 +165,9 @@ export const TradeModal: React.FC<Props> = ({
               <Text>Money: ${effectiveActiveTrade.offer.money}</Text>
               <Text>GOOJ Cards: {effectiveActiveTrade.offer.getOutOfJailCards}</Text>
               <Text style={styles.propHeader}>Properties:</Text>
-              {effectiveActiveTrade.offer.properties.map((id) => {
-                const tile = BOARD.find((t) => t.id === id);
-                return (
-                  <View
-                    key={id}
-                    style={[styles.propItem, styles.nameRow, { justifyContent: 'flex-start' }]}
-                  >
-                    {tile?.group && GROUP_COLORS[tile.group] && (
-                      <View
-                        style={[
-                          styles.propertyColor,
-                          { backgroundColor: GROUP_COLORS[tile.group] },
-                        ]}
-                      />
-                    )}
-                    <Text>• {tile?.name}</Text>
-                  </View>
-                );
-              })}
+              {effectiveActiveTrade.offer.properties.map((id) => (
+                <TradePropertyLine key={id} tileId={id} />
+              ))}
             </View>
 
             <View style={styles.column}>
@@ -178,25 +178,9 @@ export const TradeModal: React.FC<Props> = ({
               <Text>Money: ${effectiveActiveTrade.request.money}</Text>
               <Text>GOOJ Cards: {effectiveActiveTrade.request.getOutOfJailCards}</Text>
               <Text style={styles.propHeader}>Properties:</Text>
-              {effectiveActiveTrade.request.properties.map((id) => {
-                const tile = BOARD.find((t) => t.id === id);
-                return (
-                  <View
-                    key={id}
-                    style={[styles.propItem, styles.nameRow, { justifyContent: 'flex-start' }]}
-                  >
-                    {tile?.group && GROUP_COLORS[tile.group] && (
-                      <View
-                        style={[
-                          styles.propertyColor,
-                          { backgroundColor: GROUP_COLORS[tile.group] },
-                        ]}
-                      />
-                    )}
-                    <Text>• {tile?.name}</Text>
-                  </View>
-                );
-              })}
+              {effectiveActiveTrade.request.properties.map((id) => (
+                <TradePropertyLine key={id} tileId={id} />
+              ))}
             </View>
           </View>
           {canAcceptTrade(currentPlayerId, effectiveActiveTrade, isMultiplayer) && (

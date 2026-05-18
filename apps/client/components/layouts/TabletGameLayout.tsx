@@ -5,8 +5,8 @@ import { TabletCenter } from '../StatusPanel/TabletCenter';
 import type { StatusPanelProps } from '../StatusPanel/types';
 
 interface Props extends StatusPanelProps {
-  onTilePress: (tileId: string) => void;
-  onTokenMovingChange: (isMoving: boolean) => void;
+  onTilePress: (_tileId: string) => void;
+  onTokenMovingChange: (_isMoving: boolean) => void;
 }
 
 export const TabletGameLayout: React.FC<Props> = (props) => {

@@ -1,0 +1,23 @@
+---
+# Codacy configuration. Codacy reads this file from the repo root.
+# Docs: https://docs.codacy.com/repositories-configure/codacy-configuration-file/
+#
+# Reasoning behind the exclusions and engine choices below:
+# - Tests don't carry production risk, so we don't apply the lint surface to them.
+# - Lockfiles and generated PWA assets aren't authored code.
+# - The bundled dist/ output is a build artifact, never reviewed.
+
+exclude_paths:
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+  - '**/dist/**'
+  - '**/node_modules/**'
+  - 'apps/client/public/sw.js'
+  - 'apps/client/scripts/**'
+  - '**/package-lock.json'
+
+engines:
+  eslint:
+    enabled: true
+  duplication:
+    enabled: false
