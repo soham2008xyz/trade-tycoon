@@ -72,9 +72,7 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
   onBid,
   onConcede,
 }) => (
-  <View
-    style={[styles.playerRow, isTurn ? styles.activePlayerRow : styles.inactivePlayerRow]}
-  >
+  <View style={[styles.playerRow, isTurn ? styles.activePlayerRow : styles.inactivePlayerRow]}>
     <View style={styles.playerInfo}>
       <View style={[styles.playerColor, { backgroundColor: player.color }]} />
       <Text style={[styles.playerName, isTurn && styles.activePlayerName]}>

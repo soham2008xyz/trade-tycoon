@@ -96,7 +96,10 @@ function declareBankruptcyButton(ctx: ActionContext): VisibleButton {
   return { visible: ctx.isMyTurn && ctx.player.money < 0 };
 }
 function buyButton(ctx: ActionContext): BuyButton {
-  return { visible: inAction(ctx) && ctx.propertyUnowned && ctx.canAfford, price: ctx.tile.price ?? 0 };
+  return {
+    visible: inAction(ctx) && ctx.propertyUnowned && ctx.canAfford,
+    price: ctx.tile.price ?? 0,
+  };
 }
 function auctionButton(ctx: ActionContext): VisibleButton {
   return { visible: inAction(ctx) && ctx.propertyUnowned };
