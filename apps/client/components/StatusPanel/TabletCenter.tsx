@@ -55,20 +55,16 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
                   {player.name} (${player.money})
                 </Text>
               </View>
-              <View
-                style={{
-                  marginLeft: 10,
-                  opacity: player.id !== selfId ? 1 : 0,
-                  pointerEvents: player.id !== selfId ? 'auto' : 'none',
-                }}
-              >
-                <IconButton
-                  title="Trade"
-                  icon="handshake"
-                  onPress={() => onOpenTrade(player.id)}
-                  size="small"
-                />
-              </View>
+              {player.id !== selfId && (
+                <View style={{ marginLeft: 10 }}>
+                  <IconButton
+                    title="Trade"
+                    icon="handshake"
+                    onPress={() => onOpenTrade(player.id)}
+                    size="small"
+                  />
+                </View>
+              )}
             </View>
           ))}
         </View>

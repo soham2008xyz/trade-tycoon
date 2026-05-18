@@ -32,7 +32,7 @@ const baseState = (overrides: Partial<GameState> = {}): GameState => ({
 });
 
 describe('getStatusPanelActions', () => {
-  it('marks it the local player turn only when ids match', () => {
+  it('marks it as the local player’s turn only when ids match', () => {
     const state = baseState();
     expect(getStatusPanelActions(state, 'alice').isMyTurn).toBe(true);
     expect(getStatusPanelActions(state, 'bob').isMyTurn).toBe(false);

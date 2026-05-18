@@ -13,7 +13,6 @@ interface Props {
   players: Player[];
   onBid: (playerId: string, amount: number) => void;
   onConcede: (playerId: string) => void;
-  boardSize?: number;
   /**
    * When true, only the row whose `playerId === myPlayerId` shows bid / fold
    * controls — every client only renders buttons for their own player. The
@@ -43,7 +42,6 @@ export const AuctionModal: React.FC<Props> = ({
   players,
   onBid,
   onConcede,
-  boardSize,
   isMultiplayer = false,
   myPlayerId,
 }) => {
@@ -59,7 +57,7 @@ export const AuctionModal: React.FC<Props> = ({
   return (
     <FullScreenModalShell visible={visible} onClose={() => {}} title="Auction" showClose={false}>
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, boardSize ? { width: boardSize - 40 } : undefined]}>
+        <View style={styles.modalContent}>
           <View style={styles.header}>
             <Text style={styles.title}>Auction for {property?.name}</Text>
             <Text style={styles.currentBid}>

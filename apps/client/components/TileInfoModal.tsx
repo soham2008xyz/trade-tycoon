@@ -14,7 +14,10 @@ interface Props {
 
 // Descriptions for special tiles
 export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }) => {
-  if (!tile) return null;
+  // Skip rendering entirely when closed — the FullScreenModalShell would hide
+  // its Modal anyway, but the children tree (backdrop + ScrollView + rent
+  // table) would still reconcile on every parent re-render. Cheap early-exit.
+  if (!tile || !visible) return null;
 
   const isStreet = tile.type === 'street';
   const isRailroad = tile.type === 'railroad';
