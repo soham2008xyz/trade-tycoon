@@ -36,6 +36,16 @@ interface Props {
 // unit-tested in a plain Node vitest environment without React Native. We
 // re-export it from this module so existing imports keep working.
 
+/**
+ * The auction modal cannot be dismissed by the user — visibility is owned by
+ * `state.phase === 'auction'` and only resolves when bidding ends. We still
+ * have to satisfy `FullScreenModalShell`'s required `onClose` prop, so this
+ * named no-op stands in (also avoids `@typescript-eslint/no-empty-function`).
+ */
+function noopClose(): void {
+  /* auction is controlled by reducer state — no user-driven close */
+}
+
 export const AuctionModal: React.FC<Props> = ({
   visible,
   auction,
@@ -55,7 +65,7 @@ export const AuctionModal: React.FC<Props> = ({
   const increments = [1, 10, 50, 100];
 
   return (
-    <FullScreenModalShell visible={visible} onClose={() => {}} title="Auction" showClose={false}>
+    <FullScreenModalShell visible={visible} onClose={noopClose} title="Auction" showClose={false}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.header}>

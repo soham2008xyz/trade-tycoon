@@ -75,7 +75,15 @@ export const FullScreenModalShell: React.FC<Props> = ({
   );
 };
 
-const NOOP = () => {};
+/**
+ * Used as the dismiss handler when `showClose` is false — the modal is
+ * fully controlled by reducer state and cannot be closed by the user.
+ * We still need to provide *something* to onRequestClose so Android's
+ * back button doesn't surface an unhandled-event warning.
+ */
+function NOOP(): void {
+  /* intentional no-op for non-dismissable modals */
+}
 
 const styles = StyleSheet.create({
   phoneRoot: { flex: 1, backgroundColor: '#fff' },
