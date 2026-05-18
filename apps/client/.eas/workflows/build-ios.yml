@@ -1,0 +1,32 @@
+name: Build iOS/iPadOS
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - apps/client/**
+  workflow_dispatch:
+    inputs:
+      profile:
+        type: string
+        description: Build profile (development | preview | production)
+        default: production
+
+jobs:
+  build_ios:
+    name: Build iOS/iPadOS app
+    type: build
+    params:
+      platform: ios
+      profile: ${{ inputs.profile || 'production' }}
+
+  submit_ios:
+    name: Submit to App Store Connect
+    type: submit
+    needs:
+      - build_ios
+    if: ${{ github.ref == 'refs/heads/master' && (inputs.profile == 'production' || inputs.profile == '') }}
+    params:
+      profile: production
+      build_id: ${{ needs.build_ios.outputs.build_id }}

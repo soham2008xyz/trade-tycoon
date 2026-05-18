@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
-      "bundleIdentifier": "com.anonymous.trade-tycoon"
+      "bundleIdentifier": "com.renderbit.tradetycoon"
     },
     "android": {
       "package": "com.renderbit.tradetycoon",
