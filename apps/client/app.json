@@ -13,6 +13,7 @@
       "bundleIdentifier": "com.anonymous.trade-tycoon"
     },
     "android": {
+      "package": "com.renderbit.tradetycoon",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
