@@ -16,7 +16,7 @@ export interface StatusPanelProps {
   onShowLog: () => void;
   onRestart: () => void;
   onOpenPropertyManager: () => void;
-  onOpenTrade: (_targetPlayerId: string) => void;
+  onOpenTrade: (targetPlayerId: string) => void;
 
   /**
    * Indicates a player token is currently animating across the board — we
