@@ -20,9 +20,6 @@ export interface BuyButton extends VisibleButton {
  * panel, regardless of which variant (Peek / Expanded / TabletCenter) is
  * doing the rendering. Each entry is a self-describing record: `visible`
  * for the gate, plus any extras the label needs (price, GOOJ count, etc).
- *
- * Adding a new button means adding a key here and reading it from each
- * variant — the rule lives in one tested place.
  */
 export interface StatusPanelButtons {
   roll: VisibleButton;
@@ -50,79 +47,102 @@ export interface StatusPanelActions {
   buttons: StatusPanelButtons;
 }
 
-/**
- * Intermediate boolean gates that the button-visibility rules consume.
- * Extracted from `getStatusPanelActions` so the buttons-map computation
- * stays a flat record of single-comparison rules and each function has a
- * narrow cyclomatic complexity instead of one big branch chain.
- */
-interface ActionGates {
-  isMyTurn: boolean;
-  currentPlayer: Player | undefined;
-  currentTile: Tile | null;
-  inRoll: boolean;
-  inAction: boolean;
-  isJailed: boolean;
-  inDoubles: boolean;
-  goojCount: number;
-  playerMoney: number;
-  canBuy: boolean;
-  canAuction: boolean;
+/** Whether the tile at the active player's position is buyable and unowned. */
+function isPropertyUnowned(state: GameState, player: Player, tile: Tile): boolean {
+  if (state.phase !== 'action' || !isTileBuyable(tile)) return false;
+  return !state.players.some((p) => p.properties.includes(tile.id));
 }
 
-function computeGates(state: GameState, myPlayerId: string, isTokenMoving: boolean): ActionGates {
-  const currentPlayer = state.players.find((p) => p.id === state.currentPlayerId);
-  const currentTile = currentPlayer ? BOARD[currentPlayer.position] : null;
-  const isMyTurn = state.currentPlayerId === myPlayerId;
-  const playerMoney = currentPlayer?.money ?? 0;
-
-  const propertyUnowned = isPropertyUnowned(state, currentPlayer, currentTile);
-  const canAfford = canAffordCurrentTile(currentPlayer, currentTile);
-
-  return {
-    isMyTurn,
-    currentPlayer,
-    currentTile,
-    inRoll: isMyTurn && state.phase === 'roll' && !!currentPlayer,
-    inAction: isMyTurn && state.phase === 'action' && !!currentPlayer && !isTokenMoving,
-    isJailed: !!currentPlayer?.isInJail,
-    inDoubles: state.doublesCount > 0,
-    goojCount: currentPlayer?.getOutOfJailCards ?? 0,
-    playerMoney,
-    canBuy: propertyUnowned && canAfford,
-    canAuction: propertyUnowned,
-  };
-}
-
-function isPropertyUnowned(
-  state: GameState,
-  currentPlayer: Player | undefined,
-  currentTile: Tile | null
-): boolean {
-  if (state.phase !== 'action' || !currentPlayer || !currentTile) return false;
-  if (!isTileBuyable(currentTile)) return false;
-  return !state.players.some((p) => p.properties.includes(currentTile.id));
-}
-
-function canAffordCurrentTile(player: Player | undefined, tile: Tile | null): boolean {
-  if (!player || !tile) return false;
+/** Whether the active player has enough money to cover the tile's listed price. */
+function canAffordTile(player: Player, tile: Tile): boolean {
   return player.money >= (tile.price ?? 0);
 }
 
-function computeButtons(gates: ActionGates): StatusPanelButtons {
-  const { inRoll, inAction, isJailed, inDoubles, goojCount, playerMoney } = gates;
-  const tilePrice = gates.currentTile?.price ?? 0;
+interface ActionContext {
+  state: GameState;
+  player: Player;
+  tile: Tile;
+  isMyTurn: boolean;
+  isTokenMoving: boolean;
+  propertyUnowned: boolean;
+  canAfford: boolean;
+}
+
+/**
+ * Pre-computed booleans for "is roll/action phase active for me, with no
+ * animation blocking input". Used as a common gate by most button rules.
+ */
+function inRoll(ctx: ActionContext): boolean {
+  return ctx.isMyTurn && ctx.state.phase === 'roll';
+}
+function inAction(ctx: ActionContext): boolean {
+  return ctx.isMyTurn && ctx.state.phase === 'action' && !ctx.isTokenMoving;
+}
+function inDoubles(ctx: ActionContext): boolean {
+  return ctx.state.doublesCount > 0;
+}
+
+function rollButton(ctx: ActionContext): VisibleButton {
+  return { visible: inRoll(ctx) };
+}
+function payFineButton(ctx: ActionContext): PayFineButton {
+  return { visible: inRoll(ctx) && ctx.player.isInJail, enabled: ctx.player.money >= 50 };
+}
+function useGOOJButton(ctx: ActionContext): UseGOOJButton {
+  const count = ctx.player.getOutOfJailCards;
+  return { visible: inRoll(ctx) && ctx.player.isInJail && count > 0, count };
+}
+function declareBankruptcyButton(ctx: ActionContext): VisibleButton {
+  return { visible: ctx.isMyTurn && ctx.player.money < 0 };
+}
+function buyButton(ctx: ActionContext): BuyButton {
+  return { visible: inAction(ctx) && ctx.propertyUnowned && ctx.canAfford, price: ctx.tile.price ?? 0 };
+}
+function auctionButton(ctx: ActionContext): VisibleButton {
+  return { visible: inAction(ctx) && ctx.propertyUnowned };
+}
+function manageButton(ctx: ActionContext): VisibleButton {
+  return { visible: inAction(ctx) && !inDoubles(ctx) };
+}
+function rollAgainButton(ctx: ActionContext): VisibleButton {
+  return { visible: inAction(ctx) && inDoubles(ctx) };
+}
+function endTurnButton(ctx: ActionContext): VisibleButton {
+  return { visible: inAction(ctx) && !inDoubles(ctx) };
+}
+function waitingButton(ctx: ActionContext): VisibleButton {
+  return { visible: !ctx.isMyTurn };
+}
+
+function buildButtons(ctx: ActionContext): StatusPanelButtons {
   return {
-    roll: { visible: inRoll },
-    payFine: { visible: inRoll && isJailed, enabled: playerMoney >= 50 },
-    useGOOJCard: { visible: inRoll && isJailed && goojCount > 0, count: goojCount },
-    declareBankruptcy: { visible: gates.isMyTurn && !!gates.currentPlayer && playerMoney < 0 },
-    buy: { visible: inAction && gates.canBuy, price: tilePrice },
-    auction: { visible: inAction && gates.canAuction },
-    manage: { visible: inAction && !inDoubles },
-    rollAgain: { visible: inAction && inDoubles },
-    endTurn: { visible: inAction && !inDoubles },
-    waiting: { visible: !gates.isMyTurn && !!gates.currentPlayer },
+    roll: rollButton(ctx),
+    payFine: payFineButton(ctx),
+    useGOOJCard: useGOOJButton(ctx),
+    declareBankruptcy: declareBankruptcyButton(ctx),
+    buy: buyButton(ctx),
+    auction: auctionButton(ctx),
+    manage: manageButton(ctx),
+    rollAgain: rollAgainButton(ctx),
+    endTurn: endTurnButton(ctx),
+    waiting: waitingButton(ctx),
+  };
+}
+
+/** All buttons hidden — used when the active player can't be resolved. */
+function emptyButtons(): StatusPanelButtons {
+  const hidden: VisibleButton = { visible: false };
+  return {
+    roll: hidden,
+    payFine: { ...hidden, enabled: false },
+    useGOOJCard: { ...hidden, count: 0 },
+    declareBankruptcy: hidden,
+    buy: { ...hidden, price: 0 },
+    auction: hidden,
+    manage: hidden,
+    rollAgain: hidden,
+    endTurn: hidden,
+    waiting: hidden,
   };
 }
 
@@ -142,14 +162,40 @@ export function getStatusPanelActions(
   myPlayerId: string,
   isTokenMoving = false
 ): StatusPanelActions {
-  const gates = computeGates(state, myPlayerId, isTokenMoving);
+  const player = state.players.find((p) => p.id === state.currentPlayerId);
+  const tile = player ? BOARD[player.position] : null;
+  const isMyTurn = state.currentPlayerId === myPlayerId;
+
+  if (!player || !tile) {
+    return {
+      isMyTurn,
+      currentPlayer: player,
+      currentTile: tile,
+      canBuy: false,
+      canAuction: false,
+      buttons: emptyButtons(),
+    };
+  }
+
+  const propertyUnowned = isPropertyUnowned(state, player, tile);
+  const canAfford = canAffordTile(player, tile);
+  const ctx: ActionContext = {
+    state,
+    player,
+    tile,
+    isMyTurn,
+    isTokenMoving,
+    propertyUnowned,
+    canAfford,
+  };
+
   return {
-    isMyTurn: gates.isMyTurn,
-    currentPlayer: gates.currentPlayer,
-    currentTile: gates.currentTile,
-    canBuy: gates.canBuy,
-    canAuction: gates.canAuction,
-    buttons: computeButtons(gates),
+    isMyTurn,
+    currentPlayer: player,
+    currentTile: tile,
+    canBuy: propertyUnowned && canAfford,
+    canAuction: propertyUnowned,
+    buttons: buildButtons(ctx),
   };
 }
 

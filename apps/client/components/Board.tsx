@@ -14,9 +14,9 @@ interface Props {
   availableWidth?: number;
   availableHeight?: number;
   /** Tile-tap handler. The host (GameUI) opens TileInfoModal. */
-  onTilePress: (tileId: string) => void;
+  onTilePress: (_tileId: string) => void;
   /** Notifies the host when a player token starts/finishes animating. */
-  onTokenMovingChange?: (isMoving: boolean) => void;
+  onTokenMovingChange?: (_isMoving: boolean) => void;
 }
 
 export const Board: React.FC<Props> = ({

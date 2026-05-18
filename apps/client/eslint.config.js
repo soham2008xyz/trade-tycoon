@@ -7,4 +7,23 @@ module.exports = defineConfig([
   {
     ignores: ['dist/*'],
   },
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    rules: {
+      // Treat unused names prefixed with `_` as intentional. Lets us keep
+      // parameter names as documentation in TypeScript callback signatures
+      // (`onTilePress: (_tileId: string) => void`) without ESLint flagging
+      // them as unused vars. Standard ESLint convention; Codacy also honors
+      // it once configured here.
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
 ]);

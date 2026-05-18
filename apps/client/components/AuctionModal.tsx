@@ -46,6 +46,74 @@ function noopClose(): void {
   /* auction is controlled by reducer state — no user-driven close */
 }
 
+interface ParticipantRowProps {
+  player: Player;
+  isTurn: boolean;
+  isHighestBidder: boolean;
+  showControls: boolean;
+  currentBid: number;
+  increments: readonly number[];
+  onBid: (playerId: string, amount: number) => void;
+  onConcede: (playerId: string) => void;
+}
+
+/**
+ * One row of the auction participants list. Renders the player's name and
+ * color, and (when `showControls` is true) the bid-increment buttons plus
+ * Fold. Extracted so the parent's `.map()` callback stays trivial.
+ */
+const ParticipantRow: React.FC<ParticipantRowProps> = ({
+  player,
+  isTurn,
+  isHighestBidder,
+  showControls,
+  currentBid,
+  increments,
+  onBid,
+  onConcede,
+}) => (
+  <View
+    style={[styles.playerRow, isTurn ? styles.activePlayerRow : styles.inactivePlayerRow]}
+  >
+    <View style={styles.playerInfo}>
+      <View style={[styles.playerColor, { backgroundColor: player.color }]} />
+      <Text style={[styles.playerName, isTurn && styles.activePlayerName]}>
+        {player.name} (${player.money}) {isTurn && ' (Bidding)'}
+      </Text>
+    </View>
+    {showControls && (
+      <View style={styles.controls}>
+        <View style={styles.bidButtons}>
+          {increments.map((inc) => {
+            const bidAmount = currentBid + inc;
+            return (
+              <View key={inc} style={styles.buttonWrapper}>
+                <IconButton
+                  title={`+${inc}`}
+                  icon="arrow-up-bold"
+                  onPress={() => onBid(player.id, bidAmount)}
+                  disabled={player.money < bidAmount || !isTurn}
+                  size="small"
+                />
+              </View>
+            );
+          })}
+        </View>
+        <View style={styles.foldButton}>
+          <IconButton
+            title="Fold"
+            icon="close-circle"
+            onPress={() => onConcede(player.id)}
+            color="#d9534f"
+            disabled={!isTurn || isHighestBidder}
+            size="small"
+          />
+        </View>
+      </View>
+    )}
+  </View>
+);
+
 export const AuctionModal: React.FC<Props> = ({
   visible,
   auction,
@@ -80,69 +148,18 @@ export const AuctionModal: React.FC<Props> = ({
             {auction.participants.map((playerId, index) => {
               const player = players.find((p) => p.id === playerId);
               if (!player) return null;
-
-              const isHighestBidder = auction.highestBidderId === playerId;
-              const isTurn = index === auction.currentBidderIndex;
-              const canAffordBid = (amount: number) => player.money >= amount;
-              // In multiplayer, only the local user's row shows controls —
-              // every browser is its own client and should only render
-              // buttons it can actually act on. In hotseat (default), every
-              // row renders controls so the shared-device user can act for
-              // whichever bidder is active at the moment. See
-              // `shouldShowAuctionControls` (exported above) for the rule.
-              const showControlsForThisRow = shouldShowAuctionControls(
-                playerId,
-                isMultiplayer,
-                myPlayerId
-              );
-
               return (
-                <View
+                <ParticipantRow
                   key={playerId}
-                  style={[
-                    styles.playerRow,
-                    isTurn ? styles.activePlayerRow : styles.inactivePlayerRow,
-                  ]}
-                >
-                  <View style={styles.playerInfo}>
-                    <View style={[styles.playerColor, { backgroundColor: player.color }]} />
-                    <Text style={[styles.playerName, isTurn && styles.activePlayerName]}>
-                      {player.name} (${player.money}) {isTurn && ' (Bidding)'}
-                    </Text>
-                  </View>
-
-                  {showControlsForThisRow && (
-                    <View style={styles.controls}>
-                      <View style={styles.bidButtons}>
-                        {increments.map((inc) => {
-                          const bidAmount = auction.currentBid + inc;
-                          const disabled = !canAffordBid(bidAmount) || !isTurn;
-                          return (
-                            <View key={inc} style={styles.buttonWrapper}>
-                              <IconButton
-                                title={`+${inc}`}
-                                icon="arrow-up-bold"
-                                onPress={() => onBid(playerId, bidAmount)}
-                                disabled={disabled}
-                                size="small"
-                              />
-                            </View>
-                          );
-                        })}
-                      </View>
-                      <View style={styles.foldButton}>
-                        <IconButton
-                          title="Fold"
-                          icon="close-circle"
-                          onPress={() => onConcede(playerId)}
-                          color="#d9534f"
-                          disabled={!isTurn || isHighestBidder}
-                          size="small"
-                        />
-                      </View>
-                    </View>
-                  )}
-                </View>
+                  player={player}
+                  isTurn={index === auction.currentBidderIndex}
+                  isHighestBidder={auction.highestBidderId === playerId}
+                  showControls={shouldShowAuctionControls(playerId, isMultiplayer, myPlayerId)}
+                  currentBid={auction.currentBid}
+                  increments={increments}
+                  onBid={onBid}
+                  onConcede={onConcede}
+                />
               );
             })}
           </ScrollView>
