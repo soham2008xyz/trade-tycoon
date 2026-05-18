@@ -92,11 +92,11 @@ client only knows about REST + SSE.
 
 ## Development guidelines
 
-### Adding a new game feature (e.g. "Auctions")
+### Adding a new game feature (e.g. "Turn Order Randomization")
 
 1. **Logic first (`packages/game-logic`):**
-   - Define the `Auction` type in the state.
-   - Add a new action type (e.g. `BID_PLACED`).
+   - Define any new state shape in `types.ts` (e.g. a `turnOrder` field).
+   - Add a new action type to the discriminated union in `reducer.ts` (e.g. `RANDOMIZE_TURN_ORDER`).
    - Implement the rules in the reducer.
    - Write unit tests.
 
