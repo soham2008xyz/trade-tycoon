@@ -190,10 +190,13 @@ const GroupSection: React.FC<GroupSectionProps> = ({
   onUnmortgage,
 }) => {
   const ownedCount = tiles.length;
-  const totalCount = getPropertiesInGroup(group as PropertyGroup).length;
+  // `group` may fall back to 'misc' for unrecognized groups; coerce to an
+  // empty array if the helper has nothing for it. Resolved once and reused
+  // for both the total count and the any-houses-in-group check.
+  const groupTiles = getPropertiesInGroup(group as PropertyGroup) ?? [];
+  const totalCount = groupTiles.length;
   const hasCompleteGroup = ownsCompleteGroup(player, group as PropertyGroup);
   const displayName = GROUP_DISPLAY_NAMES[group] || group.toUpperCase();
-  const groupTiles = getPropertiesInGroup(group as PropertyGroup);
   const groupHasHouses = groupTiles.some((t) => (housesByTile.get(t.id) ?? 0) > 0);
 
   return (
