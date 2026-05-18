@@ -23,25 +23,96 @@ interface Props {
   onUnmortgage: (propertyId: string) => void;
 }
 
+/** Build/Sell pair shown for unmortgaged streets only. */
+const HouseControls: React.FC<{
+  tile: Tile;
+  player: Player;
+  houses: number;
+  hasCompleteGroup: boolean;
+  onBuild: (_propertyId: string) => void;
+  onSell: (_propertyId: string) => void;
+}> = ({ tile, player, houses, hasCompleteGroup, onBuild, onSell }) => {
+  const houseCost = tile.houseCost || 0;
+  return (
+    <>
+      <IconButton
+        title={`Build House ($${houseCost})`}
+        icon="home-plus"
+        onPress={() => onBuild(tile.id)}
+        disabled={player.money < houseCost || houses >= 5 || !hasCompleteGroup}
+        size="small"
+      />
+      <IconButton
+        title={`Sell House ($${houseCost / 2})`}
+        icon="home-minus"
+        onPress={() => onSell(tile.id)}
+        color="orange"
+        disabled={houses <= 0}
+        size="small"
+      />
+    </>
+  );
+};
+
+/** Mortgage/Unmortgage button — exactly one renders depending on state. */
+const MortgageControls: React.FC<{
+  tile: Tile;
+  player: Player;
+  houses: number;
+  isMortgaged: boolean;
+  groupHasHouses: boolean;
+  onMortgage: (_propertyId: string) => void;
+  onUnmortgage: (_propertyId: string) => void;
+}> = ({ tile, player, houses, isMortgaged, groupHasHouses, onMortgage, onUnmortgage }) => {
+  const mortgageValue = tile.mortgageValue || 0;
+  const unmortgageCost = Math.ceil(mortgageValue * 1.1);
+  if (isMortgaged) {
+    return (
+      <IconButton
+        title={`Unmortgage ($${unmortgageCost})`}
+        icon="bank-plus"
+        onPress={() => onUnmortgage(tile.id)}
+        color="#5cb85c"
+        disabled={player.money < unmortgageCost}
+        size="small"
+      />
+    );
+  }
+  return (
+    <IconButton
+      title={`Mortgage ($${mortgageValue})`}
+      icon="bank-minus"
+      onPress={() => onMortgage(tile.id)}
+      color="#d9534f"
+      disabled={houses > 0 || groupHasHouses}
+      size="small"
+    />
+  );
+};
+
 interface PropertyRowProps {
   tile: Tile;
   player: Player;
+  houses: number;
   hasCompleteGroup: boolean;
   groupHasHouses: boolean;
-  onBuild: (propertyId: string) => void;
-  onSell: (propertyId: string) => void;
-  onMortgage: (propertyId: string) => void;
-  onUnmortgage: (propertyId: string) => void;
+  onBuild: (_propertyId: string) => void;
+  onSell: (_propertyId: string) => void;
+  onMortgage: (_propertyId: string) => void;
+  onUnmortgage: (_propertyId: string) => void;
 }
 
 /**
  * One row in the property manager: name + house count + the appropriate
  * Build/Sell/Mortgage/Unmortgage controls for the property's current state.
- * Kept as its own component so the parent's group-map callback stays small.
+ * `houses` is passed in (rather than read from `player.houses[tile.id]`)
+ * so the call site can use a Map lookup that static analyzers don't flag
+ * as object-injection.
  */
 const PropertyRow: React.FC<PropertyRowProps> = ({
   tile,
   player,
+  houses,
   hasCompleteGroup,
   groupHasHouses,
   onBuild,
@@ -49,13 +120,8 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   onMortgage,
   onUnmortgage,
 }) => {
-  const houses = player.houses[tile.id] || 0;
-  const houseCost = tile.houseCost || 0;
   const isMortgaged = player.mortgaged.includes(tile.id);
-  const mortgageValue = tile.mortgageValue || 0;
-  const unmortgageCost = Math.ceil(mortgageValue * 1.1);
   const isStreet = tile.type === 'street';
-  const showHouseControls = isStreet && !isMortgaged;
 
   return (
     <View style={styles.propertyRow}>
@@ -70,44 +136,25 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
         )}
       </View>
       <View style={styles.buttons}>
-        {showHouseControls && (
-          <>
-            <IconButton
-              title={`Build House ($${houseCost})`}
-              icon="home-plus"
-              onPress={() => onBuild(tile.id)}
-              disabled={player.money < houseCost || houses >= 5 || !hasCompleteGroup}
-              size="small"
-            />
-            <IconButton
-              title={`Sell House ($${houseCost / 2})`}
-              icon="home-minus"
-              onPress={() => onSell(tile.id)}
-              color="orange"
-              disabled={houses <= 0}
-              size="small"
-            />
-          </>
-        )}
-        {isMortgaged ? (
-          <IconButton
-            title={`Unmortgage ($${unmortgageCost})`}
-            icon="bank-plus"
-            onPress={() => onUnmortgage(tile.id)}
-            color="#5cb85c"
-            disabled={player.money < unmortgageCost}
-            size="small"
-          />
-        ) : (
-          <IconButton
-            title={`Mortgage ($${mortgageValue})`}
-            icon="bank-minus"
-            onPress={() => onMortgage(tile.id)}
-            color="#d9534f"
-            disabled={houses > 0 || groupHasHouses}
-            size="small"
+        {isStreet && !isMortgaged && (
+          <HouseControls
+            tile={tile}
+            player={player}
+            houses={houses}
+            hasCompleteGroup={hasCompleteGroup}
+            onBuild={onBuild}
+            onSell={onSell}
           />
         )}
+        <MortgageControls
+          tile={tile}
+          player={player}
+          houses={houses}
+          isMortgaged={isMortgaged}
+          groupHasHouses={groupHasHouses}
+          onMortgage={onMortgage}
+          onUnmortgage={onUnmortgage}
+        />
       </View>
     </View>
   );
@@ -117,10 +164,14 @@ interface GroupSectionProps {
   group: string;
   tiles: Tile[];
   player: Player;
-  onBuild: (propertyId: string) => void;
-  onSell: (propertyId: string) => void;
-  onMortgage: (propertyId: string) => void;
-  onUnmortgage: (propertyId: string) => void;
+  /** Map of property-id → house count. Derived once at the parent so each
+   *  row gets a Map.get() lookup instead of `player.houses[tile.id]` (which
+   *  static analyzers can't prove is safe). */
+  housesByTile: Map<string, number>;
+  onBuild: (_propertyId: string) => void;
+  onSell: (_propertyId: string) => void;
+  onMortgage: (_propertyId: string) => void;
+  onUnmortgage: (_propertyId: string) => void;
 }
 
 /**
@@ -132,6 +183,7 @@ const GroupSection: React.FC<GroupSectionProps> = ({
   group,
   tiles,
   player,
+  housesByTile,
   onBuild,
   onSell,
   onMortgage,
@@ -142,7 +194,7 @@ const GroupSection: React.FC<GroupSectionProps> = ({
   const hasCompleteGroup = ownsCompleteGroup(player, group as PropertyGroup);
   const displayName = GROUP_DISPLAY_NAMES[group] || group.toUpperCase();
   const groupTiles = getPropertiesInGroup(group as PropertyGroup);
-  const groupHasHouses = groupTiles.some((t) => (player.houses[t.id] || 0) > 0);
+  const groupHasHouses = groupTiles.some((t) => (housesByTile.get(t.id) ?? 0) > 0);
 
   return (
     <View style={styles.groupContainer}>
@@ -156,6 +208,7 @@ const GroupSection: React.FC<GroupSectionProps> = ({
           key={tile.id}
           tile={tile}
           player={player}
+          houses={housesByTile.get(tile.id) ?? 0}
           hasCompleteGroup={hasCompleteGroup}
           groupHasHouses={groupHasHouses}
           onBuild={onBuild}
@@ -177,30 +230,31 @@ export const PropertyManager: React.FC<Props> = ({
   onMortgage,
   onUnmortgage,
 }) => {
-  // Group properties by color
-  const properties = player.properties
+  // Group properties by color. Returned as a Map (not a Record<string, Tile[]>)
+  // so iteration uses .entries() and static analyzers don't flag the key
+  // access as object-injection.
+  const propertiesByGroup = player.properties
     .map((id) => BOARD.find((t) => t.id === id))
     .filter(
       (t): t is Tile =>
         !!t && (t.type === 'street' || t.type === 'railroad' || t.type === 'utility')
     )
-    .reduce(
-      (acc, tile) => {
-        const group = tile.group || 'misc';
-        if (!acc[group]) acc[group] = [];
-        acc[group].push(tile);
-        return acc;
-      },
-      {} as Record<string, Tile[]>
-    );
+    .reduce((acc, tile) => {
+      const group = tile.group || 'misc';
+      const existing = acc.get(group) ?? [];
+      existing.push(tile);
+      acc.set(group, existing);
+      return acc;
+    }, new Map<string, Tile[]>());
 
-  // Sort groups by board index roughly (just standard order)
-  const sortedGroups = Object.keys(properties).sort((a, b) => {
-    // Simple check if one tile in group A is < tile in group B
-    const idxA = properties[a][0].index;
-    const idxB = properties[b][0].index;
-    return idxA - idxB;
-  });
+  // Sort by the first tile's board index so groups appear in standard order.
+  const sortedEntries = Array.from(propertiesByGroup.entries()).sort(
+    ([, a], [, b]) => a[0].index - b[0].index
+  );
+
+  // One Map<tileId, houseCount> for the whole render — passed down so each row
+  // does a typed Map.get() rather than `player.houses[tile.id]`.
+  const housesByTile = new Map(Object.entries(player.houses));
 
   return (
     <FullScreenModalShell visible={visible} onClose={onClose} title="Manage Properties">
@@ -215,15 +269,16 @@ export const PropertyManager: React.FC<Props> = ({
           <Text style={styles.balance}>Cash: ${player.money}</Text>
 
           <ScrollView style={styles.scroll}>
-            {sortedGroups.length === 0 ? (
+            {sortedEntries.length === 0 ? (
               <Text style={styles.emptyText}>You don&apos;t own any buildable properties.</Text>
             ) : (
-              sortedGroups.map((group) => (
+              sortedEntries.map(([group, tiles]) => (
                 <GroupSection
                   key={group}
                   group={group}
-                  tiles={properties[group]}
+                  tiles={tiles}
                   player={player}
+                  housesByTile={housesByTile}
                   onBuild={onBuild}
                   onSell={onSell}
                   onMortgage={onMortgage}
