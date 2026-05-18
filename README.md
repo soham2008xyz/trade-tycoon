@@ -11,8 +11,8 @@ Events on top of Upstash Redis.
 - `apps/server` — Express server for multiplayer (REST + SSE).
 - `packages/game-logic` — Pure-TypeScript game rules shared by both.
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for the multiplayer data flow and
-[DEPLOY.md](./DEPLOY.md) for production deployment / env vars.
+See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the multiplayer data flow and
+[DEPLOY.md](./docs/DEPLOY.md) for production deployment / env vars.
 
 ## Getting Started
 
@@ -44,7 +44,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the multiplayer data flow and
 ## Development
 
 For detailed feature tracking and implementation status, see
-[SPECIFICATION.md](./SPECIFICATION.md).
+[SPECIFICATION.md](./docs/SPECIFICATION.md).
 
 **Tests:**
 

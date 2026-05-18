@@ -57,7 +57,7 @@ Key types defined in `packages/game-logic/src/types.ts`:
 - Server is authoritative and runs shared `gameReducer`
 - Uses in-memory backends in local/test and Redis-backed store/event bus in production when `REDIS_URL` is set
 
-See [ARCHITECTURE.md](../ARCHITECTURE.md) and [AGENTS.md](../AGENTS.md) for detailed online architecture contracts.
+See [ARCHITECTURE.md](../docs/ARCHITECTURE.md) and [AGENTS.md](../AGENTS.md) for detailed online architecture contracts.
 
 ## Essential Commands
 
@@ -246,5 +246,5 @@ The `packages/game-logic` package is **framework-agnostic**:
 | Local game loop          | `apps/client/components/LocalGame.tsx`  |
 | Online game loop         | `apps/client/components/OnlineGame.tsx` |
 | Multiplayer room manager | `apps/server/src/RoomManager.ts`        |
-| Feature status           | `SPECIFICATION.md`                      |
+| Feature status           | `docs/SPECIFICATION.md`                 |
 | Full agent guide         | `AGENTS.md`                             |

@@ -52,7 +52,7 @@ duplication is not.
 **Production stack:** Client on Vercel (static export), server on Vercel
 (auto-detected Express), state + pub/sub on Upstash Redis. The server's
 backends are pluggable: in-memory for tests/dev, Redis-backed when
-`REDIS_URL` is set. See `DEPLOY.md` for the env-var reference.
+`REDIS_URL` is set. See `docs/DEPLOY.md` for the env-var reference.
 
 **Key directives:**
 
@@ -69,10 +69,10 @@ backends are pluggable: in-memory for tests/dev, Redis-backed when
 Read these before non-trivial work:
 
 - `README.md` — setup, daily commands.
-- `ARCHITECTURE.md` — directory layout, multiplayer data flow, why the
+- `docs/ARCHITECTURE.md` — directory layout, multiplayer data flow, why the
   pluggable backends.
-- `DEPLOY.md` — provisioning Upstash, env vars, verifying a deploy.
-- `SPECIFICATION.md` — feature implementation status.
+- `docs/DEPLOY.md` — provisioning Upstash, env vars, verifying a deploy.
+- `docs/SPECIFICATION.md` — feature implementation status.
 - `apps/server/.env.example` — server env vars in one place.
 - The three workspace-level `AGENTS.md` files listed in §0.
 
@@ -246,8 +246,8 @@ After every change:
 4. **Run a build** if you touched server entry points or wiring
    (`npm run build --workspace=apps/server`).
 5. If you've changed deployment-relevant code (env var handling,
-   Redis wiring, route shapes), check `DEPLOY.md` is still accurate.
-6. Update `SPECIFICATION.md` when a feature ships.
+   Redis wiring, route shapes), check `docs/DEPLOY.md` is still accurate.
+6. Update `docs/SPECIFICATION.md` when a feature ships.
 
 ## 9. When something is wrong in production
 

@@ -45,4 +45,4 @@ When gating behavior changes:
 
 - [apps/client/AGENTS.md](../../apps/client/AGENTS.md)
 - [AGENTS.md](../../AGENTS.md)
-- [ARCHITECTURE.md](../../ARCHITECTURE.md)
+- [ARCHITECTURE.md](../../docs/ARCHITECTURE.md)

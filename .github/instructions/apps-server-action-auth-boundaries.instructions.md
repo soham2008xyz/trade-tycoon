@@ -54,4 +54,4 @@ When auth boundaries change:
 
 - [apps/server/AGENTS.md](../../apps/server/AGENTS.md)
 - [AGENTS.md](../../AGENTS.md)
-- [ARCHITECTURE.md](../../ARCHITECTURE.md)
+- [ARCHITECTURE.md](../../docs/ARCHITECTURE.md)

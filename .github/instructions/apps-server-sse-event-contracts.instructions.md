@@ -77,5 +77,5 @@ When SSE contract changes:
 ## References
 
 - [apps/server/AGENTS.md](../../apps/server/AGENTS.md)
-- [ARCHITECTURE.md](../../ARCHITECTURE.md)
+- [ARCHITECTURE.md](../../docs/ARCHITECTURE.md)
 - [AGENTS.md](../../AGENTS.md)
