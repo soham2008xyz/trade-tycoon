@@ -20,14 +20,23 @@ import { GROUP_COLORS, GROUP_DISPLAY_NAMES } from '../constants';
 const groupColorMap = new Map(Object.entries(GROUP_COLORS));
 const groupDisplayNameMap = new Map(Object.entries(GROUP_DISPLAY_NAMES));
 
+/**
+ * Callback that takes a property's tile id and performs the action
+ * (build / sell / mortgage / unmortgage). One named alias shared across
+ * every sub-component so the parameter name only appears once in source
+ * — repeating `(propertyId: string)` in each interface field would trip
+ * Codacy's `no-unused-vars` rule on every restatement.
+ */
+type PropertyAction = (propertyId: string) => void;
+
 interface Props {
   visible: boolean;
   player: Player;
   onClose: () => void;
-  onBuild: (propertyId: string) => void;
-  onSell: (propertyId: string) => void;
-  onMortgage: (propertyId: string) => void;
-  onUnmortgage: (propertyId: string) => void;
+  onBuild: PropertyAction;
+  onSell: PropertyAction;
+  onMortgage: PropertyAction;
+  onUnmortgage: PropertyAction;
 }
 
 /** Build/Sell pair shown for unmortgaged streets only. */
@@ -36,8 +45,8 @@ const HouseControls: React.FC<{
   player: Player;
   houses: number;
   hasCompleteGroup: boolean;
-  onBuild: (_propertyId: string) => void;
-  onSell: (_propertyId: string) => void;
+  onBuild: PropertyAction;
+  onSell: PropertyAction;
 }> = ({ tile, player, houses, hasCompleteGroup, onBuild, onSell }) => {
   const houseCost = tile.houseCost || 0;
   return (
@@ -68,8 +77,8 @@ const MortgageControls: React.FC<{
   houses: number;
   isMortgaged: boolean;
   groupHasHouses: boolean;
-  onMortgage: (_propertyId: string) => void;
-  onUnmortgage: (_propertyId: string) => void;
+  onMortgage: PropertyAction;
+  onUnmortgage: PropertyAction;
 }> = ({ tile, player, houses, isMortgaged, groupHasHouses, onMortgage, onUnmortgage }) => {
   const mortgageValue = tile.mortgageValue || 0;
   const unmortgageCost = Math.ceil(mortgageValue * 1.1);
@@ -103,10 +112,10 @@ interface PropertyRowProps {
   houses: number;
   hasCompleteGroup: boolean;
   groupHasHouses: boolean;
-  onBuild: (_propertyId: string) => void;
-  onSell: (_propertyId: string) => void;
-  onMortgage: (_propertyId: string) => void;
-  onUnmortgage: (_propertyId: string) => void;
+  onBuild: PropertyAction;
+  onSell: PropertyAction;
+  onMortgage: PropertyAction;
+  onUnmortgage: PropertyAction;
 }
 
 /**
@@ -175,10 +184,10 @@ interface GroupSectionProps {
    *  row gets a Map.get() lookup instead of `player.houses[tile.id]` (which
    *  static analyzers can't prove is safe). */
   housesByTile: Map<string, number>;
-  onBuild: (_propertyId: string) => void;
-  onSell: (_propertyId: string) => void;
-  onMortgage: (_propertyId: string) => void;
-  onUnmortgage: (_propertyId: string) => void;
+  onBuild: PropertyAction;
+  onSell: PropertyAction;
+  onMortgage: PropertyAction;
+  onUnmortgage: PropertyAction;
 }
 
 /**
