@@ -7,8 +7,8 @@ import { Expanded } from '../StatusPanel/Expanded';
 import type { StatusPanelProps } from '../StatusPanel/types';
 
 interface Props extends StatusPanelProps {
-  onTilePress: (tileId: string) => void;
-  onTokenMovingChange: (isMoving: boolean) => void;
+  onTilePress: (_tileId: string) => void;
+  onTokenMovingChange: (_isMoving: boolean) => void;
 }
 
 export const PhoneGameLayout: React.FC<Props> = (props) => {
