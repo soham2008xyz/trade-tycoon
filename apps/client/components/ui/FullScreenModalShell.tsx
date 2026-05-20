@@ -47,7 +47,13 @@ export const FullScreenModalShell: React.FC<Props> = ({
         visible={visible}
         animationType="slide"
         presentationStyle={showClose ? 'pageSheet' : 'fullScreen'}
-        supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
+        supportedOrientations={[
+          'portrait',
+          'portrait-upside-down',
+          'landscape',
+          'landscape-left',
+          'landscape-right',
+        ]}
         onRequestClose={dismiss}
         onDismiss={dismiss}
       >
@@ -68,7 +74,13 @@ export const FullScreenModalShell: React.FC<Props> = ({
       visible={visible}
       animationType="slide"
       transparent
-      supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
+      supportedOrientations={[
+        'portrait',
+        'portrait-upside-down',
+        'landscape',
+        'landscape-left',
+        'landscape-right',
+      ]}
       onRequestClose={dismiss}
       onDismiss={dismiss}
     >
