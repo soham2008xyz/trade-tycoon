@@ -17,7 +17,9 @@ describe('card deck data', () => {
     expect(
       CHANCE_CARDS.some(
         (card) =>
-          card.action.type === 'MOVE_TO' && card.action.position === 0 && card.action.collectGo === true
+          card.action.type === 'MOVE_TO' &&
+          card.action.position === 0 &&
+          card.action.collectGo === true
       )
     ).toBe(true);
   });
@@ -27,7 +29,9 @@ describe('card deck data', () => {
     assertUniqueIds('community chest', ids);
 
     expect(COMMUNITY_CHEST_CARDS.some((card) => card.action.type === 'REPAIRS')).toBe(true);
-    expect(COMMUNITY_CHEST_CARDS.some((card) => card.action.type === 'COLLECT_FROM_ALL')).toBe(true);
+    expect(COMMUNITY_CHEST_CARDS.some((card) => card.action.type === 'COLLECT_FROM_ALL')).toBe(
+      true
+    );
     expect(COMMUNITY_CHEST_CARDS.some((card) => card.action.type === 'GO_TO_JAIL')).toBe(true);
   });
 
