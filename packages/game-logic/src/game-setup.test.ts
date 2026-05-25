@@ -10,7 +10,7 @@ describe('game-setup', () => {
     expect(state.currentPlayerId).toBe('');
     expect(state.dice).toEqual([1, 1]);
     expect(state.phase).toBe('roll');
-    expect(state.board).toBe(BOARD);
+    expect(state.board).toEqual(BOARD);
     expect(state.winner).toBeNull();
     expect(state.auction).toBeNull();
     expect(state.activeTrade).toBeNull();
