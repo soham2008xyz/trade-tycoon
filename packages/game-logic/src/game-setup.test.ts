@@ -36,9 +36,11 @@ describe('game-setup', () => {
   it('createPlayer generates color from Math.random output', () => {
     const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
 
-    const player = createPlayer('p2', 'Bob');
-
-    expect(player.color).toBe('#7fffff');
-    randomSpy.mockRestore();
+    try {
+      const player = createPlayer('p2', 'Bob');
+      expect(player.color).toBe('#7fffff');
+    } finally {
+      randomSpy.mockRestore();
+    }
   });
 });
