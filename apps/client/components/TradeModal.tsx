@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { Player, TradeOffer, TradeRequest, BOARD } from '@trade-tycoon/game-logic';
@@ -83,41 +83,34 @@ export const TradeModal: React.FC<Props> = ({
     targetPlayerId,
   });
 
-  const [prevVisible, setPrevVisible] = useState(visible);
-  const [prevActiveTrade, setPrevActiveTrade] = useState(activeTrade);
-  const [prevTargetPlayerId, setPrevTargetPlayerId] = useState(targetPlayerId);
-
-  if (
-    visible !== prevVisible ||
-    activeTrade !== prevActiveTrade ||
-    targetPlayerId !== prevTargetPlayerId
-  ) {
-    setPrevVisible(visible);
-    setPrevActiveTrade(activeTrade);
-    setPrevTargetPlayerId(targetPlayerId);
-
+  useEffect(() => {
     if (visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- We must synchronously cache the active trade details when the modal is open so that the native Modal exit slide transition continues to render the trade details instead of abruptly blanking out when the parent clears them on close.
       setCachedState({
         activeTrade,
         targetPlayerId,
       });
-      // Reset state when opening fresh
-      if (visible !== prevVisible && !activeTrade) {
-        setOfferMoney(0);
-        setOfferProps([]);
-        setOfferCards(0);
-        setReqMoney(0);
-        setReqProps([]);
-        setReqCards(0);
-      }
     }
-  }
+  }, [visible, activeTrade, targetPlayerId]);
 
   const effectiveActiveTrade = visible ? activeTrade : cachedState.activeTrade;
   const effectiveTargetId = visible ? targetPlayerId : cachedState.targetPlayerId;
 
   const initiator = players.find((p) => p.id === currentPlayerId);
   const target = players.find((p) => p.id === effectiveTargetId);
+
+  // Reset state when opening fresh
+  useEffect(() => {
+    if (visible && !activeTrade) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- We must reset the proposal input state synchronously when opening the modal fresh so that the input sliders, properties list, and cash values are initialized to zero instead of carrying over values from the previous proposal.
+      setOfferMoney(0);
+      setOfferProps([]);
+      setOfferCards(0);
+      setReqMoney(0);
+      setReqProps([]);
+      setReqCards(0);
+    }
+  }, [visible, activeTrade]);
 
   const toggleOfferProp = (id: string) => {
     if (offerProps.includes(id)) {

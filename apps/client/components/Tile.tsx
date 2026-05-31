@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   mortgagedOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(200, 200, 200, 0.5)',
     zIndex: 10,
     overflow: 'hidden',
