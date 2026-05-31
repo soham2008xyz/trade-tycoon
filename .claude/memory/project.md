@@ -34,3 +34,6 @@
   `EventSource`; use `online-platform.ts` to select the right local server URL
   (`127.0.0.1` on iOS simulator, `10.0.2.2` on Android emulator) and fall
   back to reconnect polling on native builds.
+- In Expo SDK 56 / React Native 0.85, typing issues or other compiler issues may flag `StyleSheet.absoluteFillObject` as missing/non-existent. Always use `StyleSheet.absoluteFill` instead.
+- React 19 and ESLint 9 (via `eslint-config-expo`) are highly strict regarding render-phase `useRef` updates (e.g. `Cannot update ref during render` errors) and state updates in `useEffect` (e.g. `react-hooks/set-state-in-effect` errors). To persist modal contents during slide-out transitions and reset state on fresh opens, use standard `useEffect` blocks accompanied by a precise `// eslint-disable-next-line react-hooks/set-state-in-effect` directive explaining *why* the synchronous sync is required, keeping in mind that ESLint will warn about unused disable comments if they are placed on lines that are not flagged.
+

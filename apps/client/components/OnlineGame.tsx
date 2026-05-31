@@ -78,6 +78,28 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   const [uiToastMessage, setUiToastMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Centralized helper so a 200ms transient toast doesn't accumulate timers. */
+  const setTransientError = (msg: string) => {
+    setError(msg);
+    if (errorTimeoutRef.current) {
+      clearTimeout(errorTimeoutRef.current);
+    }
+    errorTimeoutRef.current = setTimeout(() => {
+      setError(null);
+      errorTimeoutRef.current = null;
+    }, 3000);
+  };
+
+  // Clear timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (errorTimeoutRef.current) {
+        clearTimeout(errorTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Resume flow: validate the stored session against the server before
   // hydrating local state. If the room/user is gone (server restart, room
@@ -347,12 +369,6 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     }
     onBack();
   };
-
-  /** Centralized helper so a 200ms transient toast doesn't accumulate timers. */
-  function setTransientError(msg: string) {
-    setError(msg);
-    setTimeout(() => setError(null), 3000);
-  }
 
   /**
    * Bring the joined-room response from the REST call into local state and

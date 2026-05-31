@@ -8,7 +8,7 @@ interface ToastProps {
 }
 
 export const Toast: React.FC<ToastProps> = ({ message, onDismiss, duration = 3000 }) => {
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const [fadeAnim] = React.useState(() => new Animated.Value(0));
 
   const handleDismiss = useCallback(() => {
     Animated.timing(fadeAnim, {
