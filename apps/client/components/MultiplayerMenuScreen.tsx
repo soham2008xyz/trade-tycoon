@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { IconButton } from './ui/IconButton';
 
@@ -42,10 +42,7 @@ export const MultiplayerMenuScreen: React.FC<Props> = ({
 }) => {
   // Session detection runs once on mount. If the user navigates away and
   // comes back the menu remounts, so this stays fresh.
-  const [savedSession, setSavedSession] = useState<StoredSession | null>(null);
-  useEffect(() => {
-    setSavedSession(readStoredSession());
-  }, []);
+  const [savedSession] = useState<StoredSession | null>(() => readStoredSession());
 
   return (
     <View style={styles.modalContainer}>

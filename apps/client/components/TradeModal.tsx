@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { Player, TradeOffer, TradeRequest, BOARD } from '@trade-tycoon/game-logic';
@@ -83,32 +83,41 @@ export const TradeModal: React.FC<Props> = ({
     targetPlayerId,
   });
 
-  useEffect(() => {
+  const [prevVisible, setPrevVisible] = useState(visible);
+  const [prevActiveTrade, setPrevActiveTrade] = useState(activeTrade);
+  const [prevTargetPlayerId, setPrevTargetPlayerId] = useState(targetPlayerId);
+
+  if (
+    visible !== prevVisible ||
+    activeTrade !== prevActiveTrade ||
+    targetPlayerId !== prevTargetPlayerId
+  ) {
+    setPrevVisible(visible);
+    setPrevActiveTrade(activeTrade);
+    setPrevTargetPlayerId(targetPlayerId);
+
     if (visible) {
       setCachedState({
         activeTrade,
         targetPlayerId,
       });
+      // Reset state when opening fresh
+      if (visible !== prevVisible && !activeTrade) {
+        setOfferMoney(0);
+        setOfferProps([]);
+        setOfferCards(0);
+        setReqMoney(0);
+        setReqProps([]);
+        setReqCards(0);
+      }
     }
-  }, [visible, activeTrade, targetPlayerId]);
+  }
 
   const effectiveActiveTrade = visible ? activeTrade : cachedState.activeTrade;
   const effectiveTargetId = visible ? targetPlayerId : cachedState.targetPlayerId;
 
   const initiator = players.find((p) => p.id === currentPlayerId);
   const target = players.find((p) => p.id === effectiveTargetId);
-
-  // Reset state when opening fresh
-  useEffect(() => {
-    if (visible && !activeTrade) {
-      setOfferMoney(0);
-      setOfferProps([]);
-      setOfferCards(0);
-      setReqMoney(0);
-      setReqProps([]);
-      setReqCards(0);
-    }
-  }, [visible, activeTrade]);
 
   const toggleOfferProp = (id: string) => {
     if (offerProps.includes(id)) {
