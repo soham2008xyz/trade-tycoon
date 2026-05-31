@@ -25,7 +25,7 @@
     "concurrently": "^9.2.1",
     "expo-router": "~56.2.8",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.7",
+    "lint-staged": "^17.0.7",
     "markdownlint-cli": "^0.47.0",
     "prettier": "^3.8.1",
     "typescript": "^6.0.3"
