@@ -22,7 +22,7 @@
     "format": "prettier --write **/*.{js,ts,tsx,json,md}"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.3",
     "expo-router": "~56.2.8",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.7",
