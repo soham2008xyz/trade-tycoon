@@ -372,7 +372,10 @@ describe('RoomManager', () => {
       // Force the seed so we can assert the dice came from the server's own
       // deterministic roll, not the client-supplied die1/die2.
       const seedSpy = vi
-        .spyOn(RoomManager.prototype as unknown as { generateRngSeed: () => number }, 'generateRngSeed')
+        .spyOn(
+          RoomManager.prototype as unknown as { generateRngSeed: () => number },
+          'generateRngSeed'
+        )
         .mockReturnValue(0);
       const result = await roomManager.handleGameAction(roomId, hostToken, cheatAction);
       seedSpy.mockRestore();
