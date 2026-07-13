@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { gameReducer } from './reducer';
 import { GameState, Player } from './types';
-import { BOARD } from './board-data';
 
 const createMockState = (players: Player[]): GameState => ({
   players,
@@ -9,7 +8,6 @@ const createMockState = (players: Player[]): GameState => ({
   dice: [1, 1],
   doublesCount: 0,
   phase: 'action',
-  board: BOARD,
   winner: null,
   auction: null,
   activeTrade: null,

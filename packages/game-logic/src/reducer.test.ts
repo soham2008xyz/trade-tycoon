@@ -2005,4 +2005,37 @@ describe('Game Reducer', () => {
       expect(p2.mortgaged).toContain('mediterranean');
     });
   });
+
+  describe('Log capping', () => {
+    it('caps logs at 200 entries, keeping the most recent', () => {
+      let state = createInitialState();
+      state.players = [createPlayer('p1', 'Player 1'), createPlayer('p2', 'Player 2')];
+      state.currentPlayerId = 'p1';
+      state.phase = 'action';
+      state.players[0].money = -500;
+      state.logs = Array.from({ length: 200 }, (_, i) => `entry-${i}`);
+
+      const newState = gameReducer(state, { type: 'DECLARE_BANKRUPTCY', playerId: 'p1' });
+
+      // Bankruptcy with one player remaining appends two log lines (the
+      // bankruptcy itself, then the win), pushing the oldest two out.
+      expect(newState.logs.length).toBe(200);
+      expect(newState.logs[0]).toBe('entry-2');
+      expect(newState.logs[newState.logs.length - 1]).toMatch(/went bankrupt|wins/);
+    });
+
+    it('does not touch logs when under the cap', () => {
+      let state = createInitialState();
+      state.players = [createPlayer('p1', 'Player 1'), createPlayer('p2', 'Player 2')];
+      state.currentPlayerId = 'p1';
+      state.phase = 'action';
+      state.players[0].money = -500;
+      state.logs = ['entry-0'];
+
+      const newState = gameReducer(state, { type: 'DECLARE_BANKRUPTCY', playerId: 'p1' });
+
+      expect(newState.logs[0]).toBe('entry-0');
+      expect(newState.logs.length).toBeLessThan(200);
+    });
+  });
 });

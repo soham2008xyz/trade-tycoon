@@ -72,6 +72,7 @@ export class RoomManager {
         players: [hostPlayer],
         status: 'lobby',
         sessions: { [token]: hostId },
+        version: 1,
       });
       if (created) {
         console.log(`[RoomManager] Creating room ${roomId} for host ${hostName} (${hostId})`);
@@ -90,7 +91,7 @@ export class RoomManager {
     const userId = this.generateUserId();
     const token = this.generateToken();
 
-    const state = await this.store.update(roomId, (current) => {
+    const state = await this.bumpedUpdate(roomId, (current) => {
       if (current.status !== 'lobby') {
         console.warn(`[RoomManager] Join failed: Room ${roomId} is in progress`);
         return null;
@@ -130,13 +131,29 @@ export class RoomManager {
     return current.sessions?.[token] ?? null;
   }
 
+  /**
+   * Wraps `store.update` so every successful write bumps `version`. Kept as
+   * the one place that does this rather than repeating it in every mutator
+   * below.
+   */
+  private bumpedUpdate(
+    roomId: string,
+    mutator: (current: LobbyState) => LobbyState | null
+  ): Promise<LobbyState | null> {
+    return this.store.update(roomId, (current) => {
+      const next = mutator(current);
+      if (!next) return null;
+      return { ...next, version: (current.version ?? 0) + 1 };
+    });
+  }
+
   async leaveRoom(
     roomId: string,
     token: string
   ): Promise<{ state: LobbyState; gameState: GameState | null } | null> {
     roomId = roomId.trim().toUpperCase();
 
-    const updated = await this.store.update(roomId, (current) => {
+    const updated = await this.bumpedUpdate(roomId, (current) => {
       const userId = this.resolvePlayerId(current, token);
       if (!userId) return null;
       const player = current.players.find((entry) => entry.id === userId);
@@ -232,7 +249,7 @@ export class RoomManager {
   ): Promise<LobbyState | null> {
     roomId = roomId.trim().toUpperCase();
 
-    const updated = await this.store.update(roomId, (current) => {
+    const updated = await this.bumpedUpdate(roomId, (current) => {
       const userId = this.resolvePlayerId(current, token);
       if (!userId) return null;
       const player = current.players.find((p) => p.id === userId);
@@ -260,7 +277,7 @@ export class RoomManager {
   async startGame(roomId: string, token: string): Promise<GameState | null> {
     roomId = roomId.trim().toUpperCase();
 
-    const updated = await this.store.update(roomId, (current) => {
+    const updated = await this.bumpedUpdate(roomId, (current) => {
       const userId = this.resolvePlayerId(current, token);
       const player = userId ? current.players.find((p) => p.id === userId) : undefined;
       if (!player || !player.isHost) {
@@ -331,7 +348,7 @@ export class RoomManager {
     // matters, and an aborted mutator never triggers a retry.
     let rejectionMessage = 'Action rejected';
 
-    const updated = await this.store.update(roomId, (current) => {
+    const updated = await this.bumpedUpdate(roomId, (current) => {
       if (!current.gameState) {
         rejectionMessage = 'Game has not started';
         return null;

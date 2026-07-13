@@ -8,7 +8,13 @@ interface Props {
   orientation: 'bottom' | 'left' | 'top' | 'right' | 'corner';
   style?: StyleProp<ViewStyle>;
   owner?: Player;
-  onPress?: () => void;
+  /**
+   * Takes the tile id rather than being pre-bound to it, so callers (Board)
+   * can pass a single stable function reference instead of a fresh closure
+   * per tile per render — that's what lets `React.memo` below actually skip
+   * re-rendering tiles whose own props didn't change.
+   */
+  onPress?: (tileId: string) => void;
   testID?: string;
   /**
    * When true, edge tiles render without the name text. Used on narrow
@@ -20,7 +26,7 @@ interface Props {
 
 const STRIPES = Array.from({ length: 40 });
 
-export const Tile: React.FC<Props> = ({
+const TileComponent: React.FC<Props> = ({
   tile,
   orientation,
   style,
@@ -65,7 +71,7 @@ export const Tile: React.FC<Props> = ({
   return (
     <Pressable
       testID={testID || `tile-${tile.id}`}
-      onPress={onPress}
+      onPress={() => onPress?.(tile.id)}
       style={({ pressed }) => [
         styles.container,
         { flexDirection, opacity: pressed ? 0.8 : 1 },
@@ -113,6 +119,8 @@ export const Tile: React.FC<Props> = ({
     </Pressable>
   );
 };
+
+export const Tile = React.memo(TileComponent);
 
 const styles = StyleSheet.create({
   container: {

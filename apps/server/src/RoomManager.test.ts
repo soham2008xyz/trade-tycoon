@@ -71,6 +71,35 @@ describe('RoomManager', () => {
       expect(result).toBeNull();
     });
 
+    it('should increment version on every successful write', async () => {
+      const { roomId, token: hostToken } = await roomManager.createRoom('Host');
+      const v1 = (await roomManager.getRoom(roomId))!.version;
+
+      await roomManager.joinRoom(roomId, 'P2');
+      const v2 = (await roomManager.getRoom(roomId))!.version;
+      expect(v2).toBeGreaterThan(v1!);
+
+      await roomManager.updatePlayer(roomId, hostToken, 'Host', '#000000');
+      const v3 = (await roomManager.getRoom(roomId))!.version;
+      expect(v3).toBeGreaterThan(v2!);
+    });
+
+    it('should not bump version when an update is rejected', async () => {
+      const { roomId } = await roomManager.createRoom('Host');
+      const before = (await roomManager.getRoom(roomId))!.version;
+
+      // Joining a full room is a no-op rejection, not a write.
+      for (let i = 1; i < 8; i++) {
+        await roomManager.joinRoom(roomId, `Player${i}`);
+      }
+      const afterFilling = (await roomManager.getRoom(roomId))!.version;
+
+      const rejected = await roomManager.joinRoom(roomId, 'Player9');
+      expect(rejected).toBeNull();
+      expect((await roomManager.getRoom(roomId))!.version).toBe(afterFilling);
+      expect(afterFilling).toBeGreaterThan(before!);
+    });
+
     it('should truncate an overlong player name', async () => {
       const longName = 'a'.repeat(200);
       const { roomId } = await roomManager.createRoom(longName);

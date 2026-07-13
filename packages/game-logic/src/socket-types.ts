@@ -30,4 +30,12 @@ export interface LobbyState {
    * reaches a client.
    */
   sessions?: Record<string, string>;
+  /**
+   * Incremented on every successful write (see `RoomManager`'s bumpedUpdate
+   * helper). Lets a client that's polling instead of using SSE (no
+   * `EventSource` on native) tell "nothing changed" from "new state" without
+   * deep-comparing the whole room, so it can skip a redundant re-render and
+   * back off its poll interval when idle.
+   */
+  version?: number;
 }

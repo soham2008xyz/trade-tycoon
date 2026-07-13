@@ -212,10 +212,13 @@ const removePlayerAndCleanup = (state: GameState, playerId: string, reason: stri
 export const removePlayerFromGame = (state: GameState, playerId: string): GameState =>
   removePlayerAndCleanup(state, playerId, 'left the game');
 
-export const reduceGameAction = (
+/** Logs are UI history, not gameplay state — cap so a long game's payload/storage stays bounded. */
+const MAX_LOGS = 200;
+
+const reduceGameActionUnbounded = (
   state: GameState,
   action: Action,
-  rng: Rng = Math.random
+  rng: Rng
 ): GameReducerResult => {
   if (state.winner && !POST_GAME_ALLOWED.has(action.type)) {
     return state;
@@ -514,17 +517,14 @@ export const reduceGameAction = (
           let rent = 0;
 
           if (targetTile.group === 'railroad') {
-            const boardToUse = state.board && state.board.length > 0 ? state.board : BOARD;
-
-            const ownedRailroads = boardToUse.filter(
+            const ownedRailroads = BOARD.filter(
               (t) => t.group === 'railroad' && owner.properties.includes(t.id)
             ).length;
             // Rent is 25, 50, 100, 200 based on count (index 0-3)
             const rentIndex = Math.max(0, ownedRailroads - 1);
             rent = targetTile.rent ? targetTile.rent[rentIndex] : 25;
           } else if (targetTile.group === 'utility') {
-            const boardToUse = state.board && state.board.length > 0 ? state.board : BOARD;
-            const ownedUtilities = boardToUse.filter(
+            const ownedUtilities = BOARD.filter(
               (t) => t.group === 'utility' && owner.properties.includes(t.id)
             ).length;
             const multiplier = ownedUtilities === 2 ? 10 : 4;
@@ -634,8 +634,7 @@ export const reduceGameAction = (
       const player = state.players.find((p) => p.id === action.playerId);
       if (!player) return state;
 
-      const boardToUse = state.board && state.board.length > 0 ? state.board : BOARD;
-      const tile = boardToUse[player.position];
+      const tile = BOARD[player.position];
 
       // Verify buyable
       if (!isTileBuyable(tile)) return { ...state, errorMessage: 'Nothing to buy here.' };
@@ -1268,4 +1267,19 @@ export const reduceGameAction = (
     default:
       return state;
   }
+};
+
+/**
+ * Public entry point. Delegates to the unbounded reducer above, then caps
+ * `logs` at `MAX_LOGS` — a single choke point instead of touching every one
+ * of the reducer's ~25 individual log-append sites.
+ */
+export const reduceGameAction = (
+  state: GameState,
+  action: Action,
+  rng: Rng = Math.random
+): GameReducerResult => {
+  const result = reduceGameActionUnbounded(state, action, rng);
+  if (result === ACTION_REJECTED || result.logs.length <= MAX_LOGS) return result;
+  return { ...result, logs: result.logs.slice(-MAX_LOGS) };
 };

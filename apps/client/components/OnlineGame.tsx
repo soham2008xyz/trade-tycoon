@@ -160,6 +160,26 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     ) {
       let cancelled = false;
       let syncInFlight = false;
+      let lastSeenVersion: number | undefined;
+      let pollHandle: ReturnType<typeof setTimeout>;
+
+      // No EventSource on native, so we poll instead — but polling on a fixed
+      // interval means every tick forces a fresh state object into React even
+      // when nothing changed, causing needless re-renders. The server's
+      // `lobby.version` (bumped on every successful write) lets us detect
+      // "nothing changed" cheaply and skip the setState, and back off the
+      // poll interval while idle instead of hammering the server at a fixed
+      // 2s regardless of activity.
+      const MIN_POLL_MS = 2000;
+      const MAX_POLL_MS = 5000;
+      let nextPollDelay = MIN_POLL_MS;
+
+      const scheduleNextPoll = () => {
+        if (cancelled) return;
+        pollHandle = setTimeout(() => {
+          void syncRoomSnapshot();
+        }, nextPollDelay);
+      };
 
       const syncRoomSnapshot = async () => {
         if (syncInFlight) return;
@@ -184,6 +204,16 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
 
           const body = (await res.json()) as ReconnectResponse;
           if (cancelled) return;
+
+          const version = body.lobby.version;
+          const unchanged = version !== undefined && version === lastSeenVersion;
+          if (unchanged) {
+            nextPollDelay = MAX_POLL_MS;
+            return;
+          }
+
+          lastSeenVersion = version;
+          nextPollDelay = MIN_POLL_MS;
           setLobbyState(body.lobby);
           if (body.gameState) {
             setGameState(body.gameState);
@@ -197,17 +227,15 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
           }
         } finally {
           syncInFlight = false;
+          scheduleNextPoll();
         }
       };
 
       void syncRoomSnapshot();
-      const pollHandle = setInterval(() => {
-        void syncRoomSnapshot();
-      }, 2000);
 
       return () => {
         cancelled = true;
-        clearInterval(pollHandle);
+        clearTimeout(pollHandle);
       };
     }
 
