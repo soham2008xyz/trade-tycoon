@@ -655,6 +655,8 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
       const player = state.players.find((p) => p.id === action.playerId);
       if (!player) return state;
 
+      if (!Number.isSafeInteger(action.amount) || action.amount < 0)
+        return { ...state, errorMessage: 'Invalid bid amount.' };
       if (action.amount <= state.auction.currentBid)
         return { ...state, errorMessage: 'Bid must be higher than current bid.' };
       if (player.money < action.amount) return { ...state, errorMessage: 'Insufficient funds.' };
@@ -798,6 +800,14 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
       // Basic validation
       if (action.playerId === action.targetPlayerId)
         return { ...state, errorMessage: 'You cannot trade with yourself.' };
+
+      const isValidOfferAmounts = (offer: TradeOffer) =>
+        Number.isSafeInteger(offer.money) &&
+        offer.money >= 0 &&
+        Number.isSafeInteger(offer.getOutOfJailCards) &&
+        offer.getOutOfJailCards >= 0;
+      if (!isValidOfferAmounts(action.offer) || !isValidOfferAmounts(action.request))
+        return { ...state, errorMessage: 'Invalid trade amounts.' };
 
       const initiator = state.players.find((p) => p.id === action.playerId);
       const target = state.players.find((p) => p.id === action.targetPlayerId);

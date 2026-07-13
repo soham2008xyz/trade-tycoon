@@ -9,10 +9,25 @@ import {
   GameAction,
   createPlayer,
 } from '@trade-tycoon/game-logic';
+import { randomBytes, randomInt } from 'crypto';
 import type { RoomStore } from './store/RoomStore';
+import { toPublicGameState, toPublicLobbyState } from './serialize';
 
 const MAX_ROOM_ID_RETRIES = 10;
 const MAX_PLAYERS_PER_ROOM = 8;
+const MAX_PLAYER_NAME_LENGTH = 15;
+
+export interface CreateRoomResult {
+  roomId: string;
+  playerId: string;
+  token: string;
+}
+
+export interface JoinRoomResult {
+  playerId: string;
+  token: string;
+  state: LobbyState;
+}
 
 /**
  * Encapsulates all multiplayer business logic: room lifecycle, player joins,
@@ -25,15 +40,23 @@ const MAX_PLAYERS_PER_ROOM = 8;
  * WATCH conflict, so it must remain a pure function of the input state — any
  * side effects (id generation, color assignment) that need to land exactly
  * once must be captured outside the closure.
+ *
+ * Auth model: each player is identified publicly by `playerId` (broadcast to
+ * every client in room/game state) and privately by a `token` (returned only
+ * to that player, over the response body of create/join). `token` is the
+ * actual credential — every mutating call resolves `playerId` from the
+ * caller's `token` via the room's `sessions` map, so knowing another player's
+ * public id (which every client can see) confers no ability to act as them.
  */
 export class RoomManager {
   constructor(private readonly store: RoomStore) {}
 
-  async createRoom(hostName: string): Promise<string> {
+  async createRoom(hostName: string): Promise<CreateRoomResult> {
     const hostId = this.generateUserId();
+    const token = this.generateToken();
     const hostPlayer: LobbyPlayer = {
       id: hostId,
-      name: hostName,
+      name: hostName.trim().slice(0, MAX_PLAYER_NAME_LENGTH),
       color: this.getRandomColor(),
       isHost: true,
       isReady: true,
@@ -45,24 +68,24 @@ export class RoomManager {
         roomId,
         players: [hostPlayer],
         status: 'lobby',
+        sessions: { [token]: hostId },
       });
       if (created) {
         console.log(`[RoomManager] Creating room ${roomId} for host ${hostName} (${hostId})`);
-        return roomId;
+        return { roomId, playerId: hostId, token };
       }
     }
     throw new Error('Could not allocate a unique room id after multiple attempts');
   }
 
-  async joinRoom(
-    roomId: string,
-    playerName: string
-  ): Promise<{ userId: string; state: LobbyState } | null> {
+  async joinRoom(roomId: string, playerName: string): Promise<JoinRoomResult | null> {
     roomId = roomId.trim().toUpperCase();
 
-    // The user id is generated once outside the mutator so that even if the
-    // Redis WATCH retry runs the closure twice we hand back a stable id.
+    // The id/token are generated once outside the mutator so that even if the
+    // store's retry-on-conflict logic runs the closure twice we hand back a
+    // stable pair.
     const userId = this.generateUserId();
+    const token = this.generateToken();
 
     const state = await this.store.update(roomId, (current) => {
       if (current.status !== 'lobby') {
@@ -75,12 +98,16 @@ export class RoomManager {
       }
       const newPlayer: LobbyPlayer = {
         id: userId,
-        name: playerName,
+        name: playerName.trim().slice(0, MAX_PLAYER_NAME_LENGTH),
         color: this.getRandomColor(current.players.map((p) => p.color)),
         isHost: current.players.length === 0,
         isReady: true,
       };
-      return { ...current, players: [...current.players, newPlayer] };
+      return {
+        ...current,
+        players: [...current.players, newPlayer],
+        sessions: { ...current.sessions, [token]: userId },
+      };
     });
 
     if (!state) {
@@ -92,18 +119,29 @@ export class RoomManager {
     }
 
     console.log(`[RoomManager] Player ${playerName} (${userId}) joined room ${roomId}`);
-    return { userId, state: this.stripLobbyState(state) };
+    return { playerId: userId, token, state: toPublicLobbyState(state) };
+  }
+
+  /** Resolves a private session token to the public player id it authenticates. */
+  private resolvePlayerId(current: LobbyState, token: string): string | null {
+    return current.sessions?.[token] ?? null;
   }
 
   async leaveRoom(
     roomId: string,
-    userId: string
+    token: string
   ): Promise<{ state: LobbyState; gameState: GameState | null } | null> {
     roomId = roomId.trim().toUpperCase();
 
     const updated = await this.store.update(roomId, (current) => {
+      const userId = this.resolvePlayerId(current, token);
+      if (!userId) return null;
       const player = current.players.find((entry) => entry.id === userId);
       if (!player) return null;
+
+      const remainingSessions = Object.fromEntries(
+        Object.entries(current.sessions ?? {}).filter(([, id]) => id !== userId)
+      );
 
       const remainingPlayers = current.players.filter((entry) => entry.id !== userId);
       const reassignedPlayers = remainingPlayers.map((entry, index) => ({
@@ -117,6 +155,7 @@ export class RoomManager {
           players: [],
           status: 'lobby' as const,
           gameState: undefined,
+          sessions: remainingSessions,
         };
       }
 
@@ -124,6 +163,7 @@ export class RoomManager {
         return {
           ...current,
           players: reassignedPlayers,
+          sessions: remainingSessions,
         };
       }
 
@@ -135,6 +175,7 @@ export class RoomManager {
           players: reassignedPlayers,
           status: 'lobby' as const,
           gameState: undefined,
+          sessions: remainingSessions,
         };
       }
 
@@ -142,25 +183,29 @@ export class RoomManager {
         ...current,
         players: reassignedPlayers,
         gameState: nextGameState,
+        sessions: remainingSessions,
       };
     });
 
     if (!updated) return null;
 
     return {
-      state: this.stripLobbyState(updated),
-      gameState: updated.gameState ? this.stripBoard(updated.gameState) : null,
+      state: toPublicLobbyState(updated),
+      gameState: updated.gameState ? toPublicGameState(updated.gameState) : null,
     };
   }
 
   // Handle re-connection
   async reconnect(
     roomId: string,
-    userId: string
+    token: string
   ): Promise<{ state: LobbyState; gameState?: GameState } | null> {
     roomId = roomId.trim().toUpperCase();
     const room = await this.store.get(roomId);
     if (!room) return null;
+
+    const userId = this.resolvePlayerId(room, token);
+    if (!userId) return null;
 
     // Check if player exists in lobby
     const playerInLobby = room.players.find((p) => p.id === userId);
@@ -171,20 +216,22 @@ export class RoomManager {
     if (!playerInLobby && !playerInGame) return null;
 
     return {
-      state: this.stripLobbyState(room),
-      gameState: room.gameState ? this.stripBoard(room.gameState) : undefined,
+      state: toPublicLobbyState(room),
+      gameState: room.gameState ? toPublicGameState(room.gameState) : undefined,
     };
   }
 
   async updatePlayer(
     roomId: string,
-    userId: string,
+    token: string,
     name: string,
     color: string
   ): Promise<LobbyState | null> {
     roomId = roomId.trim().toUpperCase();
 
-    return this.store.update(roomId, (current) => {
+    const updated = await this.store.update(roomId, (current) => {
+      const userId = this.resolvePlayerId(current, token);
+      if (!userId) return null;
       const player = current.players.find((p) => p.id === userId);
       if (!player) return null;
 
@@ -194,20 +241,27 @@ export class RoomManager {
 
       const updatedPlayers = current.players.map((p) =>
         p.id === userId
-          ? { ...p, name: name.substring(0, 15), color: isColorTaken ? p.color : color }
+          ? {
+              ...p,
+              name: name.substring(0, MAX_PLAYER_NAME_LENGTH),
+              color: isColorTaken ? p.color : color,
+            }
           : p
       );
       return { ...current, players: updatedPlayers };
     });
+
+    return updated ? toPublicLobbyState(updated) : null;
   }
 
-  async startGame(roomId: string, userId: string): Promise<GameState | null> {
+  async startGame(roomId: string, token: string): Promise<GameState | null> {
     roomId = roomId.trim().toUpperCase();
 
     const updated = await this.store.update(roomId, (current) => {
-      const player = current.players.find((p) => p.id === userId);
+      const userId = this.resolvePlayerId(current, token);
+      const player = userId ? current.players.find((p) => p.id === userId) : undefined;
       if (!player || !player.isHost) {
-        console.warn(`[RoomManager] Start failed: User ${userId} is not host or not in room`);
+        console.warn(`[RoomManager] Start failed: caller is not host or not in room ${roomId}`);
         return null;
       }
       if (current.players.length < 2) {
@@ -219,7 +273,7 @@ export class RoomManager {
         `[RoomManager] Starting game in room ${roomId} with ${current.players.length} players`
       );
 
-      let gameState = createInitialState();
+      const gameState = createInitialState();
       const gamePlayers = current.players.map((p) => {
         const gp = createPlayer(p.id, p.name);
         gp.color = p.color;
@@ -237,12 +291,12 @@ export class RoomManager {
       return null;
     }
 
-    return updated.gameState ? this.stripBoard(updated.gameState) : null;
+    return updated.gameState ? toPublicGameState(updated.gameState) : null;
   }
 
   async handleGameAction(
     roomId: string,
-    userId: string,
+    token: string,
     action: GameAction
   ): Promise<GameState | null> {
     roomId = roomId.trim().toUpperCase();
@@ -251,7 +305,7 @@ export class RoomManager {
     // able to send it (it would let any player wipe the game). Only the server
     // may dispatch it.
     if (action.type === 'RESET_GAME') {
-      console.warn(`[RoomManager] Rejected client-issued RESET_GAME from ${userId}`);
+      console.warn(`[RoomManager] Rejected client-issued RESET_GAME`);
       return null;
     }
 
@@ -266,6 +320,12 @@ export class RoomManager {
     const updated = await this.store.update(roomId, (current) => {
       if (!current.gameState) return null;
 
+      const userId = this.resolvePlayerId(current, token);
+      if (!userId) {
+        console.warn(`[RoomManager] Unknown/expired session token for room ${roomId}`);
+        return null;
+      }
+
       // Check if user is in the game
       const player = current.gameState.players.find((p) => p.id === userId);
       if (!player) {
@@ -273,7 +333,7 @@ export class RoomManager {
         return null;
       }
 
-      // The action's playerId must match the authenticated user.
+      // The action's playerId must match the token-authenticated user.
       if ('playerId' in safeAction && (safeAction as { playerId: string }).playerId !== userId) {
         console.warn(
           `[RoomManager] User ${userId} tried to act as ${(safeAction as { playerId: string }).playerId}`
@@ -289,39 +349,45 @@ export class RoomManager {
       return { ...current, gameState: newState };
     });
 
-    return updated?.gameState ? this.stripBoard(updated.gameState) : null;
-  }
-
-  private stripBoard(state: GameState): GameState {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { board: _board, ...rest } = state as GameState & { board?: unknown };
-    return rest as GameState;
-  }
-
-  private stripLobbyState(state: LobbyState): LobbyState {
-    if (!state.gameState) return state;
-    return {
-      ...state,
-      gameState: this.stripBoard(state.gameState),
-    };
+    return updated?.gameState ? toPublicGameState(updated.gameState) : null;
   }
 
   async getRoom(roomId: string): Promise<LobbyState | null> {
     const room = await this.store.get(roomId.trim().toUpperCase());
-    return room ? this.stripLobbyState(room) : null;
+    return room ? toPublicLobbyState(room) : null;
+  }
+
+  /**
+   * Resolves a session token to its public player id, for callers (the SSE
+   * route) that need to authenticate a request without going through one of
+   * the state-mutating methods above.
+   */
+  async authenticate(
+    roomId: string,
+    token: string
+  ): Promise<{ playerId: string; room: LobbyState } | null> {
+    const room = await this.store.get(roomId.trim().toUpperCase());
+    if (!room) return null;
+    const playerId = this.resolvePlayerId(room, token);
+    if (!playerId) return null;
+    return { playerId, room: toPublicLobbyState(room) };
   }
 
   private generateRoomId(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
     for (let i = 0; i < 8; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+      result += chars.charAt(randomInt(chars.length));
     }
     return result;
   }
 
   private generateUserId(): string {
-    return Math.random().toString(36).substring(2, 15);
+    return randomBytes(9).toString('base64url');
+  }
+
+  private generateToken(): string {
+    return randomBytes(24).toString('base64url');
   }
 
   private getRandomColor(excludeColors: string[] = []): string {

@@ -4,6 +4,7 @@ import { GameUI } from './GameUI';
 import { IconButton } from './ui/IconButton';
 import { LobbyState, GameState, GameAction } from '@trade-tycoon/game-logic';
 import { getOnlineServerUrl, supportsOnlineEventStream } from './online-platform';
+import { readStoredSession, writeStoredSession, clearStoredSession } from './online-session';
 
 const SERVER_URL = getOnlineServerUrl({
   platform: Platform.OS,
@@ -17,7 +18,8 @@ interface OnlineGameProps {
 
 interface JoinedRoomResponse {
   roomId: string;
-  userId: string;
+  playerId: string;
+  token: string;
   isHost: boolean;
 }
 
@@ -25,31 +27,6 @@ interface ReconnectResponse {
   lobby: LobbyState;
   gameState: GameState | null;
 }
-
-interface StoredSession {
-  roomId: string;
-  userId: string;
-}
-
-/**
- * Read the saved session from localStorage. Returns null on web platforms
- * without a session, on native (no localStorage), or if the stored value is
- * malformed.
- */
-const readStoredSession = (): StoredSession | null => {
-  if (Platform.OS !== 'web') return null;
-  try {
-    const raw = localStorage.getItem('trade_tycoon_session');
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<StoredSession>;
-    if (!parsed || typeof parsed.roomId !== 'string' || typeof parsed.userId !== 'string') {
-      return null;
-    }
-    return { roomId: parsed.roomId, userId: parsed.userId };
-  } catch {
-    return null;
-  }
-};
 
 /**
  * Read a JSON error message from a non-OK fetch response, falling back to a
@@ -68,7 +45,11 @@ const readError = async (res: Response, fallback: string): Promise<string> => {
 export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) => {
   const [lobbyState, setLobbyState] = useState<LobbyState | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  // `playerId` is the public id (safe to render, sent to other players in
+  // broadcasts). `token` is the private credential sent on every authenticated
+  // request — it must never be rendered or logged.
+  const [playerId, setPlayerId] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string>('');
   const [playerName, setPlayerName] = useState('');
   const [inputRoomId, setInputRoomId] = useState('');
@@ -102,7 +83,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   }, []);
 
   // Resume flow: validate the stored session against the server before
-  // hydrating local state. If the room/user is gone (server restart, room
+  // hydrating local state. If the room/token is gone (server restart, room
   // expired, host kicked the player), drop the stored session and bounce the
   // user back to the previous screen so they can start fresh.
   useEffect(() => {
@@ -120,21 +101,22 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: session.userId }),
+            body: JSON.stringify({ token: session.token }),
           }
         );
         if (cancelled) return;
         if (!res.ok) {
           // 404 from the server with body { error: 'session_expired' }, or
           // any other failure — drop the session and exit.
-          if (Platform.OS === 'web') localStorage.removeItem('trade_tycoon_session');
+          clearStoredSession();
           onBack();
           return;
         }
         const body = (await res.json()) as ReconnectResponse;
         setLobbyState(body.lobby);
         setRoomId(session.roomId);
-        setUserId(session.userId);
+        setPlayerId(session.playerId);
+        setToken(session.token);
         if (body.gameState) {
           setGameState(body.gameState);
           setStep('game');
@@ -158,9 +140,9 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   }, []);
 
   // Subscribe to the server's SSE stream for the current room. Re-runs when we
-  // join/create a room and we have both a roomId and userId.
+  // join/create a room and we have both a roomId and a token.
   useEffect(() => {
-    if (!roomId || !userId) return;
+    if (!roomId || !token) return;
 
     if (
       !supportsOnlineEventStream({
@@ -180,7 +162,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId }),
+              body: JSON.stringify({ token }),
             }
           );
           if (cancelled) return;
@@ -223,7 +205,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
 
     const url = `${SERVER_URL}/api/rooms/${encodeURIComponent(
       roomId
-    )}/events?userId=${encodeURIComponent(userId)}`;
+    )}/events?token=${encodeURIComponent(token)}`;
     const es = new EventSource(url);
     eventSourceRef.current = es;
 
@@ -261,7 +243,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       es.close();
       eventSourceRef.current = null;
     };
-  }, [roomId, userId, onBack]);
+  }, [roomId, token, onBack]);
 
   const handleCreate = async () => {
     if (!playerName.trim()) {
@@ -313,12 +295,12 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   };
 
   const handleStartGame = async () => {
-    if (!userId || !roomId) return;
+    if (!token || !roomId) return;
     try {
       const res = await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ token }),
       });
       if (!res.ok) {
         setTransientError(await readError(res, 'Failed to start game'));
@@ -332,12 +314,12 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   };
 
   const handleGameDispatch = async (action: GameAction) => {
-    if (!userId || !roomId) return;
+    if (!token || !roomId) return;
     try {
       const res = await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/actions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, action }),
+        body: JSON.stringify({ token, action }),
       });
       if (!res.ok) {
         setTransientError(await readError(res, 'Action rejected'));
@@ -352,21 +334,19 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     eventSourceRef.current?.close();
     eventSourceRef.current = null;
 
-    if (roomId && userId) {
+    if (roomId && token) {
       try {
         await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/leave`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId }),
+          body: JSON.stringify({ token }),
         });
       } catch (err) {
         console.error('Leave request failed', err);
       }
     }
 
-    if (Platform.OS === 'web') {
-      localStorage.removeItem('trade_tycoon_session');
-    }
+    clearStoredSession();
     onBack();
   };
 
@@ -374,18 +354,14 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
    * Bring the joined-room response from the REST call into local state and
    * persist the session for future resume. This is the entry point that flips
    * `step` to 'lobby', and also triggers the SSE useEffect via the new
-   * `roomId` / `userId`.
+   * `roomId` / `token`.
    */
   function enterLobby(body: JoinedRoomResponse) {
     setRoomId(body.roomId);
-    setUserId(body.userId);
+    setPlayerId(body.playerId);
+    setToken(body.token);
     setStep('lobby');
-    if (Platform.OS === 'web') {
-      localStorage.setItem(
-        'trade_tycoon_session',
-        JSON.stringify({ roomId: body.roomId, userId: body.userId })
-      );
-    }
+    writeStoredSession({ roomId: body.roomId, playerId: body.playerId, token: body.token });
   }
 
   // Render Logic
@@ -451,7 +427,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   }
 
   if (step === 'lobby') {
-    const isHost = lobbyState?.players.find((p) => p.id === userId)?.isHost;
+    const isHost = lobbyState?.players.find((p) => p.id === playerId)?.isHost;
 
     return (
       <View style={styles.container}>
@@ -462,7 +438,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
             <View key={p.id} style={styles.playerRow}>
               <View style={[styles.colorDot, { backgroundColor: p.color }]} />
               <Text style={styles.playerText}>
-                {p.name} {p.isHost ? '(Host)' : ''} {p.id === userId ? '(You)' : ''}
+                {p.name} {p.isHost ? '(Host)' : ''} {p.id === playerId ? '(You)' : ''}
               </Text>
             </View>
           ))}
@@ -498,7 +474,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     return (
       <GameUI
         state={gameState}
-        currentPlayerId={userId || ''}
+        currentPlayerId={playerId || ''}
         onDispatch={handleGameDispatch}
         uiToastMessage={uiToastMessage || error}
         setUiToastMessage={setUiToastMessage}

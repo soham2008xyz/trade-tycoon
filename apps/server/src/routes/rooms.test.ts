@@ -30,7 +30,9 @@ describe('REST: /api/rooms', () => {
       const res = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       expect(res.status).toBe(201);
       expect(res.body.roomId).toMatch(/^[A-Z0-9]{8}$/);
-      expect(res.body.userId).toBeTruthy();
+      expect(res.body.playerId).toBeTruthy();
+      expect(res.body.token).toBeTruthy();
+      expect(res.body.token).not.toBe(res.body.playerId);
       expect(res.body.isHost).toBe(true);
 
       const room = await roomManager.getRoom(res.body.roomId);
@@ -41,6 +43,17 @@ describe('REST: /api/rooms', () => {
     it('rejects an empty player name with 400', async () => {
       const res = await request(app).post('/api/rooms').send({ playerName: '' });
       expect(res.status).toBe(400);
+    });
+
+    it('never includes the sessions map in the response or a publish', async () => {
+      const events: RoomEvent[] = [];
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      await eventBus.subscribe(create.body.roomId, (e) => events.push(e));
+
+      expect(create.body.sessions).toBeUndefined();
+
+      const room = await roomManager.getRoom(create.body.roomId);
+      expect((room as unknown as { sessions?: unknown })?.sessions).toBeUndefined();
     });
   });
 
@@ -55,7 +68,8 @@ describe('REST: /api/rooms', () => {
       const res = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
 
       expect(res.status).toBe(200);
-      expect(res.body.userId).toBeTruthy();
+      expect(res.body.playerId).toBeTruthy();
+      expect(res.body.token).toBeTruthy();
       expect(res.body.isHost).toBe(false);
 
       expect(events).toHaveLength(1);
@@ -72,9 +86,9 @@ describe('REST: /api/rooms', () => {
 
     it('returns 409 once the game has started', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
-      const { roomId, userId: hostId } = create.body;
+      const { roomId, token: hostToken } = create.body;
       await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
-      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: hostId });
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: hostToken });
 
       const res = await request(app)
         .post(`/api/rooms/${roomId}/join`)
@@ -95,7 +109,7 @@ describe('REST: /api/rooms', () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       const res = await request(app)
         .post(`/api/rooms/${create.body.roomId}/start`)
-        .send({ userId: create.body.userId });
+        .send({ token: create.body.token });
       expect(res.status).toBe(409);
     });
 
@@ -106,19 +120,19 @@ describe('REST: /api/rooms', () => {
         .send({ playerName: 'Bob' });
       const res = await request(app)
         .post(`/api/rooms/${create.body.roomId}/start`)
-        .send({ userId: join.body.userId });
+        .send({ token: join.body.token });
       expect(res.status).toBe(409);
     });
 
     it('starts the game and publishes a game_state_update + lobby_update', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
-      const { roomId, userId: hostId } = create.body;
+      const { roomId, token: hostToken } = create.body;
       await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
 
       const events: RoomEvent[] = [];
       await eventBus.subscribe(roomId, (e) => events.push(e));
 
-      const res = await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: hostId });
+      const res = await request(app).post(`/api/rooms/${roomId}/start`).send({ token: hostToken });
       expect(res.status).toBe(200);
 
       expect(events.map((e) => e.type)).toEqual(['game_state_update', 'lobby_update']);
@@ -131,7 +145,7 @@ describe('REST: /api/rooms', () => {
     it('returns 404 for an unknown room', async () => {
       const res = await request(app)
         .post('/api/rooms/UNKNOWN/actions')
-        .send({ userId: 'x', action: { type: 'ROLL_DICE', playerId: 'x' } });
+        .send({ token: 'x', action: { type: 'ROLL_DICE', playerId: 'x' } });
       expect(res.status).toBe(404);
     });
 
@@ -140,48 +154,109 @@ describe('REST: /api/rooms', () => {
       const res = await request(app)
         .post(`/api/rooms/${create.body.roomId}/actions`)
         .send({
-          userId: create.body.userId,
-          action: { type: 'ROLL_DICE', playerId: create.body.userId },
+          token: create.body.token,
+          action: { type: 'ROLL_DICE', playerId: create.body.playerId },
         });
       expect(res.status).toBe(409);
     });
 
+    it('returns 400 when the action is missing or malformed', async () => {
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      const res = await request(app)
+        .post(`/api/rooms/${create.body.roomId}/actions`)
+        .send({ token: create.body.token, action: { type: 'NOT_A_REAL_ACTION' } });
+      expect(res.status).toBe(400);
+    });
+
+    it('rejects a negative trade offer amount at the boundary', async () => {
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      const { roomId, playerId: aliceId, token: aliceToken } = create.body;
+      const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
+      const bobId = join.body.playerId;
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: aliceToken });
+
+      const res = await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        .send({
+          token: aliceToken,
+          action: {
+            type: 'PROPOSE_TRADE',
+            playerId: aliceId,
+            targetPlayerId: bobId,
+            offer: { money: -5000, properties: [], getOutOfJailCards: 0 },
+            request: { money: 0, properties: [], getOutOfJailCards: 0 },
+          },
+        });
+      expect(res.status).toBe(400);
+    });
+
+    it('rejects a non-numeric bid amount at the boundary', async () => {
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      const { roomId, playerId: aliceId, token: aliceToken } = create.body;
+      await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: aliceToken });
+
+      const res = await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        .send({
+          token: aliceToken,
+          action: { type: 'PLACE_BID', playerId: aliceId, amount: 'abc' },
+        });
+      expect(res.status).toBe(400);
+    });
+
     it('applies a valid action and publishes game_state_update', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
-      const { roomId, userId: hostId } = create.body;
+      const { roomId, playerId: hostId, token: hostToken } = create.body;
       await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
-      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: hostId });
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: hostToken });
 
       const events: RoomEvent[] = [];
       await eventBus.subscribe(roomId, (e) => events.push(e));
 
       const res = await request(app)
         .post(`/api/rooms/${roomId}/actions`)
-        .send({ userId: hostId, action: { type: 'ROLL_DICE', playerId: hostId } });
+        .send({ token: hostToken, action: { type: 'ROLL_DICE', playerId: hostId } });
       expect(res.status).toBe(200);
       expect(events.some((e) => e.type === 'game_state_update')).toBe(true);
     });
 
-    it('returns 409 when a player tries to roll for someone else (server enforces playerId match)', async () => {
+    it('returns 409 when a player tries to roll for someone else using their own token', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
-      const { roomId, userId: hostId } = create.body;
+      const { roomId, playerId: hostId, token: hostToken } = create.body;
       const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
-      const bobId = join.body.userId;
-      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: hostId });
+      const bobToken = join.body.token;
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: hostToken });
 
       const res = await request(app)
         .post(`/api/rooms/${roomId}/actions`)
-        // Bob tries to act AS Alice
-        .send({ userId: bobId, action: { type: 'ROLL_DICE', playerId: hostId } });
+        // Bob's own (valid) token, but the action claims to be Alice.
+        .send({ token: bobToken, action: { type: 'ROLL_DICE', playerId: hostId } });
+      expect(res.status).toBe(409);
+    });
+
+    it('returns 409 when acting with a stolen public playerId as the token', async () => {
+      // Regression test for the impersonation vulnerability: knowing another
+      // player's public id (visible in every broadcast) must not be usable
+      // as a credential.
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      const { roomId, playerId: aliceId, token: hostToken } = create.body;
+      await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: hostToken });
+
+      const res = await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        // Using Alice's PUBLIC id as if it were her token.
+        .send({ token: aliceId, action: { type: 'ROLL_DICE', playerId: aliceId } });
       expect(res.status).toBe(409);
     });
   });
 
   describe('POST /api/rooms/:id/reconnect', () => {
-    it('returns 200 with lobby state for a known user', async () => {
+    it('returns 200 with lobby state for a known token', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
-      const { roomId, userId } = create.body;
-      const res = await request(app).post(`/api/rooms/${roomId}/reconnect`).send({ userId });
+      const { roomId, token } = create.body;
+      const res = await request(app).post(`/api/rooms/${roomId}/reconnect`).send({ token });
       expect(res.status).toBe(200);
       expect(res.body.lobby.roomId).toBe(roomId);
       expect(res.body.gameState).toBeNull();
@@ -189,13 +264,13 @@ describe('REST: /api/rooms', () => {
 
     it('returns 200 with both lobby and gameState once the game has started', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
-      const { roomId, userId: hostId } = create.body;
+      const { roomId, token: hostToken } = create.body;
       await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
-      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: hostId });
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: hostToken });
 
       const res = await request(app)
         .post(`/api/rooms/${roomId}/reconnect`)
-        .send({ userId: hostId });
+        .send({ token: hostToken });
       expect(res.status).toBe(200);
       expect(res.body.lobby.status).toBe('game');
       expect(res.body.gameState).toBeTruthy();
@@ -207,34 +282,36 @@ describe('REST: /api/rooms', () => {
 
     it('returns 200 for a non-host who reconnects to a started game', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
-      const { roomId, userId: hostId } = create.body;
+      const { roomId, token: hostToken } = create.body;
       const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
-      const bobId = join.body.userId;
-      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: hostId });
+      const bobToken = join.body.token;
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: hostToken });
 
-      const res = await request(app).post(`/api/rooms/${roomId}/reconnect`).send({ userId: bobId });
+      const res = await request(app)
+        .post(`/api/rooms/${roomId}/reconnect`)
+        .send({ token: bobToken });
       expect(res.status).toBe(200);
       expect(res.body.lobby.status).toBe('game');
       expect(res.body.gameState).toBeTruthy();
     });
 
-    it('returns 404 with session_expired for a stale userId', async () => {
+    it('returns 404 with session_expired for a stale token', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       const res = await request(app)
         .post(`/api/rooms/${create.body.roomId}/reconnect`)
-        .send({ userId: 'stale-user-id' });
+        .send({ token: 'stale-token' });
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('session_expired');
     });
   });
 
   describe('POST /api/rooms/:id/leave', () => {
-    it('returns 404 with session_expired for a stale userId', async () => {
+    it('returns 404 with session_expired for a stale token', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
 
       const res = await request(app)
         .post(`/api/rooms/${create.body.roomId}/leave`)
-        .send({ userId: 'stale-user-id' });
+        .send({ token: 'stale-token' });
 
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('session_expired');
@@ -244,12 +321,12 @@ describe('REST: /api/rooms', () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       const { roomId } = create.body;
       const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
-      const bobId = join.body.userId;
+      const bobToken = join.body.token;
 
       const events: RoomEvent[] = [];
       await eventBus.subscribe(roomId, (event) => events.push(event));
 
-      const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ userId: bobId });
+      const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ token: bobToken });
 
       expect(res.status).toBe(200);
       expect(events).toHaveLength(1);
@@ -259,15 +336,15 @@ describe('REST: /api/rooms', () => {
 
     it('removes an in-game player and publishes game_state_update plus lobby_update', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
-      const { roomId, userId: aliceId } = create.body;
+      const { roomId, playerId: aliceId, token: aliceToken } = create.body;
       const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
-      const bobId = join.body.userId;
-      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: aliceId });
+      const bobToken = join.body.token;
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: aliceToken });
 
       const events: RoomEvent[] = [];
       await eventBus.subscribe(roomId, (event) => events.push(event));
 
-      const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ userId: bobId });
+      const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ token: bobToken });
 
       expect(res.status).toBe(200);
       expect(events.map((event) => event.type)).toEqual(['game_state_update', 'lobby_update']);
@@ -281,16 +358,17 @@ describe('REST: /api/rooms', () => {
 
     it('clears an active trade when a trade participant leaves mid-game', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
-      const { roomId, userId: aliceId } = create.body;
+      const { roomId, playerId: aliceId, token: aliceToken } = create.body;
       const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
-      const bobId = join.body.userId;
+      const bobId = join.body.playerId;
+      const bobToken = join.body.token;
       await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Charlie' });
-      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: aliceId });
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: aliceToken });
 
       await request(app)
         .post(`/api/rooms/${roomId}/actions`)
         .send({
-          userId: aliceId,
+          token: aliceToken,
           action: {
             type: 'PROPOSE_TRADE',
             playerId: aliceId,
@@ -303,7 +381,7 @@ describe('REST: /api/rooms', () => {
       const events: RoomEvent[] = [];
       await eventBus.subscribe(roomId, (event) => events.push(event));
 
-      const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ userId: bobId });
+      const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ token: bobToken });
 
       expect(res.status).toBe(200);
       expect(events.map((event) => event.type)).toEqual(['game_state_update', 'lobby_update']);
@@ -323,25 +401,22 @@ describe('REST: /api/rooms', () => {
    * server-side enforcement so the same boundaries hold even if a malicious
    * client bypassed the UI.
    *
-   * Setup helper: starts a 2-player game, has Alice land on Mediterranean
-   * (the first buyable tile after Go) by mocking dice, has her buy it, then
-   * proposes a trade from Alice to Bob offering nothing for nothing.
+   * Setup helper: starts a 2-player game and proposes a trade from Alice to
+   * Bob offering nothing for nothing, so we have an `activeTrade` to act on.
    */
   describe('trade action boundaries (server enforcement)', () => {
     const setupActiveTrade = async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
-      const { roomId, userId: aliceId } = create.body;
+      const { roomId, playerId: aliceId, token: aliceToken } = create.body;
       const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
-      const bobId = join.body.userId;
-      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: aliceId });
+      const bobId = join.body.playerId;
+      const bobToken = join.body.token;
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: aliceToken });
 
-      // Propose a trivial trade so we have an `activeTrade` to act on. Whether
-      // the offer makes sense doesn't matter for boundary-checking; we just
-      // need the trade in flight.
       await request(app)
         .post(`/api/rooms/${roomId}/actions`)
         .send({
-          userId: aliceId,
+          token: aliceToken,
           action: {
             type: 'PROPOSE_TRADE',
             playerId: aliceId,
@@ -353,24 +428,24 @@ describe('REST: /api/rooms', () => {
 
       const room = await roomManager.getRoom(roomId);
       expect(room?.gameState?.activeTrade).toBeTruthy();
-      return { roomId, aliceId, bobId, tradeId: room!.gameState!.activeTrade!.id };
+      return { roomId, aliceId, aliceToken, bobId, bobToken, tradeId: room!.gameState!.activeTrade!.id };
     };
 
     it('lets the target accept the trade', async () => {
-      const { roomId, bobId } = await setupActiveTrade();
+      const { roomId, bobId, bobToken } = await setupActiveTrade();
       const res = await request(app)
         .post(`/api/rooms/${roomId}/actions`)
-        .send({ userId: bobId, action: { type: 'ACCEPT_TRADE', playerId: bobId } });
+        .send({ token: bobToken, action: { type: 'ACCEPT_TRADE', playerId: bobId } });
       expect(res.status).toBe(200);
       const room = await roomManager.getRoom(roomId);
       expect(room?.gameState?.activeTrade).toBeNull();
     });
 
     it('lets the initiator cancel the trade', async () => {
-      const { roomId, aliceId } = await setupActiveTrade();
+      const { roomId, aliceId, aliceToken } = await setupActiveTrade();
       const res = await request(app)
         .post(`/api/rooms/${roomId}/actions`)
-        .send({ userId: aliceId, action: { type: 'CANCEL_TRADE', playerId: aliceId } });
+        .send({ token: aliceToken, action: { type: 'CANCEL_TRADE', playerId: aliceId } });
       expect(res.status).toBe(200);
       const room = await roomManager.getRoom(roomId);
       expect(room?.gameState?.activeTrade).toBeNull();
@@ -379,21 +454,22 @@ describe('REST: /api/rooms', () => {
     it('returns 409 when a third party tries to accept the trade', async () => {
       // 3-player setup so we have a non-target third party.
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
-      const { roomId, userId: aliceId } = create.body;
+      const { roomId, playerId: aliceId, token: aliceToken } = create.body;
       const joinBob = await request(app)
         .post(`/api/rooms/${roomId}/join`)
         .send({ playerName: 'Bob' });
-      const bobId = joinBob.body.userId;
+      const bobId = joinBob.body.playerId;
       const joinCharlie = await request(app)
         .post(`/api/rooms/${roomId}/join`)
         .send({ playerName: 'Charlie' });
-      const charlieId = joinCharlie.body.userId;
-      await request(app).post(`/api/rooms/${roomId}/start`).send({ userId: aliceId });
+      const charlieId = joinCharlie.body.playerId;
+      const charlieToken = joinCharlie.body.token;
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: aliceToken });
 
       await request(app)
         .post(`/api/rooms/${roomId}/actions`)
         .send({
-          userId: aliceId,
+          token: aliceToken,
           action: {
             type: 'PROPOSE_TRADE',
             playerId: aliceId,
@@ -409,7 +485,7 @@ describe('REST: /api/rooms', () => {
 
       const res = await request(app)
         .post(`/api/rooms/${roomId}/actions`)
-        .send({ userId: charlieId, action: { type: 'ACCEPT_TRADE', playerId: charlieId } });
+        .send({ token: charlieToken, action: { type: 'ACCEPT_TRADE', playerId: charlieId } });
       expect(res.status).toBe(409);
 
       const after = await roomManager.getRoom(roomId);
@@ -417,10 +493,10 @@ describe('REST: /api/rooms', () => {
     });
 
     it('returns 409 when a non-initiator tries to cancel the trade', async () => {
-      const { roomId, bobId, tradeId } = await setupActiveTrade();
+      const { roomId, bobId, bobToken, tradeId } = await setupActiveTrade();
       const res = await request(app)
         .post(`/api/rooms/${roomId}/actions`)
-        .send({ userId: bobId, action: { type: 'CANCEL_TRADE', playerId: bobId } });
+        .send({ token: bobToken, action: { type: 'CANCEL_TRADE', playerId: bobId } });
       expect(res.status).toBe(409);
 
       const after = await roomManager.getRoom(roomId);
@@ -428,23 +504,23 @@ describe('REST: /api/rooms', () => {
     });
 
     it('rejects a player trying to attribute a trade action to someone else', async () => {
-      // The userId === action.playerId guard. Bob is the legitimate target,
-      // but he sends the action with playerId set to Alice. Server's first
-      // check (handleGameAction) catches the impersonation before the
-      // reducer even sees it.
-      const { roomId, aliceId, bobId } = await setupActiveTrade();
+      // The token-resolved-playerId === action.playerId guard. Bob is the
+      // legitimate target, but he sends the action with playerId set to
+      // Alice. Server's first check (handleGameAction) catches the
+      // impersonation before the reducer even sees it.
+      const { roomId, aliceId, bobToken } = await setupActiveTrade();
       const res = await request(app)
         .post(`/api/rooms/${roomId}/actions`)
-        .send({ userId: bobId, action: { type: 'ACCEPT_TRADE', playerId: aliceId } });
+        .send({ token: bobToken, action: { type: 'ACCEPT_TRADE', playerId: aliceId } });
       expect(res.status).toBe(409);
     });
 
     it('preserves the existing trade when another player proposes a new one', async () => {
-      const { roomId, aliceId, bobId, tradeId } = await setupActiveTrade();
+      const { roomId, aliceId, bobId, bobToken, tradeId } = await setupActiveTrade();
       const res = await request(app)
         .post(`/api/rooms/${roomId}/actions`)
         .send({
-          userId: bobId,
+          token: bobToken,
           action: {
             type: 'PROPOSE_TRADE',
             playerId: bobId,

@@ -26,17 +26,19 @@ export const createEventsRouter = (deps: {
 
   router.get('/api/rooms/:roomId/events', async (req: Request, res: Response) => {
     const roomId = String(req.params.roomId).trim().toUpperCase();
-    const userId = String(req.query.userId ?? '').trim();
-    if (!userId) {
-      return res.status(400).json({ error: 'userId query param is required' });
+    // EventSource cannot set custom headers, so the session token travels in
+    // the query string here (unlike every other endpoint, which takes it in
+    // the JSON body).
+    const token = String(req.query.token ?? '').trim();
+    if (!token) {
+      return res.status(400).json({ error: 'token query param is required' });
     }
 
     const room = await roomManager.getRoom(roomId);
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    const inLobby = room.players.some((p) => p.id === userId);
-    const inGame = room.gameState?.players.some((p) => p.id === userId) ?? false;
-    if (!inLobby && !inGame) {
+    const auth = await roomManager.authenticate(roomId, token);
+    if (!auth) {
       return res.status(403).json({ error: 'You are not in this room' });
     }
 

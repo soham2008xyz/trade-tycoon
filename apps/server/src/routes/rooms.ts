@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import type { GameAction } from '@trade-tycoon/game-logic';
+import { parseGameAction } from '@trade-tycoon/game-logic';
 import type { RoomManager } from '../RoomManager';
 import type { EventBus } from '../events/EventBus';
 
@@ -8,6 +8,10 @@ import type { EventBus } from '../events/EventBus';
  * mutates room state through `RoomManager` and then publishes the resulting
  * lobby/game state on `EventBus` so any open SSE streams (in any function
  * instance) can fan it out to subscribers.
+ *
+ * Auth: create/join return a `playerId` (public, safe to broadcast) and a
+ * `token` (private credential). Every other endpoint takes `token`, not
+ * `playerId` — the public id alone grants no ability to act as that player.
  *
  * Errors are reported with conventional HTTP status codes — clients should
  * not need to parse `error: 'session_expired'` strings; they get 404 / 409 /
@@ -26,16 +30,15 @@ export const createRoomsRouter = (deps: {
     if (!playerName) return res.status(400).json({ error: 'playerName is required' });
 
     try {
-      const roomId = await roomManager.createRoom(playerName);
+      const { roomId, playerId, token } = await roomManager.createRoom(playerName);
       const room = await roomManager.getRoom(roomId);
       if (!room) {
         return res.status(500).json({ error: 'Room creation succeeded but room not found' });
       }
-      const host = room.players[0];
       // Notify any SSE streams already open for this room (rare on create, but
       // harmless and consistent with the join/start path).
       await eventBus.publish(roomId, { type: 'lobby_update', state: room });
-      res.status(201).json({ roomId, userId: host.id, isHost: true });
+      res.status(201).json({ roomId, playerId, token, isHost: true });
     } catch (err) {
       console.error('[POST /api/rooms]', err);
       res.status(500).json({ error: 'Failed to create room' });
@@ -55,16 +58,16 @@ export const createRoomsRouter = (deps: {
       return res.status(409).json({ error: 'Room is full or already in progress' });
     }
     await eventBus.publish(roomId, { type: 'lobby_update', state: result.state });
-    res.status(200).json({ roomId, userId: result.userId, isHost: false });
+    res.status(200).json({ roomId, playerId: result.playerId, token: result.token, isHost: false });
   });
 
-  // POST /api/rooms/:roomId/start { userId }
+  // POST /api/rooms/:roomId/start { token }
   router.post('/api/rooms/:roomId/start', async (req: Request, res: Response) => {
-    const userId = parseNonEmptyString(req.body?.userId);
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    const token = parseNonEmptyString(req.body?.token);
+    if (!token) return res.status(400).json({ error: 'token is required' });
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
-    const gameState = await roomManager.startGame(roomId, userId);
+    const gameState = await roomManager.startGame(roomId, token);
     if (!gameState) {
       const room = await roomManager.getRoom(roomId);
       if (!room) return res.status(404).json({ error: 'Room not found' });
@@ -80,13 +83,14 @@ export const createRoomsRouter = (deps: {
     res.status(200).json({ ok: true });
   });
 
-  // POST /api/rooms/:roomId/actions { userId, action }
+  // POST /api/rooms/:roomId/actions { token, action }
   router.post('/api/rooms/:roomId/actions', async (req: Request, res: Response) => {
-    const userId = parseNonEmptyString(req.body?.userId);
-    const action = req.body?.action as GameAction | undefined;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
-    if (!action || typeof action !== 'object' || typeof action.type !== 'string') {
-      return res.status(400).json({ error: 'action is required' });
+    const token = parseNonEmptyString(req.body?.token);
+    if (!token) return res.status(400).json({ error: 'token is required' });
+
+    const action = parseGameAction(req.body?.action);
+    if (!action) {
+      return res.status(400).json({ error: 'action is invalid' });
     }
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
@@ -94,22 +98,19 @@ export const createRoomsRouter = (deps: {
     if (!room) return res.status(404).json({ error: 'Room not found' });
     if (!room.gameState) return res.status(409).json({ error: 'Game has not started' });
 
-    const player = room.gameState.players.find((p) => p.id === userId);
-    if (!player) return res.status(403).json({ error: 'You are not in this game' });
-
-    const newState = await roomManager.handleGameAction(roomId, userId, action);
+    const newState = await roomManager.handleGameAction(roomId, token, action);
     if (!newState) return res.status(409).json({ error: 'Action rejected' });
     await eventBus.publish(roomId, { type: 'game_state_update', state: newState });
     res.status(200).json({ ok: true });
   });
 
-  // POST /api/rooms/:roomId/reconnect { userId }
+  // POST /api/rooms/:roomId/reconnect { token }
   router.post('/api/rooms/:roomId/reconnect', async (req: Request, res: Response) => {
-    const userId = parseNonEmptyString(req.body?.userId);
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    const token = parseNonEmptyString(req.body?.token);
+    if (!token) return res.status(400).json({ error: 'token is required' });
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
-    const result = await roomManager.reconnect(roomId, userId);
+    const result = await roomManager.reconnect(roomId, token);
     if (!result) return res.status(404).json({ error: 'session_expired' });
     res.status(200).json({
       lobby: result.state,
@@ -117,13 +118,13 @@ export const createRoomsRouter = (deps: {
     });
   });
 
-  // POST /api/rooms/:roomId/leave { userId }
+  // POST /api/rooms/:roomId/leave { token }
   router.post('/api/rooms/:roomId/leave', async (req: Request, res: Response) => {
-    const userId = parseNonEmptyString(req.body?.userId);
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    const token = parseNonEmptyString(req.body?.token);
+    if (!token) return res.status(400).json({ error: 'token is required' });
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
-    const result = await roomManager.leaveRoom(roomId, userId);
+    const result = await roomManager.leaveRoom(roomId, token);
     if (!result) return res.status(404).json({ error: 'session_expired' });
 
     if (result.gameState) {
