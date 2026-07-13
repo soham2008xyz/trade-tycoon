@@ -1,6 +1,24 @@
 import { BOARD } from './board-data';
 import { Player, PropertyGroup, Tile } from './types';
 
+/**
+ * Small, fast, seedable PRNG (Mulberry32) returning a `() => number` in
+ * [0, 1), the same shape as `Math.random`. Used by the server so a Redis
+ * store CAS retry can re-invoke the reducer mutator and get back the exact
+ * same dice roll / card draw instead of silently re-rolling — see
+ * `reduceGameAction`'s `rng` parameter.
+ */
+export const mulberry32 = (seed: number): (() => number) => {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
 export const getPropertiesInGroup = (group: PropertyGroup): Tile[] => {
   return BOARD.filter((tile) => tile.group === group);
 };

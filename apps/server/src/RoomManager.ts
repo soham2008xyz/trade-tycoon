@@ -8,6 +8,7 @@ import {
   removePlayerFromGame,
   GameAction,
   createPlayer,
+  mulberry32,
 } from '@trade-tycoon/game-logic';
 import { randomBytes, randomInt } from 'crypto';
 import type { RoomStore } from './store/RoomStore';
@@ -28,6 +29,8 @@ export interface JoinRoomResult {
   token: string;
   state: LobbyState;
 }
+
+export type GameActionResult = { ok: true; state: GameState } | { ok: false; message: string };
 
 /**
  * Encapsulates all multiplayer business logic: room lifecycle, player joins,
@@ -298,7 +301,7 @@ export class RoomManager {
     roomId: string,
     token: string,
     action: GameAction
-  ): Promise<GameState | null> {
+  ): Promise<GameActionResult> {
     roomId = roomId.trim().toUpperCase();
 
     // Security Check: RESET_GAME has no playerId field — clients must NEVER be
@@ -306,7 +309,7 @@ export class RoomManager {
     // may dispatch it.
     if (action.type === 'RESET_GAME') {
       console.warn(`[RoomManager] Rejected client-issued RESET_GAME`);
-      return null;
+      return { ok: false, message: 'Action rejected' };
     }
 
     // Sanitize untrusted action input. The reducer accepts client-provided dice
@@ -317,8 +320,22 @@ export class RoomManager {
         ? ({ ...action, die1: undefined, die2: undefined } as GameAction)
         : action;
 
+    // Generated once outside the mutator: if a Redis CAS conflict re-invokes
+    // the mutator, a fresh mulberry32(seed) instance replays the exact same
+    // dice roll / card draw instead of silently re-rolling on retry.
+    const seed = this.generateRngSeed();
+
+    // Captured from inside the mutator so the caller learns *why* a rejected
+    // action was rejected. Safe to reassign across CAS retries: only the
+    // outcome of the most recent (successful-or-aborted) mutator invocation
+    // matters, and an aborted mutator never triggers a retry.
+    let rejectionMessage = 'Action rejected';
+
     const updated = await this.store.update(roomId, (current) => {
-      if (!current.gameState) return null;
+      if (!current.gameState) {
+        rejectionMessage = 'Game has not started';
+        return null;
+      }
 
       const userId = this.resolvePlayerId(current, token);
       if (!userId) {
@@ -341,15 +358,36 @@ export class RoomManager {
         return null;
       }
 
-      const newState = reduceGameAction(current.gameState, safeAction);
+      const newState = reduceGameAction(current.gameState, safeAction, mulberry32(seed));
       if (newState === ACTION_REJECTED) {
         console.warn(`[RoomManager] Rejected ${safeAction.type} from ${userId}`);
         return null;
       }
+
+      // A soft rejection (e.g. "insufficient funds") carries a player-facing
+      // errorMessage but is otherwise the same state. Broadcasting it would
+      // leak that private feedback to every player in the room (M9) and
+      // amplify a no-op into a full-state fan-out (M5) — abort instead and
+      // report it back to only the caller via the HTTP response.
+      if (newState.errorMessage) {
+        rejectionMessage = newState.errorMessage;
+        return null;
+      }
+
+      // Pure no-op guard clauses (e.g. acting out of turn) return the exact
+      // same state reference — nothing changed, so there's nothing to persist
+      // or broadcast.
+      if (newState === current.gameState) {
+        return null;
+      }
+
       return { ...current, gameState: newState };
     });
 
-    return updated?.gameState ? toPublicGameState(updated.gameState) : null;
+    if (!updated?.gameState) {
+      return { ok: false, message: rejectionMessage };
+    }
+    return { ok: true, state: toPublicGameState(updated.gameState) };
   }
 
   async getRoom(roomId: string): Promise<LobbyState | null> {
@@ -388,6 +426,11 @@ export class RoomManager {
 
   private generateToken(): string {
     return randomBytes(24).toString('base64url');
+  }
+
+  /** Extracted as its own method so tests can force a deterministic seed. */
+  private generateRngSeed(): number {
+    return randomInt(0, 2 ** 31);
   }
 
   private getRandomColor(excludeColors: string[] = []): string {

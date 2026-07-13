@@ -160,6 +160,25 @@ describe('REST: /api/rooms', () => {
       expect(res.status).toBe(409);
     });
 
+    it('does not publish a game_state_update when an action is rejected', async () => {
+      const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+      const { roomId, token: aliceToken } = create.body;
+      const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
+      const bobId = join.body.playerId;
+      await request(app).post(`/api/rooms/${roomId}/start`).send({ token: aliceToken });
+
+      const events: RoomEvent[] = [];
+      await eventBus.subscribe(roomId, (e) => events.push(e));
+
+      // It's Alice's turn — Bob rolling is a pure no-op rejection.
+      const res = await request(app)
+        .post(`/api/rooms/${roomId}/actions`)
+        .send({ token: join.body.token, action: { type: 'ROLL_DICE', playerId: bobId } });
+
+      expect(res.status).toBe(409);
+      expect(events).toHaveLength(0);
+    });
+
     it('returns 400 when the action is missing or malformed', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       const res = await request(app)
@@ -522,7 +541,7 @@ describe('REST: /api/rooms', () => {
       expect(res.status).toBe(409);
     });
 
-    it('preserves the existing trade when another player proposes a new one', async () => {
+    it('rejects (without disturbing) the existing trade when another player proposes a new one', async () => {
       const { roomId, aliceId, bobId, bobToken, tradeId } = await setupActiveTrade();
       const res = await request(app)
         .post(`/api/rooms/${roomId}/actions`)
@@ -537,11 +556,13 @@ describe('REST: /api/rooms', () => {
           },
         });
 
-      expect(res.status).toBe(200);
+      // Soft rejection: reported to the caller as a 409, not broadcast/persisted.
+      expect(res.status).toBe(409);
+      expect(res.body.error).toMatch(/resolve the current trade/i);
 
       const after = await roomManager.getRoom(roomId);
       expect(after?.gameState?.activeTrade?.id).toBe(tradeId);
-      expect(after?.gameState?.errorMessage).toMatch(/resolve the current trade/i);
+      expect(after?.gameState?.errorMessage).toBeUndefined();
     });
   });
 });

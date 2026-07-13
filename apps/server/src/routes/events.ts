@@ -51,12 +51,21 @@ export const createEventsRouter = (deps: {
     res.setHeader('X-Accel-Buffering', 'no');
     if (typeof res.flushHeaders === 'function') res.flushHeaders();
 
+    // `cleanup` is assigned below, before any write can happen; `writeEvent`
+    // and the heartbeat both close the stream on failure instead of merely
+    // logging, so a write error can't leave the EventBus subscription (and,
+    // on Redis, the duplicated subscriber connection) open forever waiting
+    // for a `close`/`aborted` event that may never fire.
+    let cleanup = () => {};
+    let cleanedUp = false;
+
     const writeEvent = (event: RoomEvent) => {
       try {
         res.write(`event: ${event.type}\n`);
         res.write(`data: ${JSON.stringify(event.state)}\n\n`);
       } catch (err) {
         console.warn('[SSE] write failed, closing stream', err);
+        cleanup();
       }
     };
 
@@ -73,12 +82,15 @@ export const createEventsRouter = (deps: {
     const heartbeat = setInterval(() => {
       try {
         res.write(`: ping\n\n`);
-      } catch {
-        // ignore — the close handler will clean up.
+      } catch (err) {
+        console.warn('[SSE] heartbeat write failed, closing stream', err);
+        cleanup();
       }
     }, 15_000);
 
-    const cleanup = () => {
+    cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
       clearInterval(heartbeat);
       unsubscribe();
       try {

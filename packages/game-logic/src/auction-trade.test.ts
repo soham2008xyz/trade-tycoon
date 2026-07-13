@@ -119,6 +119,24 @@ describe('Auction and Trade Logic', () => {
       expect(newState.errorMessage).toBe('Insufficient funds.');
     });
 
+    it('should reject a non-integer or negative bid amount', () => {
+      const state = createMockState([p1, p2]);
+      state.phase = 'auction';
+      state.auction = {
+        propertyId: 'mediterranean',
+        currentBid: 0,
+        highestBidderId: null,
+        participants: ['p1', 'p2'],
+        currentBidderIndex: 0,
+      };
+
+      let newState = gameReducer(state, { type: 'PLACE_BID', playerId: 'p1', amount: -10 });
+      expect(newState.errorMessage).toBe('Invalid bid amount.');
+
+      newState = gameReducer(state, { type: 'PLACE_BID', playerId: 'p1', amount: 1.5 });
+      expect(newState.errorMessage).toBe('Invalid bid amount.');
+    });
+
     it('should handle concessions correctly', () => {
       const state = createMockState([p1, p2, p3]);
       state.phase = 'auction';
@@ -304,6 +322,58 @@ describe('Auction and Trade Logic', () => {
       // P2 should have it and it should be mortgaged
       expect(newState.players[1].properties).toContain('mediterranean');
       expect(newState.players[1].mortgaged).toContain('mediterranean');
+    });
+
+    it('should reject proposing a trade for a property with houses on it', () => {
+      p1.properties = ['mediterranean'];
+      p1.houses = { mediterranean: 2 };
+      const state = createMockState([p1, p2]);
+
+      const newState = gameReducer(state, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: ['mediterranean'], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      expect(newState.activeTrade).toBeNull();
+      expect(newState.errorMessage).toMatch(/sell buildings/i);
+    });
+
+    it('should reject accepting a trade if a house was built after the trade was proposed', () => {
+      p1.properties = ['mediterranean'];
+      const state = createMockState([p1, p2]);
+      state.activeTrade = {
+        id: 'test',
+        initiatorId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: ['mediterranean'], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+        status: 'pending',
+      };
+      // A house went up on the offered property after the proposal.
+      state.players[0].houses = { mediterranean: 1 };
+
+      const newState = gameReducer(state, { type: 'ACCEPT_TRADE', playerId: 'p2' });
+
+      expect(newState.activeTrade).not.toBeNull();
+      expect(newState.errorMessage).toMatch(/since built/i);
+    });
+
+    it('should reject a negative money amount in a trade offer', () => {
+      const state = createMockState([p1, p2]);
+
+      const newState = gameReducer(state, {
+        type: 'PROPOSE_TRADE',
+        playerId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: -100, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+      });
+
+      expect(newState.activeTrade).toBeNull();
+      expect(newState.errorMessage).toBe('Invalid trade amounts.');
     });
 
     it('should cancel trade', () => {

@@ -1,6 +1,21 @@
 import type { LobbyState } from '@trade-tycoon/game-logic';
 
 /**
+ * Thrown by `RoomStore.update` implementations when they give up retrying a
+ * write conflict (e.g. the Redis CAS loop exhausting its retry budget under
+ * heavy contention on one room). Distinct from a plain `Error` so the route
+ * layer's error middleware can map it to 503 instead of a generic 500 — the
+ * request didn't fail because of a bug, it failed because it lost a race and
+ * the client should simply retry.
+ */
+export class StoreConflictError extends Error {
+  constructor(roomId: string) {
+    super(`Too many conflicting writes to room ${roomId}; try again`);
+    this.name = 'StoreConflictError';
+  }
+}
+
+/**
  * Persistence boundary for room state. The interface is intentionally minimal:
  * a `get`, an `update` for atomic read-modify-write, and a `delete`. `update`
  * is the only mutation primitive — callers must not write a state they did not

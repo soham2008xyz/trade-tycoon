@@ -3,6 +3,7 @@ import { ACTION_REJECTED, gameReducer, reduceGameAction } from './reducer';
 import { createInitialState, createPlayer } from './index';
 import { GameState } from './types';
 import { BOARD } from './board-data';
+import { mulberry32 } from './helpers';
 
 describe('Game Reducer', () => {
   let initialState: GameState;
@@ -122,6 +123,19 @@ describe('Game Reducer', () => {
         die2: 1,
       });
       expect(newState).toBe(stateWithPlayers);
+    });
+
+    it('should produce identical dice for the same seed (CAS-retry replay safety)', () => {
+      // The server re-invokes the reducer mutator with a fresh rng instance
+      // from the same seed on a Redis CAS conflict — this must not re-roll.
+      const action = { type: 'ROLL_DICE' as const, playerId: 'p1' };
+      const first = reduceGameAction(stateWithPlayers, action, mulberry32(42));
+      const second = reduceGameAction(stateWithPlayers, action, mulberry32(42));
+
+      if (first === ACTION_REJECTED || second === ACTION_REJECTED) {
+        throw new Error('Expected both rolls to succeed');
+      }
+      expect(first.dice).toEqual(second.dice);
     });
   });
 
@@ -1378,6 +1392,50 @@ describe('Game Reducer', () => {
       // Remaining: p1, p3
       expect(newState.currentPlayerId).toBe('p1'); // Still p1's turn
     });
+
+    it('should cancel an active trade the bankrupt player was part of', () => {
+      brokeState.players[0].money = -500;
+      brokeState.activeTrade = {
+        id: 'test',
+        initiatorId: 'p1',
+        targetPlayerId: 'p2',
+        offer: { money: 0, properties: [], getOutOfJailCards: 0 },
+        request: { money: 0, properties: [], getOutOfJailCards: 0 },
+        status: 'pending',
+      };
+
+      const newState = gameReducer(brokeState, {
+        type: 'DECLARE_BANKRUPTCY',
+        playerId: 'p1',
+      });
+
+      expect(newState.activeTrade).toBeNull();
+    });
+
+    it('should re-seat the auction when the bankrupt player was the sole other bidder', () => {
+      const p3 = createPlayer('p3', 'Player 3');
+      brokeState.players = [brokeState.players[0], brokeState.players[1], p3];
+      brokeState.players[0].money = -500;
+      brokeState.phase = 'auction';
+      brokeState.auction = {
+        propertyId: 'mediterranean',
+        currentBid: 50,
+        highestBidderId: 'p2',
+        participants: ['p1', 'p2'],
+        currentBidderIndex: 0,
+      };
+
+      const newState = gameReducer(brokeState, {
+        type: 'DECLARE_BANKRUPTCY',
+        playerId: 'p1',
+      });
+
+      // p2 was the only remaining bidder and already the highest bidder, so
+      // the auction resolves to them instead of leaving a stale reference
+      // to the now-removed p1.
+      expect(newState.auction).toBeNull();
+      expect(newState.players.find((p) => p.id === 'p2')?.properties).toContain('mediterranean');
+    });
   });
 
   describe('Post-game lockdown (winner declared)', () => {
@@ -1413,6 +1471,14 @@ describe('Game Reducer', () => {
       });
       expect(reset.winner).toBeNull();
       expect(reset.players).toHaveLength(2);
+    });
+
+    it('should reject RESET_GAME with an empty players list instead of crashing', () => {
+      const state = createInitialState();
+      state.players = [createPlayer('p1', 'Player 1'), createPlayer('p2', 'Player 2')];
+      const reset = gameReducer(state, { type: 'RESET_GAME', players: [] });
+      // gameReducer collapses ACTION_REJECTED back to the unchanged state.
+      expect(reset).toBe(state);
     });
   });
 

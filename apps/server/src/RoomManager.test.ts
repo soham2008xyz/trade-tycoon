@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { mulberry32 } from '@trade-tycoon/game-logic';
 import { RoomManager } from './RoomManager';
 import { InMemoryRoomStore } from './store/InMemoryRoomStore';
 
@@ -246,48 +247,53 @@ describe('RoomManager', () => {
 
       // Assuming ROLL_DICE is a valid action for the current player
       const action: any = { type: 'ROLL_DICE', playerId: hostId };
-      const newState = await roomManager.handleGameAction(roomId, hostToken, action);
+      const result = await roomManager.handleGameAction(roomId, hostToken, action);
 
-      expect(newState).not.toBeNull();
-      expect(newState?.dice).toBeDefined();
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected ok');
+      expect(result.state.dice).toBeDefined();
     });
 
-    it('should return null for action in non-existent room', async () => {
+    it('rejects an action in a non-existent room', async () => {
       const action: any = { type: 'ROLL_DICE', playerId: 'uid' };
-      expect(await roomManager.handleGameAction('INVALID', 'tok', action)).toBeNull();
+      const result = await roomManager.handleGameAction('INVALID', 'tok', action);
+      expect(result.ok).toBe(false);
     });
 
-    it('should return null for action when game not started', async () => {
+    it('rejects an action when the game has not started', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
       const action: any = { type: 'ROLL_DICE', playerId: hostId };
       // Game not started yet (lobby status)
-      expect(await roomManager.handleGameAction(roomId, hostToken, action)).toBeNull();
+      const result = await roomManager.handleGameAction(roomId, hostToken, action);
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error('expected rejection');
+      expect(result.message).toBe('Game has not started');
     });
 
-    it('should return null when a token is used to act as another player', async () => {
+    it('rejects a token used to act as another player', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
       const p2Result = (await roomManager.joinRoom(roomId, 'P2'))!;
       await roomManager.startGame(roomId, hostToken);
 
       // P2's token resolves to P2's id, but the action claims to be Host.
       const action: any = { type: 'ROLL_DICE', playerId: hostId };
-      const newState = await roomManager.handleGameAction(roomId, p2Result.token, action);
+      const result = await roomManager.handleGameAction(roomId, p2Result.token, action);
 
-      expect(newState).toBeNull();
+      expect(result.ok).toBe(false);
     });
 
-    it('should return null when an unknown token tries to act', async () => {
+    it('rejects an unknown token', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
       await roomManager.joinRoom(roomId, 'P2');
       await roomManager.startGame(roomId, hostToken);
 
       const action: any = { type: 'ROLL_DICE', playerId: hostId };
-      const newState = await roomManager.handleGameAction(roomId, 'ALIEN_TOKEN', action);
+      const result = await roomManager.handleGameAction(roomId, 'ALIEN_TOKEN', action);
 
-      expect(newState).toBeNull();
+      expect(result.ok).toBe(false);
     });
 
-    it('should return null when a non-target tries to accept a trade', async () => {
+    it('rejects a non-target trying to accept a trade', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
       const p2 = (await roomManager.joinRoom(roomId, 'P2'))!;
       const p3 = (await roomManager.joinRoom(roomId, 'P3'))!;
@@ -306,11 +312,11 @@ describe('RoomManager', () => {
         playerId: p3.playerId,
       });
 
-      expect(result).toBeNull();
+      expect(result.ok).toBe(false);
       expect((await roomManager.getRoom(roomId))?.gameState?.activeTrade).toBeTruthy();
     });
 
-    it('should return null when a non-initiator tries to cancel a trade', async () => {
+    it('rejects a non-initiator trying to cancel a trade', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
       const p2 = (await roomManager.joinRoom(roomId, 'P2'))!;
       await roomManager.startGame(roomId, hostToken);
@@ -328,11 +334,11 @@ describe('RoomManager', () => {
         playerId: p2.playerId,
       });
 
-      expect(result).toBeNull();
+      expect(result.ok).toBe(false);
       expect((await roomManager.getRoom(roomId))?.gameState?.activeTrade).toBeTruthy();
     });
 
-    it('should reject client-issued RESET_GAME', async () => {
+    it('rejects a client-issued RESET_GAME', async () => {
       const { roomId, token: hostToken } = await roomManager.createRoom('Host');
       await roomManager.joinRoom(roomId, 'P2');
       await roomManager.startGame(roomId, hostToken);
@@ -343,14 +349,14 @@ describe('RoomManager', () => {
         players: [{ id: 'x', name: 'X', color: '#000' }],
       };
       const result = await roomManager.handleGameAction(roomId, hostToken, action);
-      expect(result).toBeNull();
+      expect(result.ok).toBe(false);
 
       // Game state untouched — original players still present.
       const room = (await roomManager.getRoom(roomId))!;
       expect(room.gameState!.players).toHaveLength(2);
     });
 
-    it('should ignore client-supplied dice values on ROLL_DICE', async () => {
+    it('ignores client-supplied dice values on ROLL_DICE', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
       await roomManager.joinRoom(roomId, 'P2');
       await roomManager.startGame(roomId, hostToken);
@@ -363,30 +369,43 @@ describe('RoomManager', () => {
         die2: 6, // would always net doubles + 12 if honored
       };
 
-      // Force the RNG so we can assert the dice came from the server, not the client.
-      const rngSpy = vi.spyOn(Math, 'random').mockReturnValue(0); // both dice -> 1
-      const newState = await roomManager.handleGameAction(roomId, hostToken, cheatAction);
-      rngSpy.mockRestore();
+      // Force the seed so we can assert the dice came from the server's own
+      // deterministic roll, not the client-supplied die1/die2.
+      const seedSpy = vi
+        .spyOn(RoomManager.prototype as unknown as { generateRngSeed: () => number }, 'generateRngSeed')
+        .mockReturnValue(0);
+      const result = await roomManager.handleGameAction(roomId, hostToken, cheatAction);
+      seedSpy.mockRestore();
 
-      expect(newState).not.toBeNull();
-      expect(newState!.dice).toEqual([1, 1]);
+      const rng = mulberry32(0);
+      const expectedDie1 = Math.floor(rng() * 6) + 1;
+      const expectedDie2 = Math.floor(rng() * 6) + 1;
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected ok');
+      expect(result.state.dice).toEqual([expectedDie1, expectedDie2]);
+      // The cheat action asked for [6, 6] — confirm the server didn't honor it.
+      expect(result.state.dice).not.toEqual([6, 6]);
     });
 
-    it('should keep the existing trade pending when another proposal is submitted', async () => {
+    it('rejects (without disturbing) the existing trade when another proposal is submitted', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
       const p2 = (await roomManager.joinRoom(roomId, 'P2'))!;
       await roomManager.startGame(roomId, hostToken);
 
-      const firstState = await roomManager.handleGameAction(roomId, hostToken, {
+      const firstResult = await roomManager.handleGameAction(roomId, hostToken, {
         type: 'PROPOSE_TRADE',
         playerId: hostId,
         targetPlayerId: p2.playerId,
         offer: { money: 0, properties: [], getOutOfJailCards: 0 },
         request: { money: 0, properties: [], getOutOfJailCards: 0 },
       });
-      expect(firstState?.activeTrade).toBeTruthy();
+      expect(firstResult.ok).toBe(true);
+      if (!firstResult.ok) throw new Error('expected ok');
+      const firstTradeId = firstResult.state.activeTrade?.id;
+      expect(firstTradeId).toBeTruthy();
 
-      const secondState = await roomManager.handleGameAction(roomId, p2.token, {
+      const secondResult = await roomManager.handleGameAction(roomId, p2.token, {
         type: 'PROPOSE_TRADE',
         playerId: p2.playerId,
         targetPlayerId: hostId,
@@ -394,8 +413,16 @@ describe('RoomManager', () => {
         request: { money: 0, properties: [], getOutOfJailCards: 0 },
       });
 
-      expect(secondState?.activeTrade?.id).toBe(firstState?.activeTrade?.id);
-      expect(secondState?.errorMessage).toMatch(/resolve the current trade/i);
+      // Soft-rejected: the second proposal doesn't overwrite the pending one,
+      // and (per M5/M9) the private error is returned only to the caller,
+      // never persisted or broadcast.
+      expect(secondResult.ok).toBe(false);
+      if (secondResult.ok) throw new Error('expected rejection');
+      expect(secondResult.message).toMatch(/resolve the current trade/i);
+
+      const room = await roomManager.getRoom(roomId);
+      expect(room?.gameState?.activeTrade?.id).toBe(firstTradeId);
+      expect(room?.gameState?.errorMessage).toBeUndefined();
     });
 
     it('should strip the nested board from room snapshots after a game starts', async () => {

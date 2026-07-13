@@ -8,6 +8,7 @@ import { RedisRoomStore } from './store/RedisRoomStore';
 import { RedisEventBus } from './events/RedisEventBus';
 import { createRoomsRouter } from './routes/rooms';
 import { createEventsRouter } from './routes/events';
+import { errorHandler } from './middleware/errors';
 import type { RoomStore } from './store/RoomStore';
 import type { EventBus } from './events/EventBus';
 
@@ -73,6 +74,11 @@ app.get('/', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
+
+// Must be registered last — Express 5 forwards rejected async handler
+// promises here, so unexpected failures (e.g. a Redis CAS conflict) get a
+// structured JSON response instead of Express's default HTML error page.
+app.use(errorHandler);
 
 // Don't bind a port when imported as a module (e.g. tests, Vercel auto-detect).
 // Only listen when run as the main entry point.

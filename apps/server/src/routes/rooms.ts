@@ -29,20 +29,17 @@ export const createRoomsRouter = (deps: {
     const playerName = parseNonEmptyString(req.body?.playerName);
     if (!playerName) return res.status(400).json({ error: 'playerName is required' });
 
-    try {
-      const { roomId, playerId, token } = await roomManager.createRoom(playerName);
-      const room = await roomManager.getRoom(roomId);
-      if (!room) {
-        return res.status(500).json({ error: 'Room creation succeeded but room not found' });
-      }
-      // Notify any SSE streams already open for this room (rare on create, but
-      // harmless and consistent with the join/start path).
-      await eventBus.publish(roomId, { type: 'lobby_update', state: room });
-      res.status(201).json({ roomId, playerId, token, isHost: true });
-    } catch (err) {
-      console.error('[POST /api/rooms]', err);
-      res.status(500).json({ error: 'Failed to create room' });
+    // Any failure here (room-id space exhausted, store error) is forwarded
+    // by Express 5 to the error middleware registered in index.ts.
+    const { roomId, playerId, token } = await roomManager.createRoom(playerName);
+    const room = await roomManager.getRoom(roomId);
+    if (!room) {
+      return res.status(500).json({ error: 'Room creation succeeded but room not found' });
     }
+    // Notify any SSE streams already open for this room (rare on create, but
+    // harmless and consistent with the join/start path).
+    await eventBus.publish(roomId, { type: 'lobby_update', state: room });
+    res.status(201).json({ roomId, playerId, token, isHost: true });
   });
 
   // POST /api/rooms/:roomId/join { playerName }
@@ -96,11 +93,11 @@ export const createRoomsRouter = (deps: {
     const roomId = String(req.params.roomId).trim().toUpperCase();
     const room = await roomManager.getRoom(roomId);
     if (!room) return res.status(404).json({ error: 'Room not found' });
-    if (!room.gameState) return res.status(409).json({ error: 'Game has not started' });
 
-    const newState = await roomManager.handleGameAction(roomId, token, action);
-    if (!newState) return res.status(409).json({ error: 'Action rejected' });
-    await eventBus.publish(roomId, { type: 'game_state_update', state: newState });
+    const result = await roomManager.handleGameAction(roomId, token, action);
+    if (!result.ok) return res.status(409).json({ error: result.message });
+
+    await eventBus.publish(roomId, { type: 'game_state_update', state: result.state });
     res.status(200).json({ ok: true });
   });
 
