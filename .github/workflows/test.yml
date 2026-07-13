@@ -37,5 +37,8 @@ jobs:
       - name: Type check server
         run: npm run type-check --workspace=apps/server
 
+      - name: Type check game logic
+        run: npm run type-check --workspace=packages/game-logic
+
       - name: Run tests
         run: npm test
