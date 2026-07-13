@@ -38,7 +38,11 @@ const readError = async (res: Response, fallback: string): Promise<string> => {
  * function takes `serverUrl` explicitly rather than reading a module-level
  * constant, which is what makes that testing possible.
  */
-async function postJson<T>(url: string, body: unknown, fallbackError: string): Promise<ApiResult<T>> {
+async function postJson<T>(
+  url: string,
+  body: unknown,
+  fallbackError: string
+): Promise<ApiResult<T>> {
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -55,7 +59,10 @@ async function postJson<T>(url: string, body: unknown, fallbackError: string): P
   }
 }
 
-export const createRoom = (serverUrl: string, playerName: string): Promise<ApiResult<JoinedRoomResponse>> =>
+export const createRoom = (
+  serverUrl: string,
+  playerName: string
+): Promise<ApiResult<JoinedRoomResponse>> =>
   postJson(`${serverUrl}/api/rooms`, { playerName }, 'Failed to create room');
 
 export const joinRoom = (
@@ -63,10 +70,22 @@ export const joinRoom = (
   roomId: string,
   playerName: string
 ): Promise<ApiResult<JoinedRoomResponse>> =>
-  postJson(`${serverUrl}/api/rooms/${encodeURIComponent(roomId)}/join`, { playerName }, 'Could not join room');
+  postJson(
+    `${serverUrl}/api/rooms/${encodeURIComponent(roomId)}/join`,
+    { playerName },
+    'Could not join room'
+  );
 
-export const startGame = (serverUrl: string, roomId: string, token: string): Promise<ApiResult<{ ok: true }>> =>
-  postJson(`${serverUrl}/api/rooms/${encodeURIComponent(roomId)}/start`, { token }, 'Failed to start game');
+export const startGame = (
+  serverUrl: string,
+  roomId: string,
+  token: string
+): Promise<ApiResult<{ ok: true }>> =>
+  postJson(
+    `${serverUrl}/api/rooms/${encodeURIComponent(roomId)}/start`,
+    { token },
+    'Failed to start game'
+  );
 
 export const sendGameAction = (
   serverUrl: string,
@@ -74,14 +93,30 @@ export const sendGameAction = (
   token: string,
   action: GameAction
 ): Promise<ApiResult<{ ok: true }>> =>
-  postJson(`${serverUrl}/api/rooms/${encodeURIComponent(roomId)}/actions`, { token, action }, 'Action rejected');
+  postJson(
+    `${serverUrl}/api/rooms/${encodeURIComponent(roomId)}/actions`,
+    { token, action },
+    'Action rejected'
+  );
 
 export const reconnectToRoom = (
   serverUrl: string,
   roomId: string,
   token: string
 ): Promise<ApiResult<ReconnectResponse>> =>
-  postJson(`${serverUrl}/api/rooms/${encodeURIComponent(roomId)}/reconnect`, { token }, 'Could not reconnect');
+  postJson(
+    `${serverUrl}/api/rooms/${encodeURIComponent(roomId)}/reconnect`,
+    { token },
+    'Could not reconnect'
+  );
 
-export const leaveRoom = (serverUrl: string, roomId: string, token: string): Promise<ApiResult<{ ok: true }>> =>
-  postJson(`${serverUrl}/api/rooms/${encodeURIComponent(roomId)}/leave`, { token }, 'Could not leave room');
+export const leaveRoom = (
+  serverUrl: string,
+  roomId: string,
+  token: string
+): Promise<ApiResult<{ ok: true }>> =>
+  postJson(
+    `${serverUrl}/api/rooms/${encodeURIComponent(roomId)}/leave`,
+    { token },
+    'Could not leave room'
+  );
