@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 export interface StoredSession {
   roomId: string;
   playerId: string;
@@ -9,6 +7,14 @@ export interface StoredSession {
 const SESSION_STORAGE_KEY = 'trade_tycoon_session_v2';
 
 /**
+ * Session persistence is web-only (localStorage). `platform` is injected by
+ * the calling component (pass `Platform.OS`) instead of imported from
+ * react-native here — `.ts` modules stay free of react-native imports so the
+ * node test environment can load them directly (see AGENTS.md
+ * "File-extension discipline"; `online-platform.ts` uses the same pattern).
+ */
+
+/**
  * Read the saved session from localStorage. Returns null on web platforms
  * without a session, on native (no localStorage), or if the stored value is
  * malformed. Sessions from the pre-token wire format (key
@@ -16,8 +22,8 @@ const SESSION_STORAGE_KEY = 'trade_tycoon_session_v2';
  * a public id with no credential, so there is nothing safe to resume from
  * them; the user just re-joins.
  */
-export const readStoredSession = (): StoredSession | null => {
-  if (Platform.OS !== 'web') return null;
+export const readStoredSession = (platform: string): StoredSession | null => {
+  if (platform !== 'web') return null;
   try {
     const raw = localStorage.getItem(SESSION_STORAGE_KEY);
     if (!raw) return null;
@@ -36,12 +42,12 @@ export const readStoredSession = (): StoredSession | null => {
   }
 };
 
-export const writeStoredSession = (session: StoredSession): void => {
-  if (Platform.OS !== 'web') return;
+export const writeStoredSession = (platform: string, session: StoredSession): void => {
+  if (platform !== 'web') return;
   localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
 };
 
-export const clearStoredSession = (): void => {
-  if (Platform.OS !== 'web') return;
+export const clearStoredSession = (platform: string): void => {
+  if (platform !== 'web') return;
   localStorage.removeItem(SESSION_STORAGE_KEY);
 };

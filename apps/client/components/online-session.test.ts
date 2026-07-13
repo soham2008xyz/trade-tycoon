@@ -2,10 +2,9 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { readStoredSession, writeStoredSession, clearStoredSession } from './online-session';
 
 /**
- * The test environment is Node (no DOM), but `Platform.OS` resolves to
- * 'web' via react-native-web regardless — so these functions take the
- * localStorage branch here just like a real web build. Stub a minimal
- * in-memory localStorage to exercise that branch.
+ * The test environment is Node (no DOM); the platform is injected as a plain
+ * parameter, so these tests exercise the web branch by passing 'web' and stub
+ * a minimal in-memory localStorage for it.
  */
 const makeMemoryStorage = () => {
   const store = new Map<string, string>();
@@ -23,12 +22,12 @@ describe('online-session', () => {
   });
 
   it('returns null when nothing is stored', () => {
-    expect(readStoredSession()).toBeNull();
+    expect(readStoredSession('web')).toBeNull();
   });
 
   it('round-trips a written session', () => {
-    writeStoredSession({ roomId: 'ABCD1234', playerId: 'p1', token: 'secret-token' });
-    expect(readStoredSession()).toEqual({
+    writeStoredSession('web', { roomId: 'ABCD1234', playerId: 'p1', token: 'secret-token' });
+    expect(readStoredSession('web')).toEqual({
       roomId: 'ABCD1234',
       playerId: 'p1',
       token: 'secret-token',
@@ -36,19 +35,25 @@ describe('online-session', () => {
   });
 
   it('clears the stored session', () => {
-    writeStoredSession({ roomId: 'ABCD1234', playerId: 'p1', token: 'secret-token' });
-    clearStoredSession();
-    expect(readStoredSession()).toBeNull();
+    writeStoredSession('web', { roomId: 'ABCD1234', playerId: 'p1', token: 'secret-token' });
+    clearStoredSession('web');
+    expect(readStoredSession('web')).toBeNull();
+  });
+
+  it('never touches storage on native platforms', () => {
+    writeStoredSession('ios', { roomId: 'ABCD1234', playerId: 'p1', token: 'secret-token' });
+    expect(readStoredSession('web')).toBeNull();
+    expect(readStoredSession('ios')).toBeNull();
   });
 
   it('returns null for malformed JSON', () => {
     localStorage.setItem('trade_tycoon_session_v2', '{not json');
-    expect(readStoredSession()).toBeNull();
+    expect(readStoredSession('web')).toBeNull();
   });
 
   it('returns null when a required field is missing', () => {
     localStorage.setItem('trade_tycoon_session_v2', JSON.stringify({ roomId: 'ABCD1234' }));
-    expect(readStoredSession()).toBeNull();
+    expect(readStoredSession('web')).toBeNull();
   });
 
   it('ignores a pre-token (v1) session shape', () => {
@@ -57,6 +62,6 @@ describe('online-session', () => {
       'trade_tycoon_session_v2',
       JSON.stringify({ roomId: 'ABCD1234', userId: 'p1' })
     );
-    expect(readStoredSession()).toBeNull();
+    expect(readStoredSession('web')).toBeNull();
   });
 });

@@ -83,7 +83,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   // user back to the previous screen so they can start fresh.
   useEffect(() => {
     if (initialMode !== 'resume' || !SERVER_URL) return;
-    const session = readStoredSession();
+    const session = readStoredSession(Platform.OS);
     if (!session) {
       onBack();
       return;
@@ -101,7 +101,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
           return;
         }
         // 404 session_expired, or any other failure — drop the session and exit.
-        clearStoredSession();
+        clearStoredSession(Platform.OS);
         onBack();
         return;
       }
@@ -346,7 +346,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       }
     }
 
-    clearStoredSession();
+    clearStoredSession(Platform.OS);
     onBack();
   }, [roomId, token, onBack]);
 
@@ -361,7 +361,11 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     setPlayerId(body.playerId);
     setToken(body.token);
     setStep('lobby');
-    writeStoredSession({ roomId: body.roomId, playerId: body.playerId, token: body.token });
+    writeStoredSession(Platform.OS, {
+      roomId: body.roomId,
+      playerId: body.playerId,
+      token: body.token,
+    });
   }
 
   // Render Logic
