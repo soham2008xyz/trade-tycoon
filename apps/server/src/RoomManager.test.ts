@@ -417,6 +417,42 @@ describe('RoomManager', () => {
       expect(room.gameState!.players).toHaveLength(2);
     });
 
+    it('replays the identical dice roll when a CAS conflict retries the mutator', async () => {
+      const store = new InMemoryRoomStore();
+      const manager = new RoomManager(store);
+      const { roomId, playerId, token } = await manager.createRoom('Host');
+      const p2 = await manager.joinRoom(roomId, 'P2');
+      if (!p2.ok) throw new Error('join failed');
+      await manager.startGame(roomId, token);
+
+      // Simulate a Redis WATCH conflict: the store invokes the mutator twice
+      // with the same current state and persists the second result. Because
+      // the RNG seed is generated outside the mutator, both invocations must
+      // produce the exact same roll — a retry may never silently re-roll.
+      const rolls: unknown[] = [];
+      const realUpdate = store.update.bind(store);
+      vi.spyOn(store, 'update').mockImplementation((id, mutator) =>
+        realUpdate(id, (current) => {
+          const first = mutator(current);
+          const second = mutator(current);
+          rolls.push(first?.gameState?.dice, second?.gameState?.dice);
+          return second;
+        })
+      );
+
+      const result = await manager.handleGameAction(roomId, token, {
+        type: 'ROLL_DICE',
+        playerId,
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected ok');
+      expect(rolls).toHaveLength(2);
+      expect(rolls[0]).toBeDefined();
+      expect(rolls[0]).toEqual(rolls[1]);
+      expect(result.state.dice).toEqual(rolls[1]);
+    });
+
     it('ignores client-supplied dice values on ROLL_DICE', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
       await roomManager.joinRoom(roomId, 'P2');

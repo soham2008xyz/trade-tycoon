@@ -1,9 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import express, { type Express } from 'express';
 import request from 'supertest';
 import { RoomManager } from '../RoomManager';
 import { InMemoryRoomStore } from '../store/InMemoryRoomStore';
+import { StoreConflictError } from '../store/RoomStore';
 import { InMemoryEventBus } from '../events/InMemoryEventBus';
+import { errorHandler } from '../middleware/errors';
 import type { RoomEvent } from '../events/EventBus';
 import { createRoomsRouter } from './rooms';
 
@@ -273,6 +275,33 @@ describe('REST: /api/rooms', () => {
         // Using Alice's PUBLIC id as if it were her token.
         .send({ token: aliceId, action: { type: 'ROLL_DICE', playerId: aliceId } });
       expect(res.status).toBe(401);
+    });
+  });
+
+  describe('store contention', () => {
+    it('returns 503 when the store exhausts its CAS retries', async () => {
+      // Standalone app wiring: the shared buildApp hides its store, and this
+      // test needs both a store handle to force the conflict and the error
+      // middleware registered the way index.ts registers it (last).
+      const store = new InMemoryRoomStore();
+      const contendedManager = new RoomManager(store);
+      const contendedApp: Express = express();
+      contendedApp.use(express.json());
+      contendedApp.use(
+        createRoomsRouter({ roomManager: contendedManager, eventBus: new InMemoryEventBus() })
+      );
+      contendedApp.use(errorHandler);
+
+      const create = await request(contendedApp).post('/api/rooms').send({ playerName: 'Alice' });
+
+      vi.spyOn(store, 'update').mockRejectedValue(new StoreConflictError(create.body.roomId));
+
+      const res = await request(contendedApp)
+        .post(`/api/rooms/${create.body.roomId}/join`)
+        .send({ playerName: 'Bob' });
+
+      expect(res.status).toBe(503);
+      expect(res.body.error).toMatch(/retry/i);
     });
   });
 

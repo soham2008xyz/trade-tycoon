@@ -51,13 +51,32 @@ export const createEventsRouter = (deps: {
     res.setHeader('X-Accel-Buffering', 'no');
     if (typeof res.flushHeaders === 'function') res.flushHeaders();
 
-    // `cleanup` is assigned below, before any write can happen; `writeEvent`
-    // and the heartbeat both close the stream on failure instead of merely
-    // logging, so a write error can't leave the EventBus subscription (and,
-    // on Redis, the duplicated subscriber connection) open forever waiting
-    // for a `close`/`aborted` event that may never fire.
-    let cleanup = () => {};
+    // Everything the stream allocates (EventBus subscription, heartbeat) is
+    // released through this idempotent cleanup. It is fully wired — and
+    // registered for connection teardown — BEFORE the first write, so a
+    // write failure at any point (including the initial snapshot below)
+    // can't leave the EventBus subscription (and, on Redis, the duplicated
+    // subscriber TCP connection) open forever.
     let cleanedUp = false;
+    let unsubscribe: (() => void) | null = null;
+    let heartbeat: NodeJS.Timeout | null = null;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      if (heartbeat) clearInterval(heartbeat);
+      if (unsubscribe) unsubscribe();
+      try {
+        res.end();
+      } catch {
+        // ignore
+      }
+    };
+
+    // `res`, not `req`: since Node 16 the request's own 'close' fires when
+    // the request *body* completes — immediately for a GET — while the
+    // response's 'close' fires when the underlying connection tears down,
+    // which is the disconnect signal a long-lived stream actually needs.
+    res.on('close', cleanup);
 
     const writeEvent = (event: RoomEvent) => {
       try {
@@ -74,12 +93,19 @@ export const createEventsRouter = (deps: {
     if (room.gameState) {
       writeEvent({ type: 'game_state_update', state: room.gameState });
     }
+    // The snapshot write already failed — don't subscribe a dead stream.
+    if (cleanedUp) return;
 
-    const unsubscribe = await eventBus.subscribe(roomId, writeEvent);
+    unsubscribe = await eventBus.subscribe(roomId, writeEvent);
+    if (cleanedUp) {
+      // The connection dropped while we awaited the subscription handle.
+      unsubscribe();
+      return;
+    }
 
     // Heartbeat so intermediaries don't tear down idle connections, and so the
     // client's `EventSource.readyState` reflects a live socket.
-    const heartbeat = setInterval(() => {
+    heartbeat = setInterval(() => {
       try {
         res.write(`: ping\n\n`);
       } catch (err) {
@@ -87,21 +113,6 @@ export const createEventsRouter = (deps: {
         cleanup();
       }
     }, 15_000);
-
-    cleanup = () => {
-      if (cleanedUp) return;
-      cleanedUp = true;
-      clearInterval(heartbeat);
-      unsubscribe();
-      try {
-        res.end();
-      } catch {
-        // ignore
-      }
-    };
-
-    req.on('close', cleanup);
-    req.on('aborted', cleanup);
   });
 
   return router;

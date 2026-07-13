@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import express, { type Express } from 'express';
 import { createServer, type Server } from 'http';
 import type { AddressInfo } from 'net';
@@ -140,6 +140,38 @@ describe('SSE: GET /api/rooms/:id/events', () => {
     expect(state.players.map((p: { name: string }) => p.name).sort()).toEqual(['Alice', 'Bob']);
 
     await reader.cancel();
+  });
+
+  it('unsubscribes from the event bus when the client disconnects', async () => {
+    const { roomId, token } = await roomManager.createRoom('Alice');
+
+    // Wrap the real subscribe so the test can observe the unsubscribe handle
+    // the SSE route holds — the leak fixed here was exactly this handle never
+    // being called after a dead stream.
+    let unsubscribed = false;
+    const realSubscribe = eventBus.subscribe.bind(eventBus);
+    vi.spyOn(eventBus, 'subscribe').mockImplementation(async (id, handler) => {
+      const unsub = await realSubscribe(id, handler);
+      return () => {
+        unsubscribed = true;
+        unsub();
+      };
+    });
+
+    const res = await fetch(`http://localhost:${port}/api/rooms/${roomId}/events?token=${token}`);
+    const reader = res.body!.getReader();
+    await reader.read(); // drain the initial snapshot
+
+    // Tear the connection down, then publish: whichever fires first — the
+    // response 'close' event or the failed write — must release the
+    // subscription.
+    await reader.cancel();
+    await eventBus.publish(roomId, {
+      type: 'lobby_update',
+      state: (await roomManager.getRoom(roomId))!,
+    });
+
+    await vi.waitFor(() => expect(unsubscribed).toBe(true));
   });
 
   it('strips board data from the initial started-game snapshot', async () => {
