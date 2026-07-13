@@ -124,7 +124,7 @@ describe('REST: /api/rooms', () => {
       expect(res.status).toBe(409);
     });
 
-    it('starts the game and publishes a game_state_update + lobby_update', async () => {
+    it('starts the game and publishes a single lobby_update carrying the new gameState', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       const { roomId, token: hostToken } = create.body;
       await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
@@ -135,7 +135,12 @@ describe('REST: /api/rooms', () => {
       const res = await request(app).post(`/api/rooms/${roomId}/start`).send({ token: hostToken });
       expect(res.status).toBe(200);
 
-      expect(events.map((e) => e.type)).toEqual(['game_state_update', 'lobby_update']);
+      expect(events.map((e) => e.type)).toEqual(['lobby_update']);
+      const lobbyEvent = events[0];
+      if (lobbyEvent.type !== 'lobby_update') throw new Error('Expected lobby_update');
+      expect(lobbyEvent.state.status).toBe('game');
+      expect(lobbyEvent.state.gameState?.players).toHaveLength(2);
+
       const room = await roomManager.getRoom(roomId);
       expect(room?.status).toBe('game');
     });
@@ -353,7 +358,7 @@ describe('REST: /api/rooms', () => {
       expect(events[0].state.players.map((player) => player.name)).toEqual(['Alice']);
     });
 
-    it('removes an in-game player and publishes game_state_update plus lobby_update', async () => {
+    it('removes an in-game player and publishes a single lobby_update carrying the new gameState', async () => {
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
       const { roomId, playerId: aliceId, token: aliceToken } = create.body;
       const join = await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
@@ -366,13 +371,12 @@ describe('REST: /api/rooms', () => {
       const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ token: bobToken });
 
       expect(res.status).toBe(200);
-      expect(events.map((event) => event.type)).toEqual(['game_state_update', 'lobby_update']);
-      const gameUpdate = events[0];
-      expect(gameUpdate.type).toBe('game_state_update');
-      if (gameUpdate.type !== 'game_state_update') throw new Error('Expected game_state_update');
-      expect(gameUpdate.state.players).toHaveLength(1);
-      expect(gameUpdate.state.players[0].id).toBe(aliceId);
-      expect(gameUpdate.state.winner).toBe(aliceId);
+      expect(events.map((event) => event.type)).toEqual(['lobby_update']);
+      const lobbyUpdate = events[0];
+      if (lobbyUpdate.type !== 'lobby_update') throw new Error('Expected lobby_update');
+      expect(lobbyUpdate.state.gameState?.players).toHaveLength(1);
+      expect(lobbyUpdate.state.gameState?.players[0].id).toBe(aliceId);
+      expect(lobbyUpdate.state.gameState?.winner).toBe(aliceId);
     });
 
     it('clears an active trade when a trade participant leaves mid-game', async () => {
@@ -403,13 +407,12 @@ describe('REST: /api/rooms', () => {
       const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ token: bobToken });
 
       expect(res.status).toBe(200);
-      expect(events.map((event) => event.type)).toEqual(['game_state_update', 'lobby_update']);
-      const gameUpdate = events[0];
-      expect(gameUpdate.type).toBe('game_state_update');
-      if (gameUpdate.type !== 'game_state_update') throw new Error('Expected game_state_update');
-      expect(gameUpdate.state.activeTrade).toBeNull();
-      expect(gameUpdate.state.toastMessage).toContain('Active trade cancelled.');
-      expect(gameUpdate.state.players).toHaveLength(2);
+      expect(events.map((event) => event.type)).toEqual(['lobby_update']);
+      const lobbyUpdate = events[0];
+      if (lobbyUpdate.type !== 'lobby_update') throw new Error('Expected lobby_update');
+      expect(lobbyUpdate.state.gameState?.activeTrade).toBeNull();
+      expect(lobbyUpdate.state.gameState?.toastMessage).toContain('Active trade cancelled.');
+      expect(lobbyUpdate.state.gameState?.players).toHaveLength(2);
     });
   });
 

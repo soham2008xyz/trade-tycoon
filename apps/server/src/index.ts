@@ -61,7 +61,13 @@ function buildBackends(): { roomStore: RoomStore; eventBus: EventBus } {
 const { roomStore, eventBus } = buildBackends();
 const roomManager = new RoomManager(roomStore);
 
-app.use(cors({ origin: '*' }));
+// Comma-separated allowlist for production (e.g. the deployed web client's
+// origin). Falls back to '*' when unset, which only matters for local dev —
+// production deployments should set ALLOWED_ORIGINS.
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+app.use(cors({ origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : '*' }));
 app.use(express.json({ limit: '64kb' }));
 app.use(createRoomsRouter({ roomManager, eventBus }));
 app.use(createEventsRouter({ roomManager, eventBus }));

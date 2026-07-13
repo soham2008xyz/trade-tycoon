@@ -72,7 +72,8 @@ export const createRoomsRouter = (deps: {
         .status(409)
         .json({ error: 'Cannot start game: must be host with at least 2 players' });
     }
-    await eventBus.publish(roomId, { type: 'game_state_update', state: gameState });
+    // A single lobby_update carries the new gameState too (LobbyState.gameState),
+    // so a separate game_state_update would just be the same data twice.
     const lobby = await roomManager.getRoom(roomId);
     if (lobby) {
       await eventBus.publish(roomId, { type: 'lobby_update', state: lobby });
@@ -124,9 +125,7 @@ export const createRoomsRouter = (deps: {
     const result = await roomManager.leaveRoom(roomId, token);
     if (!result) return res.status(404).json({ error: 'session_expired' });
 
-    if (result.gameState) {
-      await eventBus.publish(roomId, { type: 'game_state_update', state: result.gameState });
-    }
+    // Same reasoning as start: lobby_update already carries gameState.
     await eventBus.publish(roomId, { type: 'lobby_update', state: result.state });
     res.status(200).json({ ok: true });
   });
