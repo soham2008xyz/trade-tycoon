@@ -19,7 +19,7 @@ interface Props {
   onTokenMovingChange?: (_isMoving: boolean) => void;
 }
 
-export const Board: React.FC<Props> = ({
+const BoardComponent: React.FC<Props> = ({
   players,
   slot,
   availableWidth,
@@ -148,6 +148,11 @@ export const Board: React.FC<Props> = ({
     </View>
   );
 };
+
+// Memoized so a GameUI re-render that doesn't change board inputs (toasts,
+// modal visibility) skips the whole 40-tile subtree — pays off only because
+// GameUI keeps its callbacks/sharedProps referentially stable.
+export const Board = React.memo(BoardComponent);
 
 const styles = StyleSheet.create({
   boardContainer: {

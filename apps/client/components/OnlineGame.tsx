@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
 import { GameUI } from './GameUI';
 import { IconButton } from './ui/IconButton';
@@ -49,11 +49,15 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Guards create/join/start/action requests against double-submission (a
   // fast double-tap, or a tap registering twice on some platforms) firing
-  // two POSTs for what the user intended as one action.
+  // two POSTs for what the user intended as one action. The ref is the
+  // synchronous guard (state updates are async, so a double-tap could slip
+  // between them); `busy` mirrors it as state purely so buttons can render
+  // disabled while a request is pending.
   const requestInFlightRef = useRef(false);
+  const [busy, setBusy] = useState(false);
 
   /** Centralized helper so a 200ms transient toast doesn't accumulate timers. */
-  const setTransientError = (msg: string) => {
+  const setTransientError = useCallback((msg: string) => {
     setError(msg);
     if (errorTimeoutRef.current) {
       clearTimeout(errorTimeoutRef.current);
@@ -62,7 +66,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       setError(null);
       errorTimeoutRef.current = null;
     }, 3000);
-  };
+  }, []);
 
   // Clear timeout on unmount
   useEffect(() => {
@@ -242,7 +246,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       es.close();
       eventSourceRef.current = null;
     };
-  }, [roomId, token, onBack]);
+  }, [roomId, token, onBack, setTransientError]);
 
   const handleCreate = async () => {
     if (!SERVER_URL) return;
@@ -252,6 +256,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     }
     if (requestInFlightRef.current) return;
     requestInFlightRef.current = true;
+    setBusy(true);
     try {
       const result = await apiCreateRoom(SERVER_URL, playerName.trim());
       if (!result.ok) {
@@ -261,6 +266,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       enterLobby(result.data);
     } finally {
       requestInFlightRef.current = false;
+      setBusy(false);
     }
   };
 
@@ -272,6 +278,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     }
     if (requestInFlightRef.current) return;
     requestInFlightRef.current = true;
+    setBusy(true);
     const targetRoomId = inputRoomId.trim().toUpperCase();
     try {
       const result = await apiJoinRoom(SERVER_URL, targetRoomId, playerName.trim());
@@ -284,6 +291,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       enterLobby({ ...result.data, roomId: result.data.roomId || targetRoomId });
     } finally {
       requestInFlightRef.current = false;
+      setBusy(false);
     }
   };
 
@@ -291,6 +299,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     if (!token || !roomId || !SERVER_URL) return;
     if (requestInFlightRef.current) return;
     requestInFlightRef.current = true;
+    setBusy(true);
     try {
       const result = await apiStartGame(SERVER_URL, roomId, token);
       if (!result.ok) {
@@ -300,24 +309,33 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       // it delivers the lobby_update with status='game'.
     } finally {
       requestInFlightRef.current = false;
+      setBusy(false);
     }
   };
 
-  const handleGameDispatch = async (action: GameAction) => {
-    if (!token || !roomId || !SERVER_URL) return;
-    if (requestInFlightRef.current) return;
-    requestInFlightRef.current = true;
-    try {
-      const result = await sendGameAction(SERVER_URL, roomId, token, action);
-      if (!result.ok) {
-        setTransientError(result.error);
+  // Stable identity matters for the two callbacks handed to GameUI
+  // (onDispatch/onLeaveGame): they feed its memoized sharedProps, and a fresh
+  // closure per render would defeat the Board/Tile memoization downstream.
+  const handleGameDispatch = useCallback(
+    async (action: GameAction) => {
+      if (!token || !roomId || !SERVER_URL) return;
+      if (requestInFlightRef.current) return;
+      requestInFlightRef.current = true;
+      setBusy(true);
+      try {
+        const result = await sendGameAction(SERVER_URL, roomId, token, action);
+        if (!result.ok) {
+          setTransientError(result.error);
+        }
+      } finally {
+        requestInFlightRef.current = false;
+        setBusy(false);
       }
-    } finally {
-      requestInFlightRef.current = false;
-    }
-  };
+    },
+    [roomId, token, setTransientError]
+  );
 
-  const handleLeave = async () => {
+  const handleLeave = useCallback(async () => {
     eventSourceRef.current?.close();
     eventSourceRef.current = null;
 
@@ -330,7 +348,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
 
     clearStoredSession();
     onBack();
-  };
+  }, [roomId, token, onBack]);
 
   /**
    * Bring the joined-room response from the REST call into local state and
@@ -415,6 +433,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
               icon={initialMode === 'create' ? 'plus' : 'login'}
               onPress={initialMode === 'create' ? handleCreate : handleJoin}
               style={styles.button}
+              disabled={busy}
             />
             <IconButton
               title="Back"
@@ -453,7 +472,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
               icon="play"
               onPress={handleStartGame}
               style={styles.button}
-              disabled={!lobbyState || lobbyState.players.length < 2}
+              disabled={busy || !lobbyState || lobbyState.players.length < 2}
             />
           ) : (
             <Text style={styles.waitingText}>Waiting for host to start...</Text>
