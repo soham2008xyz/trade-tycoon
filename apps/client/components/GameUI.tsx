@@ -130,6 +130,16 @@ export const GameUI: React.FC<GameUIProps> = ({
 
   const gameFeedback = getGameFeedback(state, isMultiplayer);
 
+  // In multiplayer, dismissing reducer feedback is local-only: the server
+  // rejects DISMISS_* actions online (any player could otherwise clear a
+  // toast for the whole room), so we hide the toast on this client instead.
+  const [dismissedFeedback, setDismissedFeedback] = React.useState<string | null>(null);
+  if (dismissedFeedback !== null && dismissedFeedback !== gameFeedback?.message) {
+    // The feedback moved on from the dismissed message — drop the stale
+    // dismissal during render so a later identical toast can reappear.
+    setDismissedFeedback(null);
+  }
+
   const sharedProps = {
     state,
     myPlayerId,
@@ -159,10 +169,14 @@ export const GameUI: React.FC<GameUIProps> = ({
         players={state.players}
         onClose={() => setLogVisible(false)}
       />
-      {gameFeedback && (
+      {gameFeedback && gameFeedback.message !== dismissedFeedback && (
         <Toast
           message={gameFeedback.message}
-          onDismiss={() => onDispatch({ type: gameFeedback.dismissAction })}
+          onDismiss={
+            isMultiplayer
+              ? () => setDismissedFeedback(gameFeedback.message)
+              : () => onDispatch({ type: gameFeedback.dismissAction })
+          }
         />
       )}
       {uiToastMessage && (

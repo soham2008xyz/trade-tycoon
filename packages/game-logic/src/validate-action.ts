@@ -37,10 +37,6 @@ export function parseGameAction(input: unknown): GameAction | null {
   if (typeof action.type !== 'string') return null;
 
   switch (action.type) {
-    case 'DISMISS_ERROR':
-    case 'DISMISS_TOAST':
-      return { type: action.type } as GameAction;
-
     case 'ROLL_DICE':
     case 'END_TURN':
     case 'PAY_FINE':
@@ -89,7 +85,10 @@ export function parseGameAction(input: unknown): GameAction | null {
       };
 
     // JOIN_GAME and RESET_GAME are server-issued only and may never arrive
-    // over the network from a player.
+    // over the network from a player. DISMISS_ERROR / DISMISS_TOAST are
+    // client-local UI concerns in multiplayer — accepting them online would
+    // let any player clear a toast for the whole room (and amplify the
+    // dismissal into a full-state broadcast), so they have no case here.
     default:
       return null;
   }
