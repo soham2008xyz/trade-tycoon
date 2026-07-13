@@ -207,13 +207,19 @@ const removePlayerAndCleanup = (state: GameState, playerId: string, reason: stri
 /**
  * Server-side helper for removing a player from an in-progress online game.
  * This is intentionally not a public client action because only the server
- * should be able to drop a player after they leave the room.
+ * should be able to drop a player after they leave the room. Bypasses
+ * `reduceGameAction`, so it applies the log cap itself.
  */
 export const removePlayerFromGame = (state: GameState, playerId: string): GameState =>
-  removePlayerAndCleanup(state, playerId, 'left the game');
+  capLogs(removePlayerAndCleanup(state, playerId, 'left the game'));
 
 /** Logs are UI history, not gameplay state — cap so a long game's payload/storage stays bounded. */
 const MAX_LOGS = 200;
+
+const capLogs = (state: GameState): GameState => {
+  if (state.logs.length <= MAX_LOGS) return state;
+  return { ...state, logs: state.logs.slice(-MAX_LOGS) };
+};
 
 const reduceGameActionUnbounded = (
   state: GameState,
@@ -1280,6 +1286,6 @@ export const reduceGameAction = (
   rng: Rng = Math.random
 ): GameReducerResult => {
   const result = reduceGameActionUnbounded(state, action, rng);
-  if (result === ACTION_REJECTED || result.logs.length <= MAX_LOGS) return result;
-  return { ...result, logs: result.logs.slice(-MAX_LOGS) };
+  if (result === ACTION_REJECTED) return result;
+  return capLogs(result);
 };

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ACTION_REJECTED, gameReducer, reduceGameAction } from './reducer';
+import { ACTION_REJECTED, gameReducer, reduceGameAction, removePlayerFromGame } from './reducer';
 import { createInitialState, createPlayer } from './index';
 import { GameState } from './types';
 import { BOARD } from './board-data';
@@ -2036,6 +2036,25 @@ describe('Game Reducer', () => {
 
       expect(newState.logs[0]).toBe('entry-0');
       expect(newState.logs.length).toBeLessThan(200);
+    });
+
+    it('caps logs on the direct removePlayerFromGame path too', () => {
+      // removePlayerFromGame is the server's leave-room hook and bypasses
+      // reduceGameAction, so it must apply the cap itself.
+      const state = createInitialState();
+      state.players = [
+        createPlayer('p1', 'Player 1'),
+        createPlayer('p2', 'Player 2'),
+        createPlayer('p3', 'Player 3'),
+      ];
+      state.currentPlayerId = 'p1';
+      state.logs = Array.from({ length: 200 }, (_, i) => `entry-${i}`);
+
+      const newState = removePlayerFromGame(state, 'p2');
+
+      expect(newState.logs.length).toBe(200);
+      expect(newState.logs[0]).not.toBe('entry-0');
+      expect(newState.logs[newState.logs.length - 1]).toMatch(/left the game/);
     });
   });
 });
