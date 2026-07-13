@@ -4,6 +4,7 @@ import { GameUI } from './GameUI';
 import { IconButton } from './ui/IconButton';
 import { LobbyState, GameState, GameAction } from '@trade-tycoon/game-logic';
 import { getOnlineServerUrl, supportsOnlineEventStream } from './online-platform';
+import { startRoomSync, type RoomSyncHandle } from './online-sync';
 import { readStoredSession, writeStoredSession, clearStoredSession } from './online-session';
 import {
   createRoom as apiCreateRoom,
@@ -45,7 +46,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   );
   const [uiToastMessage, setUiToastMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const syncHandleRef = useRef<RoomSyncHandle | null>(null);
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Guards create/join/start/action requests against double-submission (a
   // fast double-tap, or a tap registering twice on some platforms) firing
@@ -125,126 +126,49 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Subscribe to the server's SSE stream for the current room. Re-runs when we
-  // join/create a room and we have both a roomId and a token.
+  // Keep local state in step with the server for the current room. All the
+  // transport mechanics (SSE vs version-skipping poll with backoff) live in
+  // the unit-tested `startRoomSync` engine; this effect only maps its
+  // callbacks onto React state. Re-runs when we join/create a room and have
+  // both a roomId and a token.
   useEffect(() => {
     if (!roomId || !token || !SERVER_URL) return;
 
-    if (
-      !supportsOnlineEventStream({
-        platform: Platform.OS,
-        eventSourceAvailable: typeof EventSource !== 'undefined',
-      })
-    ) {
-      let cancelled = false;
-      let syncInFlight = false;
-      let lastSeenVersion: number | undefined;
-      let pollHandle: ReturnType<typeof setTimeout>;
+    const transport = supportsOnlineEventStream({
+      platform: Platform.OS,
+      eventSourceAvailable: typeof EventSource !== 'undefined',
+    })
+      ? 'sse'
+      : 'poll';
 
-      // No EventSource on native, so we poll instead — but polling on a fixed
-      // interval means every tick forces a fresh state object into React even
-      // when nothing changed, causing needless re-renders. The server's
-      // `lobby.version` (bumped on every successful write) lets us detect
-      // "nothing changed" cheaply and skip the setState, and back off the
-      // poll interval while idle instead of hammering the server at a fixed
-      // 2s regardless of activity.
-      const MIN_POLL_MS = 2000;
-      const MAX_POLL_MS = 5000;
-      let nextPollDelay = MIN_POLL_MS;
-
-      const scheduleNextPoll = () => {
-        if (cancelled) return;
-        pollHandle = setTimeout(() => {
-          void syncRoomSnapshot();
-        }, nextPollDelay);
-      };
-
-      const syncRoomSnapshot = async () => {
-        if (syncInFlight) return;
-        syncInFlight = true;
-        try {
-          const result = await reconnectToRoom(SERVER_URL, roomId, token);
-          if (cancelled) return;
-          if (!result.ok) {
-            if (result.status === 404) {
-              setTransientError('Session expired');
-              onBack();
-            } else if (result.status !== 0) {
-              console.warn('Native room sync failed:', result.error);
-            }
-            return;
-          }
-
-          const body = result.data;
-          const version = body.lobby.version;
-          const unchanged = version !== undefined && version === lastSeenVersion;
-          if (unchanged) {
-            nextPollDelay = MAX_POLL_MS;
-            return;
-          }
-
-          lastSeenVersion = version;
-          nextPollDelay = MIN_POLL_MS;
-          setLobbyState(body.lobby);
-          if (body.gameState) {
-            setGameState(body.gameState);
-            setStep('game');
-            return;
-          }
-          setStep('lobby');
-        } finally {
-          syncInFlight = false;
-          scheduleNextPoll();
-        }
-      };
-
-      void syncRoomSnapshot();
-
-      return () => {
-        cancelled = true;
-        clearTimeout(pollHandle);
-      };
-    }
-
-    const url = `${SERVER_URL}/api/rooms/${encodeURIComponent(
-      roomId
-    )}/events?token=${encodeURIComponent(token)}`;
-    const es = new EventSource(url);
-    eventSourceRef.current = es;
-
-    const onLobby = (e: MessageEvent) => {
-      try {
-        const state = JSON.parse(e.data) as LobbyState;
+    const handle = startRoomSync({
+      serverUrl: SERVER_URL,
+      roomId,
+      token,
+      transport,
+      onLobbyState: (state) => {
         setLobbyState(state);
         if (state.status === 'game' && state.gameState) {
           setGameState(state.gameState);
           setStep('game');
+        } else if (transport === 'poll') {
+          // Poll snapshots are authoritative about the current screen. The
+          // SSE branch deliberately never moves a client back to the lobby
+          // on a lobby-status update (matches the pre-extraction behavior).
+          setStep('lobby');
         }
-      } catch (err) {
-        console.error('Bad lobby_update payload', err);
-      }
-    };
-    const onGame = (e: MessageEvent) => {
-      try {
-        setGameState(JSON.parse(e.data) as GameState);
-      } catch (err) {
-        console.error('Bad game_state_update payload', err);
-      }
-    };
-
-    es.addEventListener('lobby_update', onLobby);
-    es.addEventListener('game_state_update', onGame);
-    es.onerror = () => {
-      // EventSource auto-reconnects on its own; we just log so the user can
-      // see what's happening if they have devtools open.
-      console.warn('SSE connection hiccup; browser will retry automatically');
-    };
+      },
+      onGameState: setGameState,
+      onSessionExpired: () => {
+        setTransientError('Session expired');
+        onBack();
+      },
+    });
+    syncHandleRef.current = handle;
 
     return () => {
-      es.removeEventListener('lobby_update', onLobby);
-      es.removeEventListener('game_state_update', onGame);
-      es.close();
-      eventSourceRef.current = null;
+      syncHandleRef.current = null;
+      handle.stop();
     };
   }, [roomId, token, onBack, setTransientError]);
 
@@ -336,8 +260,10 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   );
 
   const handleLeave = useCallback(async () => {
-    eventSourceRef.current?.close();
-    eventSourceRef.current = null;
+    // Stop the stream/poll before the leave POST so its own lobby_update
+    // (or a poll racing it) can't resurrect state we're abandoning.
+    syncHandleRef.current?.stop();
+    syncHandleRef.current = null;
 
     if (roomId && token && SERVER_URL) {
       const result = await apiLeaveRoom(SERVER_URL, roomId, token);
