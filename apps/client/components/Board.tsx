@@ -88,25 +88,13 @@ export const Board: React.FC<Props> = ({
         <Tile tile={corners.go} orientation="corner" onPress={onTilePress} />
       </View>
       <View style={[styles.corner, styles.bottomLeft]}>
-        <Tile
-          tile={corners.jail}
-          orientation="corner"
-          onPress={onTilePress}
-        />
+        <Tile tile={corners.jail} orientation="corner" onPress={onTilePress} />
       </View>
       <View style={[styles.corner, styles.topLeft]}>
-        <Tile
-          tile={corners.parking}
-          orientation="corner"
-          onPress={onTilePress}
-        />
+        <Tile tile={corners.parking} orientation="corner" onPress={onTilePress} />
       </View>
       <View style={[styles.corner, styles.topRight]}>
-        <Tile
-          tile={corners.gotojail}
-          orientation="corner"
-          onPress={onTilePress}
-        />
+        <Tile tile={corners.gotojail} orientation="corner" onPress={onTilePress} />
       </View>
 
       <View style={styles.rowBottom}>
