@@ -49,6 +49,7 @@ export const GameUI: React.FC<GameUIProps> = ({
   };
 
   const currentPlayer = state.players.find((p) => p.id === state.currentPlayerId);
+  const myPlayer = state.players.find((p) => p.id === myPlayerId);
   const selfId = myPlayerId;
   const getOwner = (tileId: string) => state.players.find((p) => p.properties.includes(tileId));
 
@@ -66,14 +67,21 @@ export const GameUI: React.FC<GameUIProps> = ({
   const handleUseGOOJ = () =>
     onDispatch({ type: 'USE_GOOJ_CARD', playerId: state.currentPlayerId });
   const handleRollAgain = () => handleRoll();
+  // Property management is always attributed to the local player, not
+  // whoever's turn it currently is — the reducer already rejects these
+  // outside the actor's own turn (BUILD_HOUSE/SELL_HOUSE/MORTGAGE_PROPERTY/
+  // UNMORTGAGE_PROPERTY all guard on `state.currentPlayerId === action.playerId`),
+  // so sending the true actor's id lets that turn check do its job instead of
+  // silently attributing the action to whoever `state.currentPlayerId` happens
+  // to be if the manage panel is still open when the turn changes underneath it.
   const handleBuild = (id: string) =>
-    onDispatch({ type: 'BUILD_HOUSE', playerId: state.currentPlayerId, propertyId: id });
+    onDispatch({ type: 'BUILD_HOUSE', playerId: myPlayerId, propertyId: id });
   const handleSell = (id: string) =>
-    onDispatch({ type: 'SELL_HOUSE', playerId: state.currentPlayerId, propertyId: id });
+    onDispatch({ type: 'SELL_HOUSE', playerId: myPlayerId, propertyId: id });
   const handleMortgage = (id: string) =>
-    onDispatch({ type: 'MORTGAGE_PROPERTY', playerId: state.currentPlayerId, propertyId: id });
+    onDispatch({ type: 'MORTGAGE_PROPERTY', playerId: myPlayerId, propertyId: id });
   const handleUnmortgage = (id: string) =>
-    onDispatch({ type: 'UNMORTGAGE_PROPERTY', playerId: state.currentPlayerId, propertyId: id });
+    onDispatch({ type: 'UNMORTGAGE_PROPERTY', playerId: myPlayerId, propertyId: id });
   const handleBid = (playerId: string, amount: number) =>
     onDispatch({ type: 'PLACE_BID', playerId, amount });
   const handleConcedeAuction = (playerId: string) =>
@@ -120,7 +128,7 @@ export const GameUI: React.FC<GameUIProps> = ({
     ]);
   };
 
-  const gameFeedback = getGameFeedback(state);
+  const gameFeedback = getGameFeedback(state, isMultiplayer);
 
   const sharedProps = {
     state,
@@ -209,10 +217,13 @@ export const GameUI: React.FC<GameUIProps> = ({
         />
       )}
 
-      {currentPlayer && (
+      {/* Bound to the local player, not `currentPlayer` (whoever's turn it
+          is) — otherwise the panel can end up showing and acting on a
+          different player's assets if the turn changes while it's open. */}
+      {myPlayer && (
         <PropertyManager
           visible={showPropertyManager}
-          player={currentPlayer}
+          player={myPlayer}
           onClose={() => setShowPropertyManager(false)}
           onBuild={handleBuild}
           onSell={handleSell}

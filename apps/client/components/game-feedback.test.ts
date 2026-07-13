@@ -29,4 +29,31 @@ describe('getGameFeedback', () => {
       dismissAction: 'DISMISS_ERROR',
     });
   });
+
+  it('ignores errorMessage in multiplayer (private, server never broadcasts it)', () => {
+    expect(
+      getGameFeedback(
+        {
+          errorMessage: 'You must build evenly across the color group.',
+          toastMessage: undefined,
+        },
+        true
+      )
+    ).toBeNull();
+  });
+
+  it('still shows shared toastMessage in multiplayer even with errorMessage ignored', () => {
+    expect(
+      getGameFeedback(
+        {
+          errorMessage: 'You must build evenly across the color group.',
+          toastMessage: 'Bob won the auction!',
+        },
+        true
+      )
+    ).toEqual({
+      message: 'Bob won the auction!',
+      dismissAction: 'DISMISS_TOAST',
+    });
+  });
 });

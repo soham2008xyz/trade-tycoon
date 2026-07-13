@@ -6,9 +6,13 @@ import { LobbyState, GameState, GameAction } from '@trade-tycoon/game-logic';
 import { getOnlineServerUrl, supportsOnlineEventStream } from './online-platform';
 import { readStoredSession, writeStoredSession, clearStoredSession } from './online-session';
 
+// `null` means: no EXPO_PUBLIC_SERVER_URL configured, production build,
+// native platform — there's no safe host to guess (see online-platform.ts).
+// The component checks for this before rendering the normal connect flow.
 const SERVER_URL = getOnlineServerUrl({
   platform: Platform.OS,
   expoPublicServerUrl: process.env.EXPO_PUBLIC_SERVER_URL,
+  isDev: __DEV__,
 });
 
 interface OnlineGameProps {
@@ -60,6 +64,10 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   const [error, setError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards create/join/start/action requests against double-submission (a
+  // fast double-tap, or a tap registering twice on some platforms) firing
+  // two POSTs for what the user intended as one action.
+  const requestInFlightRef = useRef(false);
 
   /** Centralized helper so a 200ms transient toast doesn't accumulate timers. */
   const setTransientError = (msg: string) => {
@@ -87,7 +95,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   // expired, host kicked the player), drop the stored session and bounce the
   // user back to the previous screen so they can start fresh.
   useEffect(() => {
-    if (initialMode !== 'resume') return;
+    if (initialMode !== 'resume' || !SERVER_URL) return;
     const session = readStoredSession();
     if (!session) {
       onBack();
@@ -142,7 +150,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   // Subscribe to the server's SSE stream for the current room. Re-runs when we
   // join/create a room and we have both a roomId and a token.
   useEffect(() => {
-    if (!roomId || !token) return;
+    if (!roomId || !token || !SERVER_URL) return;
 
     if (
       !supportsOnlineEventStream({
@@ -250,6 +258,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       setError('Please enter your name');
       return;
     }
+    if (requestInFlightRef.current) return;
+    requestInFlightRef.current = true;
     try {
       const res = await fetch(`${SERVER_URL}/api/rooms`, {
         method: 'POST',
@@ -265,6 +275,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     } catch (err) {
       console.error(err);
       setTransientError('Network error: could not reach server');
+    } finally {
+      requestInFlightRef.current = false;
     }
   };
 
@@ -273,6 +285,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       setError('Please enter name and room code');
       return;
     }
+    if (requestInFlightRef.current) return;
+    requestInFlightRef.current = true;
     const targetRoomId = inputRoomId.trim().toUpperCase();
     try {
       const res = await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(targetRoomId)}/join`, {
@@ -291,11 +305,15 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     } catch (err) {
       console.error(err);
       setTransientError('Network error: could not reach server');
+    } finally {
+      requestInFlightRef.current = false;
     }
   };
 
   const handleStartGame = async () => {
     if (!token || !roomId) return;
+    if (requestInFlightRef.current) return;
+    requestInFlightRef.current = true;
     try {
       const res = await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/start`, {
         method: 'POST',
@@ -310,11 +328,15 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     } catch (err) {
       console.error(err);
       setTransientError('Network error: could not reach server');
+    } finally {
+      requestInFlightRef.current = false;
     }
   };
 
   const handleGameDispatch = async (action: GameAction) => {
     if (!token || !roomId) return;
+    if (requestInFlightRef.current) return;
+    requestInFlightRef.current = true;
     try {
       const res = await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/actions`, {
         method: 'POST',
@@ -327,6 +349,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     } catch (err) {
       console.error(err);
       setTransientError('Network error: could not reach server');
+    } finally {
+      requestInFlightRef.current = false;
     }
   };
 
@@ -365,6 +389,26 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   }
 
   // Render Logic
+  if (!SERVER_URL) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Online Play Unavailable</Text>
+          <Text style={styles.waitingText}>
+            This build isn&apos;t configured with a server address, so online play can&apos;t
+            connect. Contact the app developer.
+          </Text>
+          <IconButton
+            title="Back"
+            icon="arrow-left"
+            onPress={onBack}
+            style={styles.secondaryButton}
+          />
+        </View>
+      </View>
+    );
+  }
+
   if (step === 'resuming') {
     return (
       <View style={styles.container}>

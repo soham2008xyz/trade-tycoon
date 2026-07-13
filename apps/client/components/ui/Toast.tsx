@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 
 interface ToastProps {
@@ -10,15 +10,27 @@ interface ToastProps {
 export const Toast: React.FC<ToastProps> = ({ message, onDismiss, duration = 3000 }) => {
   const [fadeAnim] = React.useState(() => new Animated.Value(0));
 
+  // Callers typically pass an inline `() => ...` closure, which gets a new
+  // identity every render even when `message` hasn't changed. Routing the
+  // call through a ref (kept fresh, but not itself a dependency) keeps
+  // `handleDismiss` — and therefore the auto-dismiss effect below — stable
+  // across those re-renders, so a stream of unrelated re-renders (e.g. an
+  // online game's SSE updates) can't keep restarting the countdown and
+  // leave the toast stuck on screen indefinitely.
+  const onDismissRef = useRef(onDismiss);
+  useEffect(() => {
+    onDismissRef.current = onDismiss;
+  }, [onDismiss]);
+
   const handleDismiss = useCallback(() => {
     Animated.timing(fadeAnim, {
       toValue: 0,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      onDismiss();
+      onDismissRef.current();
     });
-  }, [fadeAnim, onDismiss]);
+  }, [fadeAnim]);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
