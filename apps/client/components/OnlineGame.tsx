@@ -5,6 +5,15 @@ import { IconButton } from './ui/IconButton';
 import { LobbyState, GameState, GameAction } from '@trade-tycoon/game-logic';
 import { getOnlineServerUrl, supportsOnlineEventStream } from './online-platform';
 import { readStoredSession, writeStoredSession, clearStoredSession } from './online-session';
+import {
+  createRoom as apiCreateRoom,
+  joinRoom as apiJoinRoom,
+  startGame as apiStartGame,
+  sendGameAction,
+  reconnectToRoom,
+  leaveRoom as apiLeaveRoom,
+  type JoinedRoomResponse,
+} from './online-api';
 
 // `null` means: no EXPO_PUBLIC_SERVER_URL configured, production build,
 // native platform — there's no safe host to guess (see online-platform.ts).
@@ -19,32 +28,6 @@ interface OnlineGameProps {
   onBack: () => void;
   initialMode: 'create' | 'join' | 'resume';
 }
-
-interface JoinedRoomResponse {
-  roomId: string;
-  playerId: string;
-  token: string;
-  isHost: boolean;
-}
-
-interface ReconnectResponse {
-  lobby: LobbyState;
-  gameState: GameState | null;
-}
-
-/**
- * Read a JSON error message from a non-OK fetch response, falling back to a
- * sensible default. Server endpoints return { error: '...' }.
- */
-const readError = async (res: Response, fallback: string): Promise<string> => {
-  try {
-    const body = await res.json();
-    if (body && typeof body.error === 'string') return body.error;
-  } catch {
-    // Body wasn't JSON.
-  }
-  return fallback;
-};
 
 export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) => {
   const [lobbyState, setLobbyState] = useState<LobbyState | null>(null);
@@ -103,40 +86,31 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     }
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch(
-          `${SERVER_URL}/api/rooms/${encodeURIComponent(session.roomId)}/reconnect`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: session.token }),
-          }
-        );
-        if (cancelled) return;
-        if (!res.ok) {
-          // 404 from the server with body { error: 'session_expired' }, or
-          // any other failure — drop the session and exit.
-          clearStoredSession();
+      const result = await reconnectToRoom(SERVER_URL, session.roomId, session.token);
+      if (cancelled) return;
+      if (!result.ok) {
+        if (result.status === 0) {
+          // Network error: we don't know if the session is still valid —
+          // leave localStorage alone and bounce so the user can retry.
+          console.error('Resume failed:', result.error);
           onBack();
           return;
         }
-        const body = (await res.json()) as ReconnectResponse;
-        setLobbyState(body.lobby);
-        setRoomId(session.roomId);
-        setPlayerId(session.playerId);
-        setToken(session.token);
-        if (body.gameState) {
-          setGameState(body.gameState);
-          setStep('game');
-        } else {
-          setStep('lobby');
-        }
-      } catch (err) {
-        if (cancelled) return;
-        console.error('Resume failed', err);
-        // Network errors mean we don't know if the session is still valid —
-        // leave localStorage alone and bounce so the user can retry.
+        // 404 session_expired, or any other failure — drop the session and exit.
+        clearStoredSession();
         onBack();
+        return;
+      }
+      const body = result.data;
+      setLobbyState(body.lobby);
+      setRoomId(session.roomId);
+      setPlayerId(session.playerId);
+      setToken(session.token);
+      if (body.gameState) {
+        setGameState(body.gameState);
+        setStep('game');
+      } else {
+        setStep('lobby');
       }
     })();
     return () => {
@@ -185,26 +159,19 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         if (syncInFlight) return;
         syncInFlight = true;
         try {
-          const res = await fetch(
-            `${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/reconnect`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token }),
-            }
-          );
+          const result = await reconnectToRoom(SERVER_URL, roomId, token);
           if (cancelled) return;
-          if (!res.ok) {
-            if (res.status === 404) {
+          if (!result.ok) {
+            if (result.status === 404) {
               setTransientError('Session expired');
               onBack();
+            } else if (result.status !== 0) {
+              console.warn('Native room sync failed:', result.error);
             }
             return;
           }
 
-          const body = (await res.json()) as ReconnectResponse;
-          if (cancelled) return;
-
+          const body = result.data;
           const version = body.lobby.version;
           const unchanged = version !== undefined && version === lastSeenVersion;
           if (unchanged) {
@@ -221,10 +188,6 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
             return;
           }
           setStep('lobby');
-        } catch (err) {
-          if (!cancelled) {
-            console.warn('Native room sync failed', err);
-          }
         } finally {
           syncInFlight = false;
           scheduleNextPoll();
@@ -282,6 +245,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   }, [roomId, token, onBack]);
 
   const handleCreate = async () => {
+    if (!SERVER_URL) return;
     if (!playerName.trim()) {
       setError('Please enter your name');
       return;
@@ -289,26 +253,19 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     if (requestInFlightRef.current) return;
     requestInFlightRef.current = true;
     try {
-      const res = await fetch(`${SERVER_URL}/api/rooms`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playerName: playerName.trim() }),
-      });
-      if (!res.ok) {
-        setTransientError(await readError(res, 'Failed to create room'));
+      const result = await apiCreateRoom(SERVER_URL, playerName.trim());
+      if (!result.ok) {
+        setTransientError(result.error);
         return;
       }
-      const body = (await res.json()) as JoinedRoomResponse;
-      enterLobby(body);
-    } catch (err) {
-      console.error(err);
-      setTransientError('Network error: could not reach server');
+      enterLobby(result.data);
     } finally {
       requestInFlightRef.current = false;
     }
   };
 
   const handleJoin = async () => {
+    if (!SERVER_URL) return;
     if (!playerName.trim() || !inputRoomId.trim()) {
       setError('Please enter name and room code');
       return;
@@ -317,66 +274,44 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     requestInFlightRef.current = true;
     const targetRoomId = inputRoomId.trim().toUpperCase();
     try {
-      const res = await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(targetRoomId)}/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playerName: playerName.trim() }),
-      });
-      if (!res.ok) {
-        setTransientError(await readError(res, 'Could not join room'));
+      const result = await apiJoinRoom(SERVER_URL, targetRoomId, playerName.trim());
+      if (!result.ok) {
+        setTransientError(result.error);
         return;
       }
-      const body = (await res.json()) as JoinedRoomResponse;
       // Server already normalized the room id, but make sure we use the
       // exact value it returned for SSE / future requests.
-      enterLobby({ ...body, roomId: body.roomId || targetRoomId });
-    } catch (err) {
-      console.error(err);
-      setTransientError('Network error: could not reach server');
+      enterLobby({ ...result.data, roomId: result.data.roomId || targetRoomId });
     } finally {
       requestInFlightRef.current = false;
     }
   };
 
   const handleStartGame = async () => {
-    if (!token || !roomId) return;
+    if (!token || !roomId || !SERVER_URL) return;
     if (requestInFlightRef.current) return;
     requestInFlightRef.current = true;
     try {
-      const res = await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-      if (!res.ok) {
-        setTransientError(await readError(res, 'Failed to start game'));
+      const result = await apiStartGame(SERVER_URL, roomId, token);
+      if (!result.ok) {
+        setTransientError(result.error);
       }
       // The actual transition to step='game' happens via the SSE stream when
       // it delivers the lobby_update with status='game'.
-    } catch (err) {
-      console.error(err);
-      setTransientError('Network error: could not reach server');
     } finally {
       requestInFlightRef.current = false;
     }
   };
 
   const handleGameDispatch = async (action: GameAction) => {
-    if (!token || !roomId) return;
+    if (!token || !roomId || !SERVER_URL) return;
     if (requestInFlightRef.current) return;
     requestInFlightRef.current = true;
     try {
-      const res = await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/actions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action }),
-      });
-      if (!res.ok) {
-        setTransientError(await readError(res, 'Action rejected'));
+      const result = await sendGameAction(SERVER_URL, roomId, token, action);
+      if (!result.ok) {
+        setTransientError(result.error);
       }
-    } catch (err) {
-      console.error(err);
-      setTransientError('Network error: could not reach server');
     } finally {
       requestInFlightRef.current = false;
     }
@@ -386,15 +321,10 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     eventSourceRef.current?.close();
     eventSourceRef.current = null;
 
-    if (roomId && token) {
-      try {
-        await fetch(`${SERVER_URL}/api/rooms/${encodeURIComponent(roomId)}/leave`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        });
-      } catch (err) {
-        console.error('Leave request failed', err);
+    if (roomId && token && SERVER_URL) {
+      const result = await apiLeaveRoom(SERVER_URL, roomId, token);
+      if (!result.ok) {
+        console.error('Leave request failed:', result.error);
       }
     }
 
