@@ -61,7 +61,11 @@ export function parseGameAction(input: unknown): GameAction | null {
     case 'MORTGAGE_PROPERTY':
     case 'UNMORTGAGE_PROPERTY':
       if (!isNonEmptyString(action.playerId) || !isNonEmptyString(action.propertyId)) return null;
-      return { type: action.type, playerId: action.playerId, propertyId: action.propertyId } as GameAction;
+      return {
+        type: action.type,
+        playerId: action.playerId,
+        propertyId: action.propertyId,
+      } as GameAction;
 
     case 'PLACE_BID':
       if (!isNonEmptyString(action.playerId) || !isSafeNonNegativeInt(action.amount)) return null;

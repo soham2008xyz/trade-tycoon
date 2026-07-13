@@ -428,7 +428,14 @@ describe('REST: /api/rooms', () => {
 
       const room = await roomManager.getRoom(roomId);
       expect(room?.gameState?.activeTrade).toBeTruthy();
-      return { roomId, aliceId, aliceToken, bobId, bobToken, tradeId: room!.gameState!.activeTrade!.id };
+      return {
+        roomId,
+        aliceId,
+        aliceToken,
+        bobId,
+        bobToken,
+        tradeId: room!.gameState!.activeTrade!.id,
+      };
     };
 
     it('lets the target accept the trade', async () => {
