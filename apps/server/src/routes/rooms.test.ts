@@ -259,7 +259,7 @@ describe('REST: /api/rooms', () => {
       expect(res.status).toBe(409);
     });
 
-    it('returns 409 when acting with a stolen public playerId as the token', async () => {
+    it('returns 401 when acting with a stolen public playerId as the token', async () => {
       // Regression test for the impersonation vulnerability: knowing another
       // player's public id (visible in every broadcast) must not be usable
       // as a credential.
@@ -272,7 +272,7 @@ describe('REST: /api/rooms', () => {
         .post(`/api/rooms/${roomId}/actions`)
         // Using Alice's PUBLIC id as if it were her token.
         .send({ token: aliceId, action: { type: 'ROLL_DICE', playerId: aliceId } });
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(401);
     });
   });
 

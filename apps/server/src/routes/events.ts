@@ -39,7 +39,7 @@ export const createEventsRouter = (deps: {
 
     const auth = await roomManager.authenticate(roomId, token);
     if (!auth) {
-      return res.status(403).json({ error: 'You are not in this room' });
+      return res.status(401).json({ error: 'Invalid or expired session token' });
     }
 
     res.status(200);

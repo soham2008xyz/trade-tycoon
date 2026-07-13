@@ -30,7 +30,37 @@ export interface JoinRoomResult {
   state: LobbyState;
 }
 
-export type GameActionResult = { ok: true; state: GameState } | { ok: false; message: string };
+/**
+ * Failure arm shared by every lobby-lifecycle method. `reason` maps 1:1 to an
+ * HTTP status in the routes (not_found → 404, unauthorized → 401,
+ * conflict → 409) so callers never have to re-fetch the room to figure out
+ * *why* a mutation failed.
+ */
+export type RoomFailure = {
+  ok: false;
+  reason: 'not_found' | 'unauthorized' | 'conflict';
+  message: string;
+};
+
+export type RoomResult<T> = ({ ok: true } & T) | RoomFailure;
+
+export type GameActionResult =
+  | { ok: true; state: GameState }
+  | { ok: false; reason: 'unauthorized' | 'rejected'; message: string };
+
+/**
+ * Shared failure for reconnect/leave: whether the room is gone or the token
+ * is stale, the caller's stored session is unusable and the client should
+ * discard it. The client's resume flow branches on 404 `session_expired`, so
+ * these two endpoints intentionally never distinguish an auth failure (401).
+ */
+const SESSION_EXPIRED: RoomFailure = {
+  ok: false,
+  reason: 'not_found',
+  message: 'session_expired',
+};
+
+const INVALID_TOKEN_MESSAGE = 'Invalid or expired session token';
 
 /**
  * Encapsulates all multiplayer business logic: room lifecycle, player joins,
@@ -82,7 +112,7 @@ export class RoomManager {
     throw new Error('Could not allocate a unique room id after multiple attempts');
   }
 
-  async joinRoom(roomId: string, playerName: string): Promise<JoinRoomResult | null> {
+  async joinRoom(roomId: string, playerName: string): Promise<RoomResult<JoinRoomResult>> {
     roomId = roomId.trim().toUpperCase();
 
     // The id/token are generated once outside the mutator so that even if the
@@ -91,13 +121,20 @@ export class RoomManager {
     const userId = this.generateUserId();
     const token = this.generateToken();
 
+    // Captured from inside the mutator so the caller learns *why* the join
+    // was refused. If it stays null after a failed update, the store never
+    // invoked the mutator — the room doesn't exist.
+    let conflictMessage: string | null = null;
+
     const state = await this.bumpedUpdate(roomId, (current) => {
       if (current.status !== 'lobby') {
         console.warn(`[RoomManager] Join failed: Room ${roomId} is in progress`);
+        conflictMessage = 'Room is already in progress';
         return null;
       }
       if (current.players.length >= MAX_PLAYERS_PER_ROOM) {
         console.warn(`[RoomManager] Join failed: Room ${roomId} is full`);
+        conflictMessage = 'Room is full';
         return null;
       }
       const newPlayer: LobbyPlayer = {
@@ -115,15 +152,15 @@ export class RoomManager {
     });
 
     if (!state) {
-      const exists = await this.store.get(roomId);
-      if (!exists) {
-        console.warn(`[RoomManager] Join failed: Room ${roomId} not found`);
+      if (conflictMessage) {
+        return { ok: false, reason: 'conflict', message: conflictMessage };
       }
-      return null;
+      console.warn(`[RoomManager] Join failed: Room ${roomId} not found`);
+      return { ok: false, reason: 'not_found', message: 'Room not found' };
     }
 
     console.log(`[RoomManager] Player ${playerName} (${userId}) joined room ${roomId}`);
-    return { playerId: userId, token, state: toPublicLobbyState(state) };
+    return { ok: true, playerId: userId, token, state: toPublicLobbyState(state) };
   }
 
   /** Resolves a private session token to the public player id it authenticates. */
@@ -150,7 +187,7 @@ export class RoomManager {
   async leaveRoom(
     roomId: string,
     token: string
-  ): Promise<{ state: LobbyState; gameState: GameState | null } | null> {
+  ): Promise<RoomResult<{ state: LobbyState; gameState: GameState | null }>> {
     roomId = roomId.trim().toUpperCase();
 
     const updated = await this.bumpedUpdate(roomId, (current) => {
@@ -207,9 +244,13 @@ export class RoomManager {
       };
     });
 
-    if (!updated) return null;
+    // Whether the room is gone or the token is stale, the caller's session is
+    // unusable either way — both collapse to the 404 `session_expired` the
+    // client's resume flow keys off (deliberately NOT a 401; see routes).
+    if (!updated) return SESSION_EXPIRED;
 
     return {
+      ok: true,
       state: toPublicLobbyState(updated),
       gameState: updated.gameState ? toPublicGameState(updated.gameState) : null,
     };
@@ -219,13 +260,13 @@ export class RoomManager {
   async reconnect(
     roomId: string,
     token: string
-  ): Promise<{ state: LobbyState; gameState?: GameState } | null> {
+  ): Promise<RoomResult<{ state: LobbyState; gameState?: GameState }>> {
     roomId = roomId.trim().toUpperCase();
     const room = await this.store.get(roomId);
-    if (!room) return null;
+    if (!room) return SESSION_EXPIRED;
 
     const userId = this.resolvePlayerId(room, token);
-    if (!userId) return null;
+    if (!userId) return SESSION_EXPIRED;
 
     // Check if player exists in lobby
     const playerInLobby = room.players.find((p) => p.id === userId);
@@ -233,9 +274,10 @@ export class RoomManager {
     // Check if player exists in running game
     const playerInGame = room.gameState?.players.find((p) => p.id === userId);
 
-    if (!playerInLobby && !playerInGame) return null;
+    if (!playerInLobby && !playerInGame) return SESSION_EXPIRED;
 
     return {
+      ok: true,
       state: toPublicLobbyState(room),
       gameState: room.gameState ? toPublicGameState(room.gameState) : undefined,
     };
@@ -246,14 +288,22 @@ export class RoomManager {
     token: string,
     name: string,
     color: string
-  ): Promise<LobbyState | null> {
+  ): Promise<RoomResult<{ state: LobbyState }>> {
     roomId = roomId.trim().toUpperCase();
+
+    let unauthorized = false;
 
     const updated = await this.bumpedUpdate(roomId, (current) => {
       const userId = this.resolvePlayerId(current, token);
-      if (!userId) return null;
+      if (!userId) {
+        unauthorized = true;
+        return null;
+      }
       const player = current.players.find((p) => p.id === userId);
-      if (!player) return null;
+      if (!player) {
+        unauthorized = true;
+        return null;
+      }
 
       // Basic validation: name length, unique color
       // If color is taken by someone else, ignore change (or pick random)
@@ -271,21 +321,44 @@ export class RoomManager {
       return { ...current, players: updatedPlayers };
     });
 
-    return updated ? toPublicLobbyState(updated) : null;
+    if (!updated) {
+      if (unauthorized) {
+        return { ok: false, reason: 'unauthorized', message: INVALID_TOKEN_MESSAGE };
+      }
+      return { ok: false, reason: 'not_found', message: 'Room not found' };
+    }
+    return { ok: true, state: toPublicLobbyState(updated) };
   }
 
-  async startGame(roomId: string, token: string): Promise<GameState | null> {
+  /**
+   * On success returns the updated public lobby state (which embeds the new
+   * `gameState`) so the route can publish it directly without re-fetching.
+   */
+  async startGame(roomId: string, token: string): Promise<RoomResult<{ state: LobbyState }>> {
     roomId = roomId.trim().toUpperCase();
+
+    let failure: RoomFailure | null = null;
 
     const updated = await this.bumpedUpdate(roomId, (current) => {
       const userId = this.resolvePlayerId(current, token);
-      const player = userId ? current.players.find((p) => p.id === userId) : undefined;
+      if (!userId) {
+        console.warn(`[RoomManager] Start failed: unknown session token for room ${roomId}`);
+        failure = { ok: false, reason: 'unauthorized', message: INVALID_TOKEN_MESSAGE };
+        return null;
+      }
+      const player = current.players.find((p) => p.id === userId);
       if (!player || !player.isHost) {
-        console.warn(`[RoomManager] Start failed: caller is not host or not in room ${roomId}`);
+        console.warn(`[RoomManager] Start failed: caller is not host in room ${roomId}`);
+        failure = { ok: false, reason: 'conflict', message: 'Only the host can start the game' };
         return null;
       }
       if (current.players.length < 2) {
         console.warn(`[RoomManager] Start failed: Not enough players in room ${roomId}`);
+        failure = {
+          ok: false,
+          reason: 'conflict',
+          message: 'At least 2 players are required to start',
+        };
         return null;
       }
 
@@ -306,12 +379,12 @@ export class RoomManager {
     });
 
     if (!updated) {
-      const exists = await this.store.get(roomId);
-      if (!exists) console.warn(`[RoomManager] Start failed: Room ${roomId} not found`);
-      return null;
+      if (failure) return failure;
+      console.warn(`[RoomManager] Start failed: Room ${roomId} not found`);
+      return { ok: false, reason: 'not_found', message: 'Room not found' };
     }
 
-    return updated.gameState ? toPublicGameState(updated.gameState) : null;
+    return { ok: true, state: toPublicLobbyState(updated) };
   }
 
   async handleGameAction(
@@ -326,7 +399,7 @@ export class RoomManager {
     // may dispatch it.
     if (action.type === 'RESET_GAME') {
       console.warn(`[RoomManager] Rejected client-issued RESET_GAME`);
-      return { ok: false, message: 'Action rejected' };
+      return { ok: false, reason: 'rejected', message: 'Action rejected' };
     }
 
     // Sanitize untrusted action input. The reducer accepts client-provided dice
@@ -347,6 +420,7 @@ export class RoomManager {
     // outcome of the most recent (successful-or-aborted) mutator invocation
     // matters, and an aborted mutator never triggers a retry.
     let rejectionMessage = 'Action rejected';
+    let rejectionReason: 'unauthorized' | 'rejected' = 'rejected';
 
     const updated = await this.bumpedUpdate(roomId, (current) => {
       if (!current.gameState) {
@@ -357,6 +431,8 @@ export class RoomManager {
       const userId = this.resolvePlayerId(current, token);
       if (!userId) {
         console.warn(`[RoomManager] Unknown/expired session token for room ${roomId}`);
+        rejectionReason = 'unauthorized';
+        rejectionMessage = INVALID_TOKEN_MESSAGE;
         return null;
       }
 
@@ -402,7 +478,7 @@ export class RoomManager {
     });
 
     if (!updated?.gameState) {
-      return { ok: false, message: rejectionMessage };
+      return { ok: false, reason: rejectionReason, message: rejectionMessage };
     }
     return { ok: true, state: toPublicGameState(updated.gameState) };
   }

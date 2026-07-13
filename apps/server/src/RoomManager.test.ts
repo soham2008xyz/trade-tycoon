@@ -10,6 +10,13 @@ describe('RoomManager', () => {
     roomManager = new RoomManager(new InMemoryRoomStore());
   });
 
+  /** Unwraps the ok arm of joinRoom so happy-path setup can dot into fields. */
+  const join = async (roomId: string, name: string) => {
+    const result = await roomManager.joinRoom(roomId, name);
+    if (!result.ok) throw new Error(`join failed: ${result.message}`);
+    return result;
+  };
+
   describe('Room Creation & Joining', () => {
     it('should create a room and return a valid room ID', async () => {
       const { roomId } = await roomManager.createRoom('HostPlayer');
@@ -32,17 +39,18 @@ describe('RoomManager', () => {
       const { roomId } = await roomManager.createRoom('HostPlayer');
       const result = await roomManager.joinRoom(roomId, 'Player2');
 
-      expect(result).not.toBeNull();
-      expect(result?.playerId).toBeDefined();
-      expect(result?.token).toBeDefined();
-      expect(result?.token).not.toBe(result?.playerId);
-      expect(result?.state.players).toHaveLength(2);
-      expect(result?.state.players[1].name).toBe('Player2');
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected ok');
+      expect(result.playerId).toBeDefined();
+      expect(result.token).toBeDefined();
+      expect(result.token).not.toBe(result.playerId);
+      expect(result.state.players).toHaveLength(2);
+      expect(result.state.players[1].name).toBe('Player2');
     });
 
     it('should not allow joining a non-existent room', async () => {
       const result = await roomManager.joinRoom('INVALID', 'Player2');
-      expect(result).toBeNull();
+      expect(result).toEqual({ ok: false, reason: 'not_found', message: expect.any(String) });
     });
 
     it('should not allow joining a full room (8 players)', async () => {
@@ -54,7 +62,7 @@ describe('RoomManager', () => {
 
       // 9th player
       const result = await roomManager.joinRoom(roomId, 'Player9');
-      expect(result).toBeNull();
+      expect(result).toEqual({ ok: false, reason: 'conflict', message: 'Room is full' });
 
       const room = await roomManager.getRoom(roomId);
       expect(room?.players).toHaveLength(8);
@@ -68,7 +76,11 @@ describe('RoomManager', () => {
       await roomManager.startGame(roomId, hostToken);
 
       const result = await roomManager.joinRoom(roomId, 'LateJoiner');
-      expect(result).toBeNull();
+      expect(result).toEqual({
+        ok: false,
+        reason: 'conflict',
+        message: 'Room is already in progress',
+      });
     });
 
     it('should increment version on every successful write', async () => {
@@ -95,7 +107,7 @@ describe('RoomManager', () => {
       const afterFilling = (await roomManager.getRoom(roomId))!.version;
 
       const rejected = await roomManager.joinRoom(roomId, 'Player9');
-      expect(rejected).toBeNull();
+      expect(rejected.ok).toBe(false);
       expect((await roomManager.getRoom(roomId))!.version).toBe(afterFilling);
       expect(afterFilling).toBeGreaterThan(before!);
     });
@@ -112,28 +124,29 @@ describe('RoomManager', () => {
     it('should update player details', async () => {
       const { roomId, token: hostToken } = await roomManager.createRoom('Host');
 
-      const updatedState = await roomManager.updatePlayer(roomId, hostToken, 'NewName', '#000000');
-      expect(updatedState).not.toBeNull();
+      const result = await roomManager.updatePlayer(roomId, hostToken, 'NewName', '#000000');
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected ok');
 
-      const updatedPlayer = updatedState!.players.find((p) => p.name === 'NewName');
+      const updatedPlayer = result.state.players.find((p) => p.name === 'NewName');
       expect(updatedPlayer?.name).toBe('NewName');
       expect(updatedPlayer?.color).toBe('#000000');
     });
 
-    it('should return null when updating player in non-existent room', async () => {
+    it('should report not_found when updating player in non-existent room', async () => {
       const result = await roomManager.updatePlayer('INVALID', 'someToken', 'Name', '#000');
-      expect(result).toBeNull();
+      expect(result).toEqual({ ok: false, reason: 'not_found', message: expect.any(String) });
     });
 
-    it('should return null when updating with an unknown token', async () => {
+    it('should report unauthorized when updating with an unknown token', async () => {
       const { roomId } = await roomManager.createRoom('Host');
       const result = await roomManager.updatePlayer(roomId, 'InvalidToken', 'Name', '#000');
-      expect(result).toBeNull();
+      expect(result).toEqual({ ok: false, reason: 'unauthorized', message: expect.any(String) });
     });
 
     it('should prevent updating color if already taken', async () => {
       const { roomId, token: hostToken } = await roomManager.createRoom('Host');
-      const p2Result = (await roomManager.joinRoom(roomId, 'P2'))!;
+      const p2Result = await join(roomId, 'P2');
 
       // Host takes Black
       await roomManager.updatePlayer(roomId, hostToken, 'Host', '#000000');
@@ -152,9 +165,10 @@ describe('RoomManager', () => {
     it('should handle reconnection for existing lobby player', async () => {
       const { roomId, token: hostToken } = await roomManager.createRoom('Host');
 
-      const reconnectResult = await roomManager.reconnect(roomId, hostToken);
-      expect(reconnectResult).not.toBeNull();
-      expect(reconnectResult?.state.roomId).toBe(roomId);
+      const result = await roomManager.reconnect(roomId, hostToken);
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected ok');
+      expect(result.state.roomId).toBe(roomId);
     });
 
     it('should handle reconnection for existing game player', async () => {
@@ -162,44 +176,50 @@ describe('RoomManager', () => {
       await roomManager.joinRoom(roomId, 'P2');
       await roomManager.startGame(roomId, hostToken);
 
-      const reconnectResult = await roomManager.reconnect(roomId, hostToken);
-      expect(reconnectResult).not.toBeNull();
-      expect(reconnectResult?.gameState).toBeDefined();
+      const result = await roomManager.reconnect(roomId, hostToken);
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected ok');
+      expect(result.gameState).toBeDefined();
     });
 
-    it('should return null for invalid room or token on reconnect', async () => {
-      expect(await roomManager.reconnect('INVALID', 'tok')).toBeNull();
+    it('should report session_expired for invalid room or token on reconnect', async () => {
+      // Both failure modes collapse to the same 404 session_expired shape the
+      // client resume flow depends on — deliberately not a 401.
+      const expired = { ok: false, reason: 'not_found', message: 'session_expired' };
+      expect(await roomManager.reconnect('INVALID', 'tok')).toEqual(expired);
 
       const { roomId } = await roomManager.createRoom('Host');
-      expect(await roomManager.reconnect(roomId, 'INVALID_TOKEN')).toBeNull();
+      expect(await roomManager.reconnect(roomId, 'INVALID_TOKEN')).toEqual(expired);
     });
   });
 
   describe('Leaving Rooms', () => {
     it('should reassign the host when the host leaves the lobby', async () => {
       const { roomId, token: hostToken } = await roomManager.createRoom('Host');
-      const secondPlayer = (await roomManager.joinRoom(roomId, 'Player2'))!;
+      const secondPlayer = await join(roomId, 'Player2');
 
       const result = await roomManager.leaveRoom(roomId, hostToken);
 
-      expect(result).not.toBeNull();
-      expect(result?.state.players).toHaveLength(1);
-      expect(result?.state.players[0].id).toBe(secondPlayer.playerId);
-      expect(result?.state.players[0].isHost).toBe(true);
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected ok');
+      expect(result.state.players).toHaveLength(1);
+      expect(result.state.players[0].id).toBe(secondPlayer.playerId);
+      expect(result.state.players[0].isHost).toBe(true);
     });
 
     it('should remove a player from the running game and award the win when one remains', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
-      const secondPlayer = (await roomManager.joinRoom(roomId, 'Player2'))!;
+      const secondPlayer = await join(roomId, 'Player2');
       await roomManager.startGame(roomId, hostToken);
 
       const result = await roomManager.leaveRoom(roomId, secondPlayer.token);
 
-      expect(result).not.toBeNull();
-      expect(result?.state.players).toHaveLength(1);
-      expect(result?.state.players[0].id).toBe(hostId);
-      expect(result?.gameState?.players).toHaveLength(1);
-      expect(result?.gameState?.winner).toBe(hostId);
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected ok');
+      expect(result.state.players).toHaveLength(1);
+      expect(result.state.players[0].id).toBe(hostId);
+      expect(result.gameState?.players).toHaveLength(1);
+      expect(result.gameState?.winner).toBe(hostId);
     });
 
     it('should advance the turn when the current player leaves a three-player game', async () => {
@@ -208,8 +228,8 @@ describe('RoomManager', () => {
         playerId: player1Id,
         token: player1Token,
       } = await roomManager.createRoom('Player1');
-      const player2 = (await roomManager.joinRoom(roomId, 'Player2'))!;
-      const player3 = (await roomManager.joinRoom(roomId, 'Player3'))!;
+      const player2 = await join(roomId, 'Player2');
+      const player3 = await join(roomId, 'Player3');
       await roomManager.startGame(roomId, player1Token);
 
       await roomManager.handleGameAction(roomId, player1Token, {
@@ -219,25 +239,26 @@ describe('RoomManager', () => {
 
       const result = await roomManager.leaveRoom(roomId, player2.token);
 
-      expect(result).not.toBeNull();
-      expect(result?.gameState?.players.map((player) => player.id)).toEqual([
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected ok');
+      expect(result.gameState?.players.map((player) => player.id)).toEqual([
         player1Id,
         player3.playerId,
       ]);
-      expect(result?.gameState?.currentPlayerId).toBe(player3.playerId);
-      expect(result?.gameState?.phase).toBe('roll');
+      expect(result.gameState?.currentPlayerId).toBe(player3.playerId);
+      expect(result.gameState?.phase).toBe('roll');
     });
 
     it('should drop the leaving player from the sessions map', async () => {
       const { roomId, token: hostToken } = await roomManager.createRoom('Host');
-      const p2 = (await roomManager.joinRoom(roomId, 'P2'))!;
+      const p2 = await join(roomId, 'P2');
 
       await roomManager.leaveRoom(roomId, p2.token);
 
       // The old token must no longer authenticate anything.
-      expect(await roomManager.reconnect(roomId, p2.token)).toBeNull();
+      expect((await roomManager.reconnect(roomId, p2.token)).ok).toBe(false);
       // The host's token must still work.
-      expect(await roomManager.reconnect(roomId, hostToken)).not.toBeNull();
+      expect((await roomManager.reconnect(roomId, hostToken)).ok).toBe(true);
     });
   });
 
@@ -246,25 +267,34 @@ describe('RoomManager', () => {
       const { roomId, token: hostToken } = await roomManager.createRoom('Host');
 
       // Try starting with 1 player
-      let gameState = await roomManager.startGame(roomId, hostToken);
-      expect(gameState).toBeNull();
+      let result = await roomManager.startGame(roomId, hostToken);
+      expect(result).toEqual({ ok: false, reason: 'conflict', message: expect.any(String) });
 
       // Add second player
-      const p2Result = await roomManager.joinRoom(roomId, 'P2');
+      const p2Result = await join(roomId, 'P2');
 
       // Try starting by non-host
-      gameState = await roomManager.startGame(roomId, p2Result!.token);
-      expect(gameState).toBeNull();
+      result = await roomManager.startGame(roomId, p2Result.token);
+      expect(result).toEqual({ ok: false, reason: 'conflict', message: expect.any(String) });
 
       // Start by host
-      gameState = await roomManager.startGame(roomId, hostToken);
-      expect(gameState).not.toBeNull();
-      expect(gameState?.players).toHaveLength(2);
+      result = await roomManager.startGame(roomId, hostToken);
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected ok');
+      expect(result.state.status).toBe('game');
+      expect(result.state.gameState?.players).toHaveLength(2);
       expect((await roomManager.getRoom(roomId))?.status).toBe('game');
     });
 
+    it('should report unauthorized for an unknown token on start', async () => {
+      const { roomId } = await roomManager.createRoom('Host');
+      const result = await roomManager.startGame(roomId, 'ALIEN_TOKEN');
+      expect(result).toEqual({ ok: false, reason: 'unauthorized', message: expect.any(String) });
+    });
+
     it('should not start game in non-existent room', async () => {
-      expect(await roomManager.startGame('INVALID', 'tok')).toBeNull();
+      const result = await roomManager.startGame('INVALID', 'tok');
+      expect(result).toEqual({ ok: false, reason: 'not_found', message: expect.any(String) });
     });
   });
 
@@ -301,7 +331,7 @@ describe('RoomManager', () => {
 
     it('rejects a token used to act as another player', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
-      const p2Result = (await roomManager.joinRoom(roomId, 'P2'))!;
+      const p2Result = await join(roomId, 'P2');
       await roomManager.startGame(roomId, hostToken);
 
       // P2's token resolves to P2's id, but the action claims to be Host.
@@ -311,7 +341,7 @@ describe('RoomManager', () => {
       expect(result.ok).toBe(false);
     });
 
-    it('rejects an unknown token', async () => {
+    it('rejects an unknown token as unauthorized', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
       await roomManager.joinRoom(roomId, 'P2');
       await roomManager.startGame(roomId, hostToken);
@@ -320,12 +350,14 @@ describe('RoomManager', () => {
       const result = await roomManager.handleGameAction(roomId, 'ALIEN_TOKEN', action);
 
       expect(result.ok).toBe(false);
+      if (result.ok) throw new Error('expected rejection');
+      expect(result.reason).toBe('unauthorized');
     });
 
     it('rejects a non-target trying to accept a trade', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
-      const p2 = (await roomManager.joinRoom(roomId, 'P2'))!;
-      const p3 = (await roomManager.joinRoom(roomId, 'P3'))!;
+      const p2 = await join(roomId, 'P2');
+      const p3 = await join(roomId, 'P3');
       await roomManager.startGame(roomId, hostToken);
 
       await roomManager.handleGameAction(roomId, hostToken, {
@@ -347,7 +379,7 @@ describe('RoomManager', () => {
 
     it('rejects a non-initiator trying to cancel a trade', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
-      const p2 = (await roomManager.joinRoom(roomId, 'P2'))!;
+      const p2 = await join(roomId, 'P2');
       await roomManager.startGame(roomId, hostToken);
 
       await roomManager.handleGameAction(roomId, hostToken, {
@@ -422,7 +454,7 @@ describe('RoomManager', () => {
 
     it('rejects (without disturbing) the existing trade when another proposal is submitted', async () => {
       const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
-      const p2 = (await roomManager.joinRoom(roomId, 'P2'))!;
+      const p2 = await join(roomId, 'P2');
       await roomManager.startGame(roomId, hostToken);
 
       const firstResult = await roomManager.handleGameAction(roomId, hostToken, {

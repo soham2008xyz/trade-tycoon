@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { parseGameAction } from '@trade-tycoon/game-logic';
-import type { RoomManager } from '../RoomManager';
+import type { RoomManager, RoomFailure } from '../RoomManager';
 import type { EventBus } from '../events/EventBus';
 
 /**
@@ -14,9 +14,20 @@ import type { EventBus } from '../events/EventBus';
  * `playerId` — the public id alone grants no ability to act as that player.
  *
  * Errors are reported with conventional HTTP status codes — clients should
- * not need to parse `error: 'session_expired'` strings; they get 404 / 409 /
- * 400 instead, which `fetch` handles naturally.
+ * not need to parse error strings; they get 404 / 401 / 409 / 400 instead,
+ * which `fetch` handles naturally. Exception: reconnect/leave report a stale
+ * session as 404 `session_expired` (never 401) because the client's resume
+ * flow keys off that combination to discard its stored session.
  */
+const STATUS_BY_REASON: Record<RoomFailure['reason'], number> = {
+  not_found: 404,
+  unauthorized: 401,
+  conflict: 409,
+};
+
+const failWith = (res: Response, failure: RoomFailure) =>
+  res.status(STATUS_BY_REASON[failure.reason]).json({ error: failure.message });
+
 export const createRoomsRouter = (deps: {
   roomManager: RoomManager;
   eventBus: EventBus;
@@ -49,11 +60,7 @@ export const createRoomsRouter = (deps: {
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
     const result = await roomManager.joinRoom(roomId, playerName);
-    if (!result) {
-      const exists = await roomManager.getRoom(roomId);
-      if (!exists) return res.status(404).json({ error: 'Room not found' });
-      return res.status(409).json({ error: 'Room is full or already in progress' });
-    }
+    if (!result.ok) return failWith(res, result);
     await eventBus.publish(roomId, { type: 'lobby_update', state: result.state });
     res.status(200).json({ roomId, playerId: result.playerId, token: result.token, isHost: false });
   });
@@ -64,20 +71,11 @@ export const createRoomsRouter = (deps: {
     if (!token) return res.status(400).json({ error: 'token is required' });
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
-    const gameState = await roomManager.startGame(roomId, token);
-    if (!gameState) {
-      const room = await roomManager.getRoom(roomId);
-      if (!room) return res.status(404).json({ error: 'Room not found' });
-      return res
-        .status(409)
-        .json({ error: 'Cannot start game: must be host with at least 2 players' });
-    }
+    const result = await roomManager.startGame(roomId, token);
+    if (!result.ok) return failWith(res, result);
     // A single lobby_update carries the new gameState too (LobbyState.gameState),
     // so a separate game_state_update would just be the same data twice.
-    const lobby = await roomManager.getRoom(roomId);
-    if (lobby) {
-      await eventBus.publish(roomId, { type: 'lobby_update', state: lobby });
-    }
+    await eventBus.publish(roomId, { type: 'lobby_update', state: result.state });
     res.status(200).json({ ok: true });
   });
 
@@ -96,7 +94,10 @@ export const createRoomsRouter = (deps: {
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
     const result = await roomManager.handleGameAction(roomId, token, action);
-    if (!result.ok) return res.status(409).json({ error: result.message });
+    if (!result.ok) {
+      const status = result.reason === 'unauthorized' ? 401 : 409;
+      return res.status(status).json({ error: result.message });
+    }
 
     await eventBus.publish(roomId, { type: 'game_state_update', state: result.state });
     res.status(200).json({ ok: true });
@@ -109,7 +110,7 @@ export const createRoomsRouter = (deps: {
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
     const result = await roomManager.reconnect(roomId, token);
-    if (!result) return res.status(404).json({ error: 'session_expired' });
+    if (!result.ok) return failWith(res, result);
     res.status(200).json({
       lobby: result.state,
       gameState: result.gameState ?? null,
@@ -123,7 +124,7 @@ export const createRoomsRouter = (deps: {
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
     const result = await roomManager.leaveRoom(roomId, token);
-    if (!result) return res.status(404).json({ error: 'session_expired' });
+    if (!result.ok) return failWith(res, result);
 
     // Same reasoning as start: lobby_update already carries gameState.
     await eventBus.publish(roomId, { type: 'lobby_update', state: result.state });

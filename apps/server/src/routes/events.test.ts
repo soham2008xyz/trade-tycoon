@@ -58,17 +58,17 @@ describe('SSE: GET /api/rooms/:id/events', () => {
     await res.body?.cancel();
   });
 
-  it('rejects an unknown token with 403', async () => {
+  it('rejects an unknown token with 401', async () => {
     const { roomId } = await roomManager.createRoom('Alice');
     const res = await fetch(`http://localhost:${port}/api/rooms/${roomId}/events?token=stranger`);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
     await res.body?.cancel();
   });
 
-  it('rejects a stolen public playerId used as a token with 403', async () => {
+  it('rejects a stolen public playerId used as a token with 401', async () => {
     const { roomId, playerId: hostId } = await roomManager.createRoom('Alice');
     const res = await fetch(`http://localhost:${port}/api/rooms/${roomId}/events?token=${hostId}`);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
     await res.body?.cancel();
   });
 
