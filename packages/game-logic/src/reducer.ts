@@ -221,6 +221,16 @@ const capLogs = (state: GameState): GameState => {
   return { ...state, logs: state.logs.slice(-MAX_LOGS) };
 };
 
+/**
+ * Whether any of `propertyIds` has houses/hotel built on it, per `houses`.
+ * Iterates `houses`' own entries and checks membership in `propertyIds`
+ * (rather than indexing `houses[propId]` for each id) so this isn't a
+ * dynamic-bracket-access read of a plain object keyed by data that
+ * ultimately traces back to a network action (generic-object-injection).
+ */
+const hasHousesOnAny = (houses: Record<string, number>, propertyIds: string[]): boolean =>
+  Object.entries(houses).some(([propId, count]) => count > 0 && propertyIds.includes(propId));
+
 const reduceGameActionUnbounded = (
   state: GameState,
   action: Action,
@@ -860,7 +870,7 @@ const reduceGameActionUnbounded = (
       // player has no matching entry, and the seller's stale `houses` record
       // would keep counting toward flat costs like the Repairs card). Require
       // selling buildings back to the bank before the property can be traded.
-      if (action.offer.properties.some((propId) => (initiator.houses[propId] ?? 0) > 0))
+      if (hasHousesOnAny(initiator.houses, action.offer.properties))
         return { ...state, errorMessage: 'Sell buildings before trading a developed property.' };
 
       // Validate Target (Request)
@@ -875,7 +885,7 @@ const reduceGameActionUnbounded = (
         return { ...state, errorMessage: "Target doesn't own all requested properties." };
       if (!targetHasCards)
         return { ...state, errorMessage: "Target doesn't have enough GOOJ cards." };
-      if (action.request.properties.some((propId) => (target.houses[propId] ?? 0) > 0))
+      if (hasHousesOnAny(target.houses, action.request.properties))
         return {
           ...state,
           errorMessage: 'Target must sell buildings before trading a developed property.',
@@ -929,9 +939,9 @@ const reduceGameActionUnbounded = (
 
       // Re-check for houses built after the trade was proposed but before it
       // was accepted — the proposal-time check alone isn't enough.
-      if (trade.offer.properties.some((propId) => (initiator.houses[propId] ?? 0) > 0))
+      if (hasHousesOnAny(initiator.houses, trade.offer.properties))
         return { ...state, errorMessage: 'Initiator has since built on an offered property.' };
-      if (trade.request.properties.some((propId) => (target.houses[propId] ?? 0) > 0))
+      if (hasHousesOnAny(target.houses, trade.request.properties))
         return { ...state, errorMessage: 'You have since built on a requested property.' };
 
       // Execute Trade
