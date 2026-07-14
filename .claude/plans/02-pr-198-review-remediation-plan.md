@@ -5,6 +5,7 @@
 A two-axis review of PR #198 (`fix/security-audit-remediation` vs `master`) against `.claude/plans/01-codebase-audit-and-implementation-plan.md` found 7 missing/partial spec items, 5 deviations, and 2 hard standards violations (zero doc updates despite wire-contract changes; a `.ts` module importing react-native). This plan closes every actionable finding. All work lands as new commits on the same branch so PR #198 merges complete.
 
 **User decisions (fixed):**
+
 1. Fixes push to PR #198's branch.
 2. Invalid/unknown token → **401** on `/actions` and `/events`; **keep** 404 `session_expired` on reconnect/leave (client resume flow depends on it).
 3. `LobbyState.sessions` stays in game-logic; document the layering in `packages/game-logic/AGENTS.md`.
@@ -116,7 +117,7 @@ Add `"type-check": "tsc --noEmit"` to game-logic scripts; add a workflow step `n
 All stale passages verified; corrections must also reflect Step 1's new 401 semantics.
 
 | File | Fix |
-|---|---|
+| --- | --- |
 | `AGENTS.md` (root) | :158 SSE `?userId=`→`?token=`; :160-163 auth = token→session resolution (`playerId` public, `token` secret, POST bodies `{token}`); :174-192 rejection contract — ALL soft rejections now 409 + no persist/broadcast (drop "trade-auth-only exception" framing); :212-214 remove lint-staged clause; :229-233 `errorMessage` no longer broadcast — actor gets it via 409 body |
 | `packages/game-logic/AGENTS.md` | :34-36 userId wording; :65-88 rejection contract (mirror root — the :106-108 mandate names both files); :12-25 scope statement — sanction transport-agnostic session data in `LobbyState` (decision 3) |
 | `apps/server/AGENTS.md` | :82-88 rejection contract; token auth in the add-an-endpoint (:39-59) and SSE (:90-107) sections; mention `ALLOWED_ORIGINS` |

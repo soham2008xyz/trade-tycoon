@@ -29,17 +29,19 @@ const STRIPES = Array.from({ length: 40 });
 // Color bar runs along whichever edge faces the board's center; corners
 // simplify to a single fixed layout. Extracted as a lookup (rather than an
 // if/else chain inside the component) to keep TileComponent's own
-// complexity down — it's a pure mapping with no game-state dependency.
-const FLEX_DIRECTION_BY_ORIENTATION: Record<
+// complexity down — it's a pure mapping with no game-state dependency. A
+// `Map` rather than a plain object so the lookup below isn't a bracket
+// access on an object (generic-object-injection).
+const FLEX_DIRECTION_BY_ORIENTATION = new Map<
   Props['orientation'],
   'column' | 'row' | 'column-reverse' | 'row-reverse'
-> = {
-  bottom: 'column-reverse', // Color on top
-  top: 'column', // Color on bottom
-  left: 'row-reverse', // Color on right
-  right: 'row', // Color on left
-  corner: 'column',
-};
+>([
+  ['bottom', 'column-reverse'], // Color on top
+  ['top', 'column'], // Color on bottom
+  ['left', 'row-reverse'], // Color on right
+  ['right', 'row'], // Color on left
+  ['corner', 'column'],
+]);
 
 const renderHouses = (houseCount: number) => {
   if (houseCount === 0) return null;
@@ -50,6 +52,40 @@ const renderHouses = (houseCount: number) => {
     <View style={styles.houseContainer}>
       {Array.from({ length: houseCount }).map((_, i) => (
         <View key={i} style={styles.house} />
+      ))}
+    </View>
+  );
+};
+
+const renderColorBar = (
+  isStreet: boolean,
+  color: string,
+  orientation: Props['orientation'],
+  houseCount: number
+) => {
+  if (!isStreet) return null;
+  return (
+    <View
+      style={[
+        styles.colorBar,
+        { backgroundColor: color },
+        orientation === 'left' || orientation === 'right'
+          ? styles.colorBarVertical
+          : styles.colorBarHorizontal,
+      ]}
+    >
+      {/* Render Houses on Color Bar */}
+      <View style={styles.houseOverlay}>{renderHouses(houseCount)}</View>
+    </View>
+  );
+};
+
+const renderMortgageOverlay = (isMortgaged: boolean | undefined) => {
+  if (!isMortgaged) return null;
+  return (
+    <View style={styles.mortgagedOverlay}>
+      {STRIPES.map((_, i) => (
+        <View key={i} style={[styles.stripe, { left: i * 10 - 100 }]} />
       ))}
     </View>
   );
@@ -68,7 +104,7 @@ const TileComponent: React.FC<Props> = ({
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
   const houseCount = owner?.houses[tile.id] || 0;
   const isMortgaged = owner?.mortgaged.includes(tile.id);
-  const flexDirection = FLEX_DIRECTION_BY_ORIENTATION[orientation];
+  const flexDirection = FLEX_DIRECTION_BY_ORIENTATION.get(orientation) ?? 'column';
 
   return (
     <Pressable
@@ -80,20 +116,7 @@ const TileComponent: React.FC<Props> = ({
         style,
       ]}
     >
-      {isStreet && (
-        <View
-          style={[
-            styles.colorBar,
-            { backgroundColor: color },
-            orientation === 'left' || orientation === 'right'
-              ? styles.colorBarVertical
-              : styles.colorBarHorizontal,
-          ]}
-        >
-          {/* Render Houses on Color Bar */}
-          <View style={styles.houseOverlay}>{renderHouses(houseCount)}</View>
-        </View>
-      )}
+      {renderColorBar(isStreet, color, orientation, houseCount)}
       <View style={styles.content}>
         {owner && <View style={[styles.ownerIndicator, { backgroundColor: owner.color }]} />}
         {!(compact && orientation !== 'corner') && (
@@ -103,21 +126,7 @@ const TileComponent: React.FC<Props> = ({
         )}
         {tile.price && <Text style={styles.price}>${tile.price}</Text>}
       </View>
-      {isMortgaged && (
-        <View style={styles.mortgagedOverlay}>
-          {STRIPES.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.stripe,
-                {
-                  left: i * 10 - 100,
-                },
-              ]}
-            />
-          ))}
-        </View>
-      )}
+      {renderMortgageOverlay(isMortgaged)}
     </Pressable>
   );
 };

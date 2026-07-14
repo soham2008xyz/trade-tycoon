@@ -147,7 +147,7 @@ export class RoomManager {
       return {
         ...current,
         players: [...current.players, newPlayer],
-        sessions: { ...current.sessions, [token]: userId },
+        sessions: { ...(current.sessions ?? {}), [token]: userId },
       };
     });
 
@@ -165,16 +165,15 @@ export class RoomManager {
 
   /**
    * Resolves a private session token to the public player id it
-   * authenticates. Guarded with `hasOwnProperty` rather than a plain bracket
-   * lookup so a token equal to `"__proto__"`/`"constructor"`/`"toString"`
-   * can't read an inherited `Object.prototype` value instead of a real
-   * session (CodeQL/Codacy generic-object-injection).
+   * authenticates. Looks the token up via `Map.get` rather than a bracket
+   * lookup on `current.sessions` directly, so a token equal to
+   * `"__proto__"`/`"constructor"`/`"toString"` can't read an inherited
+   * `Object.prototype` value instead of a real session (generic-object-
+   * injection — `Map` has no prototype-chain entries to collide with).
    */
   private resolvePlayerId(current: LobbyState, token: string): string | null {
-    if (!current.sessions || !Object.prototype.hasOwnProperty.call(current.sessions, token)) {
-      return null;
-    }
-    return current.sessions[token];
+    if (!current.sessions) return null;
+    return new Map(Object.entries(current.sessions)).get(token) ?? null;
   }
 
   /**

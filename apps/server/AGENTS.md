@@ -132,8 +132,10 @@ keep it close to the existing structure.
 ## CORS
 
 `index.ts` reads `ALLOWED_ORIGINS` (comma-separated) and restricts CORS
-to that list in production; unset falls back to `*`, which is fine for
-local dev but must be set in any deployed environment. See
+to that list; unset falls back to a fixed localhost allowlist
+(`http://localhost:8081`, `http://localhost:19006`) rather than `*`, since
+CodeQL flags a wildcard origin as overly permissive — this is fine for
+local dev but must be set explicitly in any deployed environment. See
 `docs/DEPLOY.md` for the env var table.
 
 ## Vercel + ioredis gotchas
