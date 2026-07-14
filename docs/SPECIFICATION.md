@@ -82,7 +82,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 
 ## 7. Game Log
 
-- [x] **Event Log**: All significant game events (purchases, rent payments, card draws, jail, trades, bankruptcies, etc.) are appended to a `logs` array on `GameState`.
+- [x] **Event Log**: All significant game events (purchases, rent payments, card draws, jail, trades, bankruptcies, etc.) are appended to a `logs` array on `GameState`, capped at the 200 most recent entries so a long game's payload and storage stay bounded.
 - [x] **Log Viewer**: In-game modal (`LogModal`) displays the full chronological event history with per-player colour coding.
 
 ## 8. Online Multiplayer
@@ -97,13 +97,13 @@ This document tracks the implementation status of features for the Trade Tycoon 
 
 ### 8.2 Live Sync
 
-- [x] **Server-Sent Events (SSE)**: The server pushes `lobby_update` and `game_update` events to all room participants over a persistent SSE connection.
-- [x] **REST API**: Game actions are submitted as HTTP POST requests to the server, which applies them via the shared `gameReducer` and broadcasts the new state.
+- [x] **Server-Sent Events (SSE)**: The server pushes `lobby_update` and `game_state_update` events to all room participants over a persistent SSE connection.
+- [x] **REST API**: Game actions are submitted as HTTP POST requests to the server, which applies them via the shared `gameReducer` and, on success, broadcasts the new state. Rejected actions are neither persisted nor broadcast — the acting player alone receives the rejection reason via a 409 response.
 
 ### 8.3 Persistence & Reconnection
 
-- [x] **Session Storage**: The client persists `roomId` + `userId` locally so a refresh or app restart can resume the session.
-- [x] **Reconnect Endpoint**: On startup the client validates its stored session against `/api/rooms/:roomId/reconnect`. If valid, it re-enters the lobby or active game; if the room is gone (server restart), the session is cleared gracefully.
+- [x] **Session Storage**: The client persists `{ roomId, playerId, token }` in `localStorage` (key `trade_tycoon_session_v2`) so a refresh or app restart can resume the session. `token` is the private credential; `playerId` alone cannot authenticate.
+- [x] **Reconnect Endpoint**: On startup the client validates its stored `token` against `/api/rooms/:roomId/reconnect`. If valid, it re-enters the lobby or active game; if the room is gone or the token is stale, the session is cleared gracefully (404 `session_expired`).
 - [x] **In-Memory Store**: Default room store keeps all room state in process memory (suitable for single-server deployments).
 - [x] **Redis Store**: Optional `RedisRoomStore` + `RedisEventBus` enables multi-instance deployments with shared state and pub/sub event fanout.
 

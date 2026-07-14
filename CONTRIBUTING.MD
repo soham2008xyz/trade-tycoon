@@ -134,7 +134,7 @@ Please ensure all tests pass before submitting your changes.
   npm run lint
   ```
 
-- **Formatting**: We use Prettier. Code is automatically formatted on commit via `lint-staged`.
+- **Formatting**: We use Prettier. Code is automatically formatted on commit via the husky `pre-commit` hook (`npm run format`, alongside lint and tests).
 
 ## Pull Request Process
 

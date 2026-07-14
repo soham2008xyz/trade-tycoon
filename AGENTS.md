@@ -155,12 +155,20 @@ workspace's `AGENTS.md`.
 - `POST /api/rooms/:id/leave` — remove the authenticated player from the room
   and, if the game is running, from the authoritative game state too
 - `POST /api/rooms/:id/reconnect` — resume a session
-- `GET /api/rooms/:id/events?userId=…` — SSE stream
+- `GET /api/rooms/:id/events?token=…` — SSE stream (EventSource can't set
+  headers, so this one endpoint takes the token as a query param)
 
-The server's `handleGameAction` validates `action.playerId === userId`
-**before** handing to the reducer; the reducer adds role-specific
-checks (only-host-can-start, only-target-can-accept-trade, …). Both
-layers participate in the security boundary.
+Auth model: create/join return a public `playerId` (safe to broadcast)
+and a private session `token` (the actual credential — never rendered,
+logged, or broadcast). Every other endpoint takes `{ token }` in the
+POST body; the server resolves it through the room's `sessions` map to
+a `playerId` and validates `action.playerId` against that **before**
+handing to the reducer. An invalid/unknown token is `401` on `/actions`
+and `/events`; `/reconnect` and `/leave` instead report `404
+session_expired`, which the client resume flow keys off to discard its
+stored session. The reducer adds role-specific checks
+(only-host-can-start, only-target-can-accept-trade, …). Both layers
+participate in the security boundary.
 
 ### Resume is opt-in, never auto
 
@@ -171,22 +179,26 @@ on Create/Join intent** — it caused a host-impersonation bug whose
 debugging history is in `git log`. Implementation lives in
 `apps/client/AGENTS.md`.
 
-### Trade authorization rejections are explicit on the server path
+### Rejected actions are explicit on the server path
 
-Most illegitimate actions in game logic still no-op by returning the
-input state unchanged. But there is one important exception:
-`ACCEPT_TRADE` from a non-target and `CANCEL_TRADE` from a
-non-initiator now produce an explicit rejection sentinel in the
-detailed reducer path used by the server.
+The reducer signals an illegitimate action three ways: the
+`ACTION_REJECTED` sentinel (hard rejections, e.g. rogue trade
+accept/cancel), an unchanged input state (pure no-ops like acting out
+of turn), or a soft rejection that sets `errorMessage` (e.g. "can't
+afford it"). The server treats **all three** the same: it aborts the
+store update — nothing is persisted, nothing is broadcast — and
+returns HTTP 409 whose body carries the rejection message, so private
+feedback reaches only the acting player. (A bad session token is the
+separate, earlier `401` path.)
 
 Two consequences:
 
 - Game-logic exposes a server-facing helper that can return the
   sentinel, while the client-facing `gameReducer` wrapper still
   collapses that back to "unchanged state" for `useReducer`.
-- Server tests for those rogue trade actions now assert HTTP 409
-  `Action rejected`, while the higher-level `userId !== action.playerId`
-  impersonation guard remains its own earlier rejection path.
+- Server tests assert 409 + no `eventBus.publish` for rejected actions,
+  and that `errorMessage` never appears in a persisted or broadcast
+  state (`serialize.ts` also strips it as defense in depth).
 
 If you change this behaviour, both workspace files need updating —
 they're the only places that document this contract in detail.
@@ -209,9 +221,8 @@ needs the same field.
 The repo's prettier-runner npm script is named `format`, not
 `prettier`. Naming a script `prettier` shadows the binary in
 `node_modules/.bin` and makes `expo-doctor` flag a script-vs-bin
-conflict. The husky pre-commit hook runs `npm run format`; the
-lint-staged config also references `prettier --write` directly via
-the bin. Don't rename either back to `prettier`.
+conflict. The husky pre-commit hook runs `npm run format`. Don't
+rename the script back to `prettier`.
 
 ## 7. Coding Standards
 
@@ -226,11 +237,14 @@ the bin. Don't rename either back to `prettier`.
   not just the mechanics.
 - **Never write `// eslint-disable-next-line` without a tied comment**
   explaining why. Past dead disables have rotted.
-- **Use `errorMessage` for user-facing rejections.** The reducer's
-  `errorMessage` field is surfaced as an in-game toast by the client.
-  Prefer setting it over silent no-ops when the player needs feedback
-  (e.g., can't afford a purchase). Silent no-ops are still correct for
-  authorization failures (wrong player, game phase mismatch).
+- **Use `errorMessage` for user-facing rejections.** In local hotseat
+  play the reducer's `errorMessage` field is surfaced as an in-game
+  toast. Online it is never persisted or broadcast — the server aborts
+  the update and returns it to the acting player in the 409 body, and
+  the client shows that as a transient toast. Prefer setting it over
+  silent no-ops when the player needs feedback (e.g., can't afford a
+  purchase). Silent no-ops are still correct for authorization
+  failures (wrong player, game phase mismatch).
 
 ## 8. Verification
 

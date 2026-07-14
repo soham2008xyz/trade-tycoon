@@ -15,6 +15,15 @@ Pure-TypeScript reducer + types that encode every game rule. Imported by
 both `apps/client` (offline play and online action dispatch) and
 `apps/server` (the authoritative reducer for online games).
 
+The package also hosts transport-agnostic multiplayer state that both
+sides must agree on: `LobbyState` (in `socket-types.ts`) carries the
+room's `sessions` map (private token → public playerId) and `version`
+counter. Sessions are auth data, not a game rule — they live here
+deliberately so they ride the store's CAS atomicity and room TTL as one
+record. They are server-internal: every response/broadcast passes
+through `toPublicLobbyState` (apps/server/src/serialize.ts) to strip
+them.
+
 ## The "no platform imports" invariant
 
 Nothing in `src/` may import from React, React Native, Node-specific APIs
@@ -31,8 +40,11 @@ breaks compilation or correctness.
 
 1. **Type.** Add a variant to the `Action` discriminated union in
    `src/reducer.ts` (the union near the top of the file). Include
-   `playerId: string` if the action is player-scoped — the server-side
-   `userId === action.playerId` check relies on this field.
+   `playerId: string` if the action is player-scoped — the server
+   resolves the caller's session token to a playerId and checks it
+   against this field. Client-sent actions must also get a case in
+   `src/validate-action.ts` (`parseGameAction`), the network boundary
+   validator — an action without a case there can never arrive online.
 
 2. **Reducer case.** Add a `case '<TYPE>':` to `gameReducer` that returns
    a new state. Validate any role-specific invariants in the case body
@@ -51,9 +63,10 @@ breaks compilation or correctness.
 vitest, run with `npm test --workspace=packages/game-logic`. Tests live
 alongside the source: `cards.ts` ↔ `cards.test.ts`.
 
-- **Deterministic dice.** `vi.spyOn(Math, 'random').mockReturnValue(0)`
-  before the action, `mockRestore()` after. Without this, ROLL_DICE tests
-  are flaky.
+- **Deterministic dice.** Pass a seeded rng as the third argument:
+  `reduceGameAction(state, action, mulberry32(42))`. The reducer only
+  falls back to `Math.random` when no rng is supplied (local hotseat
+  play). Without a seed, ROLL_DICE tests are flaky.
 - **Assert on returned state, not on mutation.** The reducer is
   immutable; the original state object should not change. If a test
   passes only because of mutation, it's wrong.
@@ -62,29 +75,34 @@ alongside the source: `cards.ts` ↔ `cards.test.ts`.
   unchanged (`expect(newState).toBe(oldState)` works because the reducer
   returns the input identity-equal when it no-ops).
 
-## Reducer rejections on trade authorization failures
+## Reducer rejections
 
-Most illegitimate actions still **silently return the input state**.
-That remains the default rule for things like non-host START_GAME.
+A rejected action surfaces one of three ways:
 
-Trade authorization has a stricter path:
+- The `ACTION_REJECTED` sentinel from `reduceGameAction(...)` — hard
+  rejections such as `ACCEPT_TRADE` from a non-target or `CANCEL_TRADE`
+  from a non-initiator. `gameReducer(...)` is intentionally kept
+  React-compatible for `useReducer`; it collapses the sentinel back to
+  the original state.
+- The **input state returned unchanged** (reference-equal) — pure
+  no-ops like acting out of turn. Still the default for things like
+  non-host START_GAME.
+- A **soft rejection**: same state plus `errorMessage` set — rule
+  failures the player needs feedback on (e.g. "can't afford it").
 
-- `reduceGameAction(...)` may return the `ACTION_REJECTED` sentinel for
-  `ACCEPT_TRADE` from a non-target or `CANCEL_TRADE` from a
-  non-initiator.
-- `gameReducer(...)` is intentionally kept React-compatible for
-  `useReducer`; it collapses that sentinel back to the original state.
-
-Two consequences to keep in mind:
+Consequences to keep in mind:
 
 - **Inside this package**, tests for the client-facing wrapper still
   assert state-unchanged via reference equality, while tests that need
   the explicit server contract assert `reduceGameAction(...) ===
 ACTION_REJECTED`.
-- **In the server's HTTP layer**, those rogue trade actions now produce
-  HTTP 409, while the higher-level `userId !== action.playerId`
-  impersonation guard still rejects earlier in
-  `RoomManager.handleGameAction`.
+- **In the server's HTTP layer**, all three shapes are treated
+  identically: the store update is aborted (nothing persisted, nothing
+  broadcast) and the route returns HTTP 409 carrying the rejection
+  message to the acting player only. The token-resolved
+  `playerId !== action.playerId` impersonation guard still rejects
+  earlier in `RoomManager.handleGameAction`, and an invalid token is a
+  separate 401.
 
 ## Where things live
 

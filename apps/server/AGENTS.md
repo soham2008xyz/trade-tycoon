@@ -16,6 +16,10 @@ workspace.
 src/
   index.ts                    Express app + buildBackends() wiring
   RoomManager.ts              Business logic — async, takes a RoomStore
+  serialize.ts                Wire boundary: strips sessions/errorMessage
+  middleware/
+    errors.ts                 Terminal JSON error handler (503 on CAS
+                              exhaustion, 500 otherwise)
   routes/
     rooms.ts                  REST endpoints
     rooms.test.ts             Supertest integration tests
@@ -42,18 +46,30 @@ The pattern in `routes/rooms.ts` is:
 1. **Validate input.** Coerce `req.params.roomId` with
    `String(req.params.roomId).trim().toUpperCase()` (the `String(...)`
    is required — Express 5 types path params as `string | string[]`).
-   Coerce body strings via the local `parseNonEmptyString` helper.
-   Reject malformed input with `res.status(400).json({ error: '...' })`.
+   Coerce body strings via the local `parseNonEmptyString` helper —
+   authenticated endpoints take the session `token` in the body this
+   way, and game actions additionally pass through `parseGameAction`
+   (game-logic's network-boundary validator). Reject malformed input
+   with `res.status(400).json({ error: '...' })`.
 2. **Mutate state through `RoomManager`** — never poke the store
-   directly from a route handler. The manager owns the business logic;
-   the route is just an HTTP adapter.
+   directly from a route handler. The manager owns the business logic
+   (including resolving the token to a playerId via the room's
+   `sessions` map); the route is just an HTTP adapter. Lifecycle
+   methods return a discriminated `RoomResult` whose failure `reason`
+   maps to a status via the router's `STATUS_BY_REASON` lookup — don't
+   re-fetch the room to pick a status code.
 3. **Publish on `EventBus`** after a successful mutation, with one of
    the typed `RoomEvent` variants. Open SSE streams subscribe to this
-   bus and forward events to clients.
+   bus and forward events to clients. Never publish on a failure —
+   rejected actions must not broadcast. Everything published or
+   returned goes through `serialize.ts` (`toPublicLobbyState` /
+   `toPublicGameState`) so `sessions` and `errorMessage` never leak.
 4. **Use proper HTTP status codes.** 200 for ok, 201 for create, 400
-   for bad input, 403 for "not allowed" (e.g. user not in game), 404
-   for missing room, 409 for "valid request but state forbids it"
-   (room full, game started, action rejected).
+   for bad input, 401 for an invalid/unknown session token, 404 for
+   missing room, 409 for "valid request but state forbids it" (room
+   full, game started, action rejected). Exception: `/reconnect` and
+   `/leave` report a stale session as 404 `session_expired` — the
+   client resume flow keys off that shape, so no 401 there.
 
 A new endpoint usually means a new test in `routes/rooms.test.ts` —
 keep it close to the existing structure.
@@ -79,31 +95,46 @@ keep it close to the existing structure.
   `await redis.flushall()` in `beforeEach`** — `new RedisMock()`
   instances share an underlying in-memory map and one test will
   pollute the next.
-- **For explicit trade-authorization rejections** (third-party
-  `ACCEPT_TRADE`, non-initiator `CANCEL_TRADE`) the route returns HTTP
-  409 because `RoomManager.handleGameAction` uses the detailed reducer
-  helper and maps its rejection sentinel to `null`. Tests assert both
-  the 409 and that the pending trade stayed in place. The
-  `userId !== action.playerId` impersonation guard is still a separate,
-  earlier 409 path.
+- **For rejected actions** (rejection sentinel, unchanged-state no-op,
+  or soft rejection with `errorMessage`) `RoomManager.handleGameAction`
+  aborts the store update and the route returns HTTP 409 carrying the
+  rejection message — nothing is persisted or broadcast. Tests assert
+  the 409, that the prior state stayed in place, and (via a bus
+  subscriber) that no event was published. The token-resolved
+  `playerId !== action.playerId` impersonation guard is still a
+  separate, earlier 409 path; an unknown token is a 401.
 
 ## SSE handler lifecycle
 
 `routes/events.ts` is the canonical example. The shape:
 
-1. Set headers (`Content-Type: text/event-stream`,
+1. Authenticate: the token arrives as `?token=` (EventSource can't set
+   headers) and resolves via `RoomManager.authenticate` — 401 on
+   failure.
+2. Set headers (`Content-Type: text/event-stream`,
    `Cache-Control: no-cache, no-transform`, `Connection: keep-alive`,
    `X-Accel-Buffering: no`) and call `res.flushHeaders()`.
-2. Write an **initial snapshot** so the client doesn't have to wait
+3. Wire the idempotent `cleanup` (clear heartbeat, unsubscribe, end
+   the response) and register it on **`res.on('close', ...)`** —
+   `req`'s own 'close' fires at request-body completion (immediately
+   for a GET) on Node ≥ 16, not at socket teardown. Do this **before
+   the first write** so a failed write can't leak the subscription.
+4. Write an **initial snapshot** so the client doesn't have to wait
    for the next mutation.
-3. `await eventBus.subscribe(roomId, writeEvent)` — the returned
-   handle is the unsubscribe.
-4. Set a **15-second heartbeat** (`res.write(': ping\n\n')`) so
-   intermediaries don't tear down the connection.
-5. On `req.on('close', cleanup)` (and `req.on('aborted', cleanup)`):
-   clear the heartbeat, unsubscribe, end the response. The cleanup
-   must run on the function's natural 300s timeout too — Vercel
-   eventually closes the request and we get the close event.
+5. `await eventBus.subscribe(roomId, writeEvent)` — the returned
+   handle is the unsubscribe. Write failures call `cleanup()`, not
+   just `console.warn`.
+6. Set a **15-second heartbeat** (`res.write(': ping\n\n')`) so
+   intermediaries don't tear down the connection. The cleanup must
+   run on the function's natural 300s timeout too — Vercel eventually
+   closes the connection and we get the close event.
+
+## CORS
+
+`index.ts` reads `ALLOWED_ORIGINS` (comma-separated) and restricts CORS
+to that list in production; unset falls back to `*`, which is fine for
+local dev but must be set in any deployed environment. See
+`docs/DEPLOY.md` for the env var table.
 
 ## Vercel + ioredis gotchas
 
