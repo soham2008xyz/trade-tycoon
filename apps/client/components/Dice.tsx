@@ -52,11 +52,15 @@ const Die: React.FC<{ value: number; size: number; color: string; isRolling?: bo
   useEffect(() => {
     if (isRolling) {
       // Continuous spinning
+      // Reanimated's SharedValue.value assignment is the documented API for
+      // driving an animation, not a disallowed mutation of a hook's return value.
+      // eslint-disable-next-line react-hooks/immutability
       rotation.value = withRepeat(
         withTiming(360, { duration: 500, easing: Easing.linear }),
         -1, // Infinite
         false // Do not reverse
       );
+      // eslint-disable-next-line react-hooks/immutability
       scale.value = withSequence(withTiming(1.2, { duration: 250 }), withSpring(1));
     } else {
       // Stop spinning and land on value
