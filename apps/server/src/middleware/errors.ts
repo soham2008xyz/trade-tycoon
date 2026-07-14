@@ -11,11 +11,13 @@ import { StoreConflictError } from '../store/RoomStore';
  * Must be registered last, after every router — Express identifies error
  * middleware by its four-argument signature.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const errorHandler = (err: unknown, req: Request, res: Response, next: NextFunction) => {
+export const errorHandler = (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (res.headersSent) {
-    // An SSE stream or similar already started writing; nothing to do but
-    // let Express close the connection.
+    // An SSE stream or similar already started writing. The route's own
+    // cleanup should already have run, but end the response here too as a
+    // backstop so a late/uncaught failure can't leave the connection open
+    // until the function times out.
+    res.end();
     return;
   }
 

@@ -96,7 +96,13 @@ export const createEventsRouter = (deps: {
     // The snapshot write already failed — don't subscribe a dead stream.
     if (cleanedUp) return;
 
-    unsubscribe = await eventBus.subscribe(roomId, writeEvent);
+    try {
+      unsubscribe = await eventBus.subscribe(roomId, writeEvent);
+    } catch (err) {
+      console.warn('[SSE] subscribe failed, closing stream', err);
+      cleanup();
+      return;
+    }
     if (cleanedUp) {
       // The connection dropped while we awaited the subscription handle.
       unsubscribe();
