@@ -1,5 +1,4 @@
 import { describe, it, expect, vi } from 'vitest';
-import { BOARD } from './board-data';
 import { createInitialState, createPlayer } from './game-setup';
 
 describe('game-setup', () => {
@@ -10,7 +9,6 @@ describe('game-setup', () => {
     expect(state.currentPlayerId).toBe('');
     expect(state.dice).toEqual([1, 1]);
     expect(state.phase).toBe('roll');
-    expect(state.board).toEqual(BOARD);
     expect(state.winner).toBeNull();
     expect(state.auction).toBeNull();
     expect(state.activeTrade).toBeNull();

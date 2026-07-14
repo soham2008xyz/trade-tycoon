@@ -1,5 +1,4 @@
 import { GameState, Player } from './types';
-import { BOARD } from './board-data';
 
 export const createInitialState = (): GameState => {
   return {
@@ -8,7 +7,6 @@ export const createInitialState = (): GameState => {
     dice: [1, 1],
     doublesCount: 0,
     phase: 'roll', // Start ready to roll
-    board: BOARD,
     winner: null,
     auction: null,
     activeTrade: null,

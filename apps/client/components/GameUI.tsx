@@ -43,37 +43,65 @@ export const GameUI: React.FC<GameUIProps> = ({
   const [showPropertyManager, setShowPropertyManager] = React.useState(false);
   const [isTokenMoving, setIsTokenMoving] = React.useState(false);
 
-  const showAlert = (title: string, message: string, buttons: AlertOptions['buttons']) => {
-    setAlertOptions({ title, message, buttons });
-    setAlertVisible(true);
-  };
+  const showAlert = React.useCallback(
+    (title: string, message: string, buttons: AlertOptions['buttons']) => {
+      setAlertOptions({ title, message, buttons });
+      setAlertVisible(true);
+    },
+    []
+  );
 
   const currentPlayer = state.players.find((p) => p.id === state.currentPlayerId);
+  const myPlayer = state.players.find((p) => p.id === myPlayerId);
   const selfId = myPlayerId;
   const getOwner = (tileId: string) => state.players.find((p) => p.properties.includes(tileId));
 
-  const handleRoll = () => onDispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId });
-  const handleEndTurn = () => onDispatch({ type: 'END_TURN', playerId: state.currentPlayerId });
-  const handleBuy = () => {
+  // Layout-facing handlers are memoized so `sharedProps` below keeps a stable
+  // identity across re-renders that don't touch game state (toasts, modal
+  // visibility) — that stability is what lets the memoized Board/Tile subtree
+  // skip re-rendering all 40 tiles. Handlers consumed only by the
+  // non-memoized modals stay plain per-render functions.
+  const handleRoll = React.useCallback(
+    () => onDispatch({ type: 'ROLL_DICE', playerId: state.currentPlayerId }),
+    [onDispatch, state.currentPlayerId]
+  );
+  const handleEndTurn = React.useCallback(
+    () => onDispatch({ type: 'END_TURN', playerId: state.currentPlayerId }),
+    [onDispatch, state.currentPlayerId]
+  );
+  const handleBuy = React.useCallback(() => {
     const tile = currentPlayer ? BOARD[currentPlayer.position] : null;
     if (state.currentPlayerId && tile) {
       onDispatch({ type: 'BUY_PROPERTY', playerId: state.currentPlayerId, propertyId: tile.id });
     }
-  };
-  const handleDeclineBuy = () =>
-    onDispatch({ type: 'DECLINE_BUY', playerId: state.currentPlayerId });
-  const handlePayFine = () => onDispatch({ type: 'PAY_FINE', playerId: state.currentPlayerId });
-  const handleUseGOOJ = () =>
-    onDispatch({ type: 'USE_GOOJ_CARD', playerId: state.currentPlayerId });
-  const handleRollAgain = () => handleRoll();
+  }, [onDispatch, currentPlayer, state.currentPlayerId]);
+  const handleDeclineBuy = React.useCallback(
+    () => onDispatch({ type: 'DECLINE_BUY', playerId: state.currentPlayerId }),
+    [onDispatch, state.currentPlayerId]
+  );
+  const handlePayFine = React.useCallback(
+    () => onDispatch({ type: 'PAY_FINE', playerId: state.currentPlayerId }),
+    [onDispatch, state.currentPlayerId]
+  );
+  const handleUseGOOJ = React.useCallback(
+    () => onDispatch({ type: 'USE_GOOJ_CARD', playerId: state.currentPlayerId }),
+    [onDispatch, state.currentPlayerId]
+  );
+  // Property management is always attributed to the local player, not
+  // whoever's turn it currently is — the reducer already rejects these
+  // outside the actor's own turn (BUILD_HOUSE/SELL_HOUSE/MORTGAGE_PROPERTY/
+  // UNMORTGAGE_PROPERTY all guard on `state.currentPlayerId === action.playerId`),
+  // so sending the true actor's id lets that turn check do its job instead of
+  // silently attributing the action to whoever `state.currentPlayerId` happens
+  // to be if the manage panel is still open when the turn changes underneath it.
   const handleBuild = (id: string) =>
-    onDispatch({ type: 'BUILD_HOUSE', playerId: state.currentPlayerId, propertyId: id });
+    onDispatch({ type: 'BUILD_HOUSE', playerId: myPlayerId, propertyId: id });
   const handleSell = (id: string) =>
-    onDispatch({ type: 'SELL_HOUSE', playerId: state.currentPlayerId, propertyId: id });
+    onDispatch({ type: 'SELL_HOUSE', playerId: myPlayerId, propertyId: id });
   const handleMortgage = (id: string) =>
-    onDispatch({ type: 'MORTGAGE_PROPERTY', playerId: state.currentPlayerId, propertyId: id });
+    onDispatch({ type: 'MORTGAGE_PROPERTY', playerId: myPlayerId, propertyId: id });
   const handleUnmortgage = (id: string) =>
-    onDispatch({ type: 'UNMORTGAGE_PROPERTY', playerId: state.currentPlayerId, propertyId: id });
+    onDispatch({ type: 'UNMORTGAGE_PROPERTY', playerId: myPlayerId, propertyId: id });
   const handleBid = (playerId: string, amount: number) =>
     onDispatch({ type: 'PLACE_BID', playerId, amount });
   const handleConcedeAuction = (playerId: string) =>
@@ -97,7 +125,7 @@ export const GameUI: React.FC<GameUIProps> = ({
     }
   };
   const handleCancelTrade = () => onDispatch({ type: 'CANCEL_TRADE', playerId: myPlayerId });
-  const handleDeclareBankruptcy = () => {
+  const handleDeclareBankruptcy = React.useCallback(() => {
     if (myPlayerId) {
       showAlert(
         'Declare Bankruptcy',
@@ -112,36 +140,69 @@ export const GameUI: React.FC<GameUIProps> = ({
         ]
       );
     }
-  };
-  const handleRestart = () => {
+  }, [myPlayerId, onDispatch, showAlert]);
+  const handleRestart = React.useCallback(() => {
     showAlert('Leave Game', 'Are you sure you want to leave/restart the game?', [
       { text: 'No', style: 'cancel' },
       { text: 'Yes', onPress: onLeaveGame },
     ]);
-  };
+  }, [onLeaveGame, showAlert]);
 
-  const gameFeedback = getGameFeedback(state);
+  const gameFeedback = getGameFeedback(state, isMultiplayer);
 
-  const sharedProps = {
-    state,
-    myPlayerId,
-    isMultiplayer,
-    onRoll: handleRoll,
-    onBuy: handleBuy,
-    onDeclineBuy: handleDeclineBuy,
-    onEndTurn: handleEndTurn,
-    onRollAgain: handleRollAgain,
-    onPayFine: handlePayFine,
-    onUseGOOJCard: handleUseGOOJ,
-    onDeclareBankruptcy: handleDeclareBankruptcy,
-    onShowLog: () => setLogVisible(true),
-    onRestart: handleRestart,
-    onOpenPropertyManager: () => setShowPropertyManager(true),
-    onOpenTrade: (target: string) => setTradeTargetId(target),
-    isTokenMoving,
-    onTilePress: setSelectedTileId,
-    onTokenMovingChange: setIsTokenMoving,
-  };
+  // In multiplayer, dismissing reducer feedback is local-only: the server
+  // rejects DISMISS_* actions online (any player could otherwise clear a
+  // toast for the whole room), so we hide the toast on this client instead.
+  const [dismissedFeedback, setDismissedFeedback] = React.useState<string | null>(null);
+  if (dismissedFeedback !== null && dismissedFeedback !== gameFeedback?.message) {
+    // The feedback moved on from the dismissed message — drop the stale
+    // dismissal during render so a later identical toast can reappear.
+    setDismissedFeedback(null);
+  }
+
+  const openLog = React.useCallback(() => setLogVisible(true), []);
+  const openPropertyManager = React.useCallback(() => setShowPropertyManager(true), []);
+  const openTrade = React.useCallback((target: string) => setTradeTargetId(target), []);
+
+  const sharedProps = React.useMemo(
+    () => ({
+      state,
+      myPlayerId,
+      isMultiplayer,
+      onRoll: handleRoll,
+      onBuy: handleBuy,
+      onDeclineBuy: handleDeclineBuy,
+      onEndTurn: handleEndTurn,
+      onRollAgain: handleRoll,
+      onPayFine: handlePayFine,
+      onUseGOOJCard: handleUseGOOJ,
+      onDeclareBankruptcy: handleDeclareBankruptcy,
+      onShowLog: openLog,
+      onRestart: handleRestart,
+      onOpenPropertyManager: openPropertyManager,
+      onOpenTrade: openTrade,
+      isTokenMoving,
+      onTilePress: setSelectedTileId,
+      onTokenMovingChange: setIsTokenMoving,
+    }),
+    [
+      state,
+      myPlayerId,
+      isMultiplayer,
+      isTokenMoving,
+      handleRoll,
+      handleBuy,
+      handleDeclineBuy,
+      handleEndTurn,
+      handlePayFine,
+      handleUseGOOJ,
+      handleDeclareBankruptcy,
+      openLog,
+      handleRestart,
+      openPropertyManager,
+      openTrade,
+    ]
+  );
 
   return (
     <View style={styles.container}>
@@ -151,10 +212,14 @@ export const GameUI: React.FC<GameUIProps> = ({
         players={state.players}
         onClose={() => setLogVisible(false)}
       />
-      {gameFeedback && (
+      {gameFeedback && gameFeedback.message !== dismissedFeedback && (
         <Toast
           message={gameFeedback.message}
-          onDismiss={() => onDispatch({ type: gameFeedback.dismissAction })}
+          onDismiss={
+            isMultiplayer
+              ? () => setDismissedFeedback(gameFeedback.message)
+              : () => onDispatch({ type: gameFeedback.dismissAction })
+          }
         />
       )}
       {uiToastMessage && (
@@ -209,10 +274,13 @@ export const GameUI: React.FC<GameUIProps> = ({
         />
       )}
 
-      {currentPlayer && (
+      {/* Bound to the local player, not `currentPlayer` (whoever's turn it
+          is) — otherwise the panel can end up showing and acting on a
+          different player's assets if the turn changes while it's open. */}
+      {myPlayer && (
         <PropertyManager
           visible={showPropertyManager}
-          player={currentPlayer}
+          player={myPlayer}
           onClose={() => setShowPropertyManager(false)}
           onBuild={handleBuild}
           onSell={handleSell}

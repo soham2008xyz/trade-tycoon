@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import RedisMock from 'ioredis-mock';
 import type Redis from 'ioredis';
 import type { LobbyState } from '@trade-tycoon/game-logic';
 import { RedisRoomStore } from './RedisRoomStore';
+import { StoreConflictError } from './RoomStore';
 
 const sampleRoom = (overrides: Partial<LobbyState> = {}): LobbyState => ({
   roomId: 'ABCD1234',
@@ -73,6 +74,18 @@ describe('RedisRoomStore', () => {
     }));
     expect(result?.players).toHaveLength(2);
     expect((await store.get('ABCD1234'))?.players).toHaveLength(2);
+  });
+
+  it('throws StoreConflictError after exhausting CAS retries under contention', async () => {
+    await store.create(sampleRoom());
+    // Force every compare-and-swap attempt to report a conflict, simulating
+    // another writer winning the race every time.
+    const redisWithCas = redis as unknown as { roomCas: (...args: unknown[]) => Promise<number> };
+    vi.spyOn(redisWithCas, 'roomCas').mockResolvedValue(0);
+
+    await expect(store.update('ABCD1234', (current) => ({ ...current }))).rejects.toThrow(
+      StoreConflictError
+    );
   });
 
   it('removes the room on delete and is idempotent', async () => {

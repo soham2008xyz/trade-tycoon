@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { BOARD, Player } from '@trade-tycoon/game-logic';
 import { Tile } from './Tile';
@@ -19,7 +19,7 @@ interface Props {
   onTokenMovingChange?: (_isMoving: boolean) => void;
 }
 
-export const Board: React.FC<Props> = ({
+const BoardComponent: React.FC<Props> = ({
   players,
   slot,
   availableWidth,
@@ -33,8 +33,16 @@ export const Board: React.FC<Props> = ({
   const size = Math.max(320, Math.min(boardWidth, boardHeight) - 20);
   const compact = size < COMPACT_TILE_THRESHOLD;
 
-  const handleAnimationStart = () => onTokenMovingChange?.(true);
-  const handleAnimationComplete = () => onTokenMovingChange?.(false);
+  // Stable references so `React.memo` on PlayerToken can actually skip
+  // re-rendering tokens whose own player data didn't change.
+  const handleAnimationStart = useCallback(
+    () => onTokenMovingChange?.(true),
+    [onTokenMovingChange]
+  );
+  const handleAnimationComplete = useCallback(
+    () => onTokenMovingChange?.(false),
+    [onTokenMovingChange]
+  );
 
   // Slice instead of index-then-map so static analyzers don't flag BOARD[i]
   // as object injection. Corners are at fixed indices 0/10/20/30 and the four
@@ -45,7 +53,19 @@ export const Board: React.FC<Props> = ({
   const rightRow = BOARD.slice(31, 40);
   const [goTile, jailTile, parkingTile, gotojailTile] = [BOARD[0], BOARD[10], BOARD[20], BOARD[30]];
   const corners = { go: goTile, jail: jailTile, parking: parkingTile, gotojail: gotojailTile };
-  const getOwner = (tileId: string) => players.find((p) => p.properties.includes(tileId));
+
+  // O(total properties) instead of scanning every player for every one of the
+  // 40 tiles (O(tiles * players * propertiesPerPlayer)) on every render.
+  const ownerByTileId = useMemo(() => {
+    const map = new Map<string, Player>();
+    for (const player of players) {
+      for (const propertyId of player.properties) {
+        map.set(propertyId, player);
+      }
+    }
+    return map;
+  }, [players]);
+  const getOwner = (tileId: string) => ownerByTileId.get(tileId);
 
   return (
     <View style={[styles.boardContainer, { width: size, height: size }]}>
@@ -65,28 +85,16 @@ export const Board: React.FC<Props> = ({
       ))}
 
       <View style={[styles.corner, styles.bottomRight]}>
-        <Tile tile={corners.go} orientation="corner" onPress={() => onTilePress(corners.go.id)} />
+        <Tile tile={corners.go} orientation="corner" onPress={onTilePress} />
       </View>
       <View style={[styles.corner, styles.bottomLeft]}>
-        <Tile
-          tile={corners.jail}
-          orientation="corner"
-          onPress={() => onTilePress(corners.jail.id)}
-        />
+        <Tile tile={corners.jail} orientation="corner" onPress={onTilePress} />
       </View>
       <View style={[styles.corner, styles.topLeft]}>
-        <Tile
-          tile={corners.parking}
-          orientation="corner"
-          onPress={() => onTilePress(corners.parking.id)}
-        />
+        <Tile tile={corners.parking} orientation="corner" onPress={onTilePress} />
       </View>
       <View style={[styles.corner, styles.topRight]}>
-        <Tile
-          tile={corners.gotojail}
-          orientation="corner"
-          onPress={() => onTilePress(corners.gotojail.id)}
-        />
+        <Tile tile={corners.gotojail} orientation="corner" onPress={onTilePress} />
       </View>
 
       <View style={styles.rowBottom}>
@@ -96,7 +104,7 @@ export const Board: React.FC<Props> = ({
             tile={t}
             orientation="bottom"
             owner={getOwner(t.id)}
-            onPress={() => onTilePress(t.id)}
+            onPress={onTilePress}
             compact={compact}
           />
         ))}
@@ -108,7 +116,7 @@ export const Board: React.FC<Props> = ({
             tile={t}
             orientation="left"
             owner={getOwner(t.id)}
-            onPress={() => onTilePress(t.id)}
+            onPress={onTilePress}
             compact={compact}
           />
         ))}
@@ -120,7 +128,7 @@ export const Board: React.FC<Props> = ({
             tile={t}
             orientation="top"
             owner={getOwner(t.id)}
-            onPress={() => onTilePress(t.id)}
+            onPress={onTilePress}
             compact={compact}
           />
         ))}
@@ -132,7 +140,7 @@ export const Board: React.FC<Props> = ({
             tile={t}
             orientation="right"
             owner={getOwner(t.id)}
-            onPress={() => onTilePress(t.id)}
+            onPress={onTilePress}
             compact={compact}
           />
         ))}
@@ -140,6 +148,11 @@ export const Board: React.FC<Props> = ({
     </View>
   );
 };
+
+// Memoized so a GameUI re-render that doesn't change board inputs (toasts,
+// modal visibility) skips the whole 40-tile subtree — pays off only because
+// GameUI keeps its callbacks/sharedProps referentially stable.
+export const Board = React.memo(BoardComponent);
 
 const styles = StyleSheet.create({
   boardContainer: {

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - '**'
+  pull_request:
 
 jobs:
   test:
@@ -27,8 +28,17 @@ jobs:
       - name: Build game logic package
         run: npm run build:game-logic
 
+      - name: Lint client
+        run: npm run lint
+
       - name: Type check client
         run: npm run type-check --workspace=apps/client
+
+      - name: Type check server
+        run: npm run type-check --workspace=apps/server
+
+      - name: Type check game logic
+        run: npm run type-check --workspace=packages/game-logic
 
       - name: Run tests
         run: npm test

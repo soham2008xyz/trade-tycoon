@@ -79,7 +79,6 @@ export interface GameState {
   lastDiceRoll?: [number, number]; // To show history
   doublesCount: number; // To track speeding (3 doubles = jail)
   phase: 'roll' | 'action' | 'auction' | 'end'; // Game phase
-  board: Tile[]; // Static board data, but good to have accessible
   winner: string | null;
   auction: AuctionState | null;
   activeTrade: TradeRequest | null;

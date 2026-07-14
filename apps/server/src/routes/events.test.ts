@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import express, { type Express } from 'express';
 import { createServer, type Server } from 'http';
 import type { AddressInfo } from 'net';
@@ -53,24 +53,31 @@ describe('SSE: GET /api/rooms/:id/events', () => {
   });
 
   it('rejects unknown rooms with 404', async () => {
-    const res = await fetch(`http://localhost:${port}/api/rooms/UNKNOWN/events?userId=x`);
+    const res = await fetch(`http://localhost:${port}/api/rooms/UNKNOWN/events?token=x`);
     expect(res.status).toBe(404);
     await res.body?.cancel();
   });
 
-  it('rejects users not in the room with 403', async () => {
-    const roomId = await roomManager.createRoom('Alice');
-    const res = await fetch(`http://localhost:${port}/api/rooms/${roomId}/events?userId=stranger`);
-    expect(res.status).toBe(403);
+  it('rejects an unknown token with 401', async () => {
+    const { roomId } = await roomManager.createRoom('Alice');
+    const res = await fetch(`http://localhost:${port}/api/rooms/${roomId}/events?token=stranger`);
+    expect(res.status).toBe(401);
+    await res.body?.cancel();
+  });
+
+  it('rejects a stolen public playerId used as a token with 401', async () => {
+    const { roomId, playerId: hostId } = await roomManager.createRoom('Alice');
+    const res = await fetch(`http://localhost:${port}/api/rooms/${roomId}/events?token=${hostId}`);
+    expect(res.status).toBe(401);
     await res.body?.cancel();
   });
 
   it('streams an initial lobby_update snapshot immediately on connect', async () => {
-    const roomId = await roomManager.createRoom('Alice');
-    const room = (await roomManager.getRoom(roomId))!;
-    const hostId = room.players[0].id;
+    const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Alice');
 
-    const res = await fetch(`http://localhost:${port}/api/rooms/${roomId}/events?userId=${hostId}`);
+    const res = await fetch(
+      `http://localhost:${port}/api/rooms/${roomId}/events?token=${hostToken}`
+    );
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/event-stream');
 
@@ -82,16 +89,17 @@ describe('SSE: GET /api/rooms/:id/events', () => {
     const state = JSON.parse(frames[0].data);
     expect(state.roomId).toBe(roomId);
     expect(state.players[0].id).toBe(hostId);
+    expect(state.sessions).toBeUndefined();
 
     await reader.cancel();
   });
 
   it('forwards a published lobby_update to a subscribed stream', async () => {
-    const roomId = await roomManager.createRoom('Alice');
-    const room = (await roomManager.getRoom(roomId))!;
-    const hostId = room.players[0].id;
+    const { roomId, token: hostToken } = await roomManager.createRoom('Alice');
 
-    const res = await fetch(`http://localhost:${port}/api/rooms/${roomId}/events?userId=${hostId}`);
+    const res = await fetch(
+      `http://localhost:${port}/api/rooms/${roomId}/events?token=${hostToken}`
+    );
     const reader = res.body!.getReader();
     const dec = new TextDecoder();
 
@@ -134,14 +142,46 @@ describe('SSE: GET /api/rooms/:id/events', () => {
     await reader.cancel();
   });
 
-  it('strips board data from the initial started-game snapshot', async () => {
-    const roomId = await roomManager.createRoom('Alice');
-    const room = (await roomManager.getRoom(roomId))!;
-    const hostId = room.players[0].id;
-    await roomManager.joinRoom(roomId, 'Bob');
-    await roomManager.startGame(roomId, hostId);
+  it('unsubscribes from the event bus when the client disconnects', async () => {
+    const { roomId, token } = await roomManager.createRoom('Alice');
 
-    const res = await fetch(`http://localhost:${port}/api/rooms/${roomId}/events?userId=${hostId}`);
+    // Wrap the real subscribe so the test can observe the unsubscribe handle
+    // the SSE route holds — the leak fixed here was exactly this handle never
+    // being called after a dead stream.
+    let unsubscribed = false;
+    const realSubscribe = eventBus.subscribe.bind(eventBus);
+    vi.spyOn(eventBus, 'subscribe').mockImplementation(async (id, handler) => {
+      const unsub = await realSubscribe(id, handler);
+      return () => {
+        unsubscribed = true;
+        unsub();
+      };
+    });
+
+    const res = await fetch(`http://localhost:${port}/api/rooms/${roomId}/events?token=${token}`);
+    const reader = res.body!.getReader();
+    await reader.read(); // drain the initial snapshot
+
+    // Tear the connection down, then publish: whichever fires first — the
+    // response 'close' event or the failed write — must release the
+    // subscription.
+    await reader.cancel();
+    await eventBus.publish(roomId, {
+      type: 'lobby_update',
+      state: (await roomManager.getRoom(roomId))!,
+    });
+
+    await vi.waitFor(() => expect(unsubscribed).toBe(true));
+  });
+
+  it('strips board data from the initial started-game snapshot', async () => {
+    const { roomId, token: hostToken } = await roomManager.createRoom('Alice');
+    await roomManager.joinRoom(roomId, 'Bob');
+    await roomManager.startGame(roomId, hostToken);
+
+    const res = await fetch(
+      `http://localhost:${port}/api/rooms/${roomId}/events?token=${hostToken}`
+    );
     expect(res.status).toBe(200);
 
     const reader = res.body!.getReader();

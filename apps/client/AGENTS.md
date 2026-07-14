@@ -82,8 +82,10 @@ Works in both modes because of how `myPlayerId` is wired upstream:
 - `LocalGame` passes `currentPlayerId={state.currentPlayerId}` —
   `isMyTurn` is always `true` during play (the user-at-the-device IS
   the active player).
-- `OnlineGame` passes `currentPlayerId={userId || ''}` — `isMyTurn` is
-  true only on the active player's client.
+- `OnlineGame` passes `currentPlayerId={playerId || ''}` — the local
+  user's public id (resolved from the session at join/create time),
+  not the private `token`. `isMyTurn` is true only on the active
+  player's client.
 
 This is the unifying trick. It works as long as the rule maps cleanly
 to "is the active outer-game player".
@@ -107,33 +109,43 @@ When you add a new modal or interactive surface, the question is:
 _does this control apply to the outer-game active player?_ If yes,
 use Pattern 1. If no, use Pattern 2.
 
-## EventSource wiring
+## Room sync (SSE + native polling)
 
-Online state arrives via `GET /api/rooms/:id/events?userId=...`
-(SSE). The implementation in `OnlineGame.tsx` is the template:
+Online state arrives via `GET /api/rooms/:id/events?token=...` on web
+(SSE) or a version-aware poll on native (no `EventSource`). The
+transport logic lives in `components/online-sync.ts`
+(`startRoomSync`), a framework-free module unit-tested in the node
+environment — `OnlineGame.tsx` only wires its callbacks onto React
+state in a `useEffect` keyed on `[roomId, token]`.
 
-- Subscribe in a `useEffect` keyed on `[roomId, userId]` — only when
-  both are set (i.e., we've joined a room).
-- Use `addEventListener('lobby_update', ...)` and
-  `addEventListener('game_state_update', ...)` for typed events.
-  Don't use the generic `onmessage`.
-- The browser's `EventSource` **auto-reconnects** when the connection
-  drops (e.g., when Vercel's 300s timeout closes the stream). Don't
+- SSE: `addEventListener('lobby_update', ...)` /
+  `addEventListener('game_state_update', ...)`, not the generic
+  `onmessage`. The browser's `EventSource` **auto-reconnects** on its
+  own when the connection drops (e.g. Vercel's 300s timeout) — don't
   hand-roll reconnect logic.
-- Clean up in the effect's return: `removeEventListener` + `es.close()`.
-  Also `eventSourceRef.current?.close()` in `handleLeave` so a manual
-  exit terminates the stream immediately, but still POST
-  `/api/rooms/:id/leave` before navigating away so the server removes the
-  player from the shared lobby/game state for everyone else.
+- Native poll: backs off from 2s to 5s while the server's
+  `lobby.version` is unchanged, resets to 2s on a real change, and
+  stops on a 404 (`onSessionExpired`).
+- `startRoomSync` returns a `{ stop() }` handle; `OnlineGame` keeps it
+  in a ref and calls `stop()` both on effect cleanup and in
+  `handleLeave` (before the `/api/rooms/:id/leave` POST, so the
+  route's own broadcast can't resurrect state being abandoned).
+
+Adding a new sync case (a new event type, a new poll response field)
+belongs in `online-sync.ts` and its `online-sync.test.ts`, not inline
+in the component.
 
 ## Resume is opt-in (not auto)
 
 `OnlineGame` mounts in one of three modes via `initialMode`:
 `'create'`, `'join'`, or `'resume'`. Only `'resume'` reads
 `localStorage` and calls `POST /api/rooms/:id/reconnect`; the
-multiplayer menu surfaces a "Resume Game" button when
-`localStorage.trade_tycoon_session` is set, and that's the only
-entry point.
+multiplayer menu surfaces a "Resume Game" button when a session is
+stored under key `trade_tycoon_session_v2` (shape:
+`{ roomId, playerId, token }`, read/written via `online-session.ts`),
+and that's the only entry point. `online-session.ts` is a `.ts`
+module — it takes `Platform.OS` as an injected parameter rather than
+importing `Platform` itself; see "File-extension discipline" above.
 
 **Do not add silent auto-restore on Create/Join intent.** That was
 the impersonation bug — a 2nd browser tab with shared localStorage

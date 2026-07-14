@@ -26,18 +26,20 @@ export const createEventsRouter = (deps: {
 
   router.get('/api/rooms/:roomId/events', async (req: Request, res: Response) => {
     const roomId = String(req.params.roomId).trim().toUpperCase();
-    const userId = String(req.query.userId ?? '').trim();
-    if (!userId) {
-      return res.status(400).json({ error: 'userId query param is required' });
+    // EventSource cannot set custom headers, so the session token travels in
+    // the query string here (unlike every other endpoint, which takes it in
+    // the JSON body).
+    const token = String(req.query.token ?? '').trim();
+    if (!token) {
+      return res.status(400).json({ error: 'token query param is required' });
     }
 
     const room = await roomManager.getRoom(roomId);
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    const inLobby = room.players.some((p) => p.id === userId);
-    const inGame = room.gameState?.players.some((p) => p.id === userId) ?? false;
-    if (!inLobby && !inGame) {
-      return res.status(403).json({ error: 'You are not in this room' });
+    const auth = await roomManager.authenticate(roomId, token);
+    if (!auth) {
+      return res.status(401).json({ error: 'Invalid or expired session token' });
     }
 
     res.status(200);
@@ -49,12 +51,40 @@ export const createEventsRouter = (deps: {
     res.setHeader('X-Accel-Buffering', 'no');
     if (typeof res.flushHeaders === 'function') res.flushHeaders();
 
+    // Everything the stream allocates (EventBus subscription, heartbeat) is
+    // released through this idempotent cleanup. It is fully wired — and
+    // registered for connection teardown — BEFORE the first write, so a
+    // write failure at any point (including the initial snapshot below)
+    // can't leave the EventBus subscription (and, on Redis, the duplicated
+    // subscriber TCP connection) open forever.
+    let cleanedUp = false;
+    let unsubscribe: (() => void) | null = null;
+    let heartbeat: NodeJS.Timeout | null = null;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      if (heartbeat) clearInterval(heartbeat);
+      if (unsubscribe) unsubscribe();
+      try {
+        res.end();
+      } catch {
+        // ignore
+      }
+    };
+
+    // `res`, not `req`: since Node 16 the request's own 'close' fires when
+    // the request *body* completes — immediately for a GET — while the
+    // response's 'close' fires when the underlying connection tears down,
+    // which is the disconnect signal a long-lived stream actually needs.
+    res.on('close', cleanup);
+
     const writeEvent = (event: RoomEvent) => {
       try {
         res.write(`event: ${event.type}\n`);
         res.write(`data: ${JSON.stringify(event.state)}\n\n`);
       } catch (err) {
         console.warn('[SSE] write failed, closing stream', err);
+        cleanup();
       }
     };
 
@@ -63,31 +93,32 @@ export const createEventsRouter = (deps: {
     if (room.gameState) {
       writeEvent({ type: 'game_state_update', state: room.gameState });
     }
+    // The snapshot write already failed — don't subscribe a dead stream.
+    if (cleanedUp) return;
 
-    const unsubscribe = await eventBus.subscribe(roomId, writeEvent);
+    try {
+      unsubscribe = await eventBus.subscribe(roomId, writeEvent);
+    } catch (err) {
+      console.warn('[SSE] subscribe failed, closing stream', err);
+      cleanup();
+      return;
+    }
+    if (cleanedUp) {
+      // The connection dropped while we awaited the subscription handle.
+      unsubscribe();
+      return;
+    }
 
     // Heartbeat so intermediaries don't tear down idle connections, and so the
     // client's `EventSource.readyState` reflects a live socket.
-    const heartbeat = setInterval(() => {
+    heartbeat = setInterval(() => {
       try {
         res.write(`: ping\n\n`);
-      } catch {
-        // ignore — the close handler will clean up.
+      } catch (err) {
+        console.warn('[SSE] heartbeat write failed, closing stream', err);
+        cleanup();
       }
     }, 15_000);
-
-    const cleanup = () => {
-      clearInterval(heartbeat);
-      unsubscribe();
-      try {
-        res.end();
-      } catch {
-        // ignore
-      }
-    };
-
-    req.on('close', cleanup);
-    req.on('aborted', cleanup);
   });
 
   return router;

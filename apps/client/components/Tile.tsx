@@ -8,7 +8,13 @@ interface Props {
   orientation: 'bottom' | 'left' | 'top' | 'right' | 'corner';
   style?: StyleProp<ViewStyle>;
   owner?: Player;
-  onPress?: () => void;
+  /**
+   * Takes the tile id rather than being pre-bound to it, so callers (Board)
+   * can pass a single stable function reference instead of a fresh closure
+   * per tile per render — that's what lets `React.memo` below actually skip
+   * re-rendering tiles whose own props didn't change.
+   */
+  onPress?: (_tileId: string) => void;
   testID?: string;
   /**
    * When true, edge tiles render without the name text. Used on narrow
@@ -20,7 +26,72 @@ interface Props {
 
 const STRIPES = Array.from({ length: 40 });
 
-export const Tile: React.FC<Props> = ({
+// Color bar runs along whichever edge faces the board's center; corners
+// simplify to a single fixed layout. Extracted as a lookup (rather than an
+// if/else chain inside the component) to keep TileComponent's own
+// complexity down — it's a pure mapping with no game-state dependency. A
+// `Map` rather than a plain object so the lookup below isn't a bracket
+// access on an object (generic-object-injection).
+const FLEX_DIRECTION_BY_ORIENTATION = new Map<
+  Props['orientation'],
+  'column' | 'row' | 'column-reverse' | 'row-reverse'
+>([
+  ['bottom', 'column-reverse'], // Color on top
+  ['top', 'column'], // Color on bottom
+  ['left', 'row-reverse'], // Color on right
+  ['right', 'row'], // Color on left
+  ['corner', 'column'],
+]);
+
+const renderHouses = (houseCount: number) => {
+  if (houseCount === 0) return null;
+  if (houseCount === 5) {
+    return <View style={styles.hotel} />;
+  }
+  return (
+    <View style={styles.houseContainer}>
+      {Array.from({ length: houseCount }).map((_, i) => (
+        <View key={i} style={styles.house} />
+      ))}
+    </View>
+  );
+};
+
+const renderColorBar = (
+  isStreet: boolean,
+  color: string,
+  orientation: Props['orientation'],
+  houseCount: number
+) => {
+  if (!isStreet) return null;
+  return (
+    <View
+      style={[
+        styles.colorBar,
+        { backgroundColor: color },
+        orientation === 'left' || orientation === 'right'
+          ? styles.colorBarVertical
+          : styles.colorBarHorizontal,
+      ]}
+    >
+      {/* Render Houses on Color Bar */}
+      <View style={styles.houseOverlay}>{renderHouses(houseCount)}</View>
+    </View>
+  );
+};
+
+const renderMortgageOverlay = (isMortgaged: boolean | undefined) => {
+  if (!isMortgaged) return null;
+  return (
+    <View style={styles.mortgagedOverlay}>
+      {STRIPES.map((_, i) => (
+        <View key={i} style={[styles.stripe, { left: i * 10 - 100 }]} />
+      ))}
+    </View>
+  );
+};
+
+const TileComponent: React.FC<Props> = ({
   tile,
   orientation,
   style,
@@ -33,59 +104,19 @@ export const Tile: React.FC<Props> = ({
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
   const houseCount = owner?.houses[tile.id] || 0;
   const isMortgaged = owner?.mortgaged.includes(tile.id);
-
-  // Determine flex direction based on orientation
-  let flexDirection: 'column' | 'row' | 'column-reverse' | 'row-reverse' = 'column';
-
-  if (orientation === 'bottom')
-    flexDirection = 'column-reverse'; // Color on top
-  else if (orientation === 'top')
-    flexDirection = 'column'; // Color on bottom
-  else if (orientation === 'left')
-    flexDirection = 'row-reverse'; // Color on right
-  else if (orientation === 'right') flexDirection = 'row'; // Color on left
-
-  // Override for corners (simplified)
-  if (orientation === 'corner') flexDirection = 'column';
-
-  const renderHouses = () => {
-    if (houseCount === 0) return null;
-    if (houseCount === 5) {
-      return <View style={styles.hotel} />;
-    }
-    return (
-      <View style={styles.houseContainer}>
-        {Array.from({ length: houseCount }).map((_, i) => (
-          <View key={i} style={styles.house} />
-        ))}
-      </View>
-    );
-  };
+  const flexDirection = FLEX_DIRECTION_BY_ORIENTATION.get(orientation) ?? 'column';
 
   return (
     <Pressable
       testID={testID || `tile-${tile.id}`}
-      onPress={onPress}
+      onPress={() => onPress?.(tile.id)}
       style={({ pressed }) => [
         styles.container,
         { flexDirection, opacity: pressed ? 0.8 : 1 },
         style,
       ]}
     >
-      {isStreet && (
-        <View
-          style={[
-            styles.colorBar,
-            { backgroundColor: color },
-            orientation === 'left' || orientation === 'right'
-              ? styles.colorBarVertical
-              : styles.colorBarHorizontal,
-          ]}
-        >
-          {/* Render Houses on Color Bar */}
-          <View style={styles.houseOverlay}>{renderHouses()}</View>
-        </View>
-      )}
+      {renderColorBar(isStreet, color, orientation, houseCount)}
       <View style={styles.content}>
         {owner && <View style={[styles.ownerIndicator, { backgroundColor: owner.color }]} />}
         {!(compact && orientation !== 'corner') && (
@@ -95,24 +126,12 @@ export const Tile: React.FC<Props> = ({
         )}
         {tile.price && <Text style={styles.price}>${tile.price}</Text>}
       </View>
-      {isMortgaged && (
-        <View style={styles.mortgagedOverlay}>
-          {STRIPES.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.stripe,
-                {
-                  left: i * 10 - 100,
-                },
-              ]}
-            />
-          ))}
-        </View>
-      )}
+      {renderMortgageOverlay(isMortgaged)}
     </Pressable>
   );
 };
+
+export const Tile = React.memo(TileComponent);
 
 const styles = StyleSheet.create({
   container: {

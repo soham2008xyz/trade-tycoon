@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import type { GameState, Player } from '@trade-tycoon/game-logic';
-import { BOARD } from '@trade-tycoon/game-logic';
 import { getStatusPanelActions } from './useStatusPanelActions';
 
 const player = (id: string, money: number, position = 1, props: string[] = []): Player => ({
@@ -23,7 +22,6 @@ const baseState = (overrides: Partial<GameState> = {}): GameState => ({
   dice: [0, 0],
   doublesCount: 0,
   phase: 'roll',
-  board: BOARD,
   winner: null,
   auction: null,
   activeTrade: null,

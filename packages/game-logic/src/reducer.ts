@@ -53,12 +53,19 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
   return result === ACTION_REJECTED ? state : result;
 };
 
+/** Returns a number in [0, 1), same contract as `Math.random`. */
+export type Rng = () => number;
+
 /**
- * Server-side helper for removing a player from an in-progress online game.
- * This is intentionally not a public client action because only the server
- * should be able to drop a player after they leave the room.
+ * Shared cleanup for permanently removing a player mid-game: cancels any
+ * trade or auction they're involved in (re-seating the auction winner if
+ * they were the sole remaining bidder), advances the turn/win state, and
+ * drops their tiles back to the unowned pool. `reason` only affects the
+ * toast/log wording — the structural cleanup is identical whether the
+ * player left the room or went bankrupt, so both paths share it (bankruptcy
+ * used to skip this and leave a dangling activeTrade/auction reference).
  */
-export const removePlayerFromGame = (state: GameState, playerId: string): GameState => {
+const removePlayerAndCleanup = (state: GameState, playerId: string, reason: string): GameState => {
   const playerIndex = state.players.findIndex((p) => p.id === playerId);
   if (playerIndex === -1) return state;
 
@@ -70,8 +77,8 @@ export const removePlayerFromGame = (state: GameState, playerId: string): GameSt
   let winner = state.winner;
   let auction = state.auction;
   let activeTrade = state.activeTrade;
-  const toastParts = [`${player.name} left the game.`];
-  const logs = [...state.logs, `[${player.name}] Left the game.`];
+  const toastParts = [`${player.name} ${reason}.`];
+  const logs = [...state.logs, `[${player.name}] ${reason}.`];
 
   if (
     activeTrade &&
@@ -176,7 +183,7 @@ export const removePlayerFromGame = (state: GameState, playerId: string): GameSt
     auction = null;
     activeTrade = null;
     toastParts.length = 0;
-    toastParts.push(`${player.name} left the game. ${players[0].name} wins!`);
+    toastParts.push(`${player.name} ${reason}. ${players[0].name} wins!`);
     logs.push(`[Game] ${players[0].name} wins!`);
   } else if (winner === playerId || (winner && !players.some((p) => p.id === winner))) {
     winner = null;
@@ -197,13 +204,45 @@ export const removePlayerFromGame = (state: GameState, playerId: string): GameSt
   };
 };
 
-export const reduceGameAction = (state: GameState, action: Action): GameReducerResult => {
+/**
+ * Server-side helper for removing a player from an in-progress online game.
+ * This is intentionally not a public client action because only the server
+ * should be able to drop a player after they leave the room. Bypasses
+ * `reduceGameAction`, so it applies the log cap itself.
+ */
+export const removePlayerFromGame = (state: GameState, playerId: string): GameState =>
+  capLogs(removePlayerAndCleanup(state, playerId, 'left the game'));
+
+/** Logs are UI history, not gameplay state — cap so a long game's payload/storage stays bounded. */
+const MAX_LOGS = 200;
+
+const capLogs = (state: GameState): GameState => {
+  if (state.logs.length <= MAX_LOGS) return state;
+  return { ...state, logs: state.logs.slice(-MAX_LOGS) };
+};
+
+/**
+ * Whether any of `propertyIds` has houses/hotel built on it, per `houses`.
+ * Iterates `houses`' own entries and checks membership in `propertyIds`
+ * (rather than indexing `houses[propId]` for each id) so this isn't a
+ * dynamic-bracket-access read of a plain object keyed by data that
+ * ultimately traces back to a network action (generic-object-injection).
+ */
+const hasHousesOnAny = (houses: Record<string, number>, propertyIds: string[]): boolean =>
+  Object.entries(houses).some(([propId, count]) => count > 0 && propertyIds.includes(propId));
+
+const reduceGameActionUnbounded = (
+  state: GameState,
+  action: Action,
+  rng: Rng
+): GameReducerResult => {
   if (state.winner && !POST_GAME_ALLOWED.has(action.type)) {
     return state;
   }
 
   switch (action.type) {
     case 'RESET_GAME': {
+      if (action.players.length === 0) return ACTION_REJECTED;
       const newPlayers = action.players.map((p) => {
         const player = createPlayer(p.id, p.name);
         player.color = p.color;
@@ -317,8 +356,8 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
       if (state.phase !== 'roll' && !(state.phase === 'action' && state.doublesCount > 0))
         return state;
 
-      const die1 = action.die1 ?? Math.floor(Math.random() * 6) + 1;
-      const die2 = action.die2 ?? Math.floor(Math.random() * 6) + 1;
+      const die1 = action.die1 ?? Math.floor(rng() * 6) + 1;
+      const die2 = action.die2 ?? Math.floor(rng() * 6) + 1;
 
       const isDouble = die1 === die2;
       let newDoublesCount = isDouble ? state.doublesCount + 1 : 0;
@@ -396,7 +435,7 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
       // Chance Logic
       let targetTile = BOARD[newPosition];
       if (targetTile.type === 'chance') {
-        const card = CHANCE_CARDS[Math.floor(Math.random() * CHANCE_CARDS.length)];
+        const card = CHANCE_CARDS[Math.floor(rng() * CHANCE_CARDS.length)];
 
         const { player: updatedPlayer, sentToJail } = processCardEffect(newPlayer, card);
         newPlayer = updatedPlayer;
@@ -430,8 +469,7 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
 
       // Community Chest Logic
       if (targetTile.type === 'community_chest') {
-        const card =
-          COMMUNITY_CHEST_CARDS[Math.floor(Math.random() * COMMUNITY_CHEST_CARDS.length)];
+        const card = COMMUNITY_CHEST_CARDS[Math.floor(rng() * COMMUNITY_CHEST_CARDS.length)];
 
         const { player: updatedPlayer, sentToJail } = processCardEffect(newPlayer, card);
         newPlayer = updatedPlayer;
@@ -495,17 +533,14 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
           let rent = 0;
 
           if (targetTile.group === 'railroad') {
-            const boardToUse = state.board && state.board.length > 0 ? state.board : BOARD;
-
-            const ownedRailroads = boardToUse.filter(
+            const ownedRailroads = BOARD.filter(
               (t) => t.group === 'railroad' && owner.properties.includes(t.id)
             ).length;
             // Rent is 25, 50, 100, 200 based on count (index 0-3)
             const rentIndex = Math.max(0, ownedRailroads - 1);
             rent = targetTile.rent ? targetTile.rent[rentIndex] : 25;
           } else if (targetTile.group === 'utility') {
-            const boardToUse = state.board && state.board.length > 0 ? state.board : BOARD;
-            const ownedUtilities = boardToUse.filter(
+            const ownedUtilities = BOARD.filter(
               (t) => t.group === 'utility' && owner.properties.includes(t.id)
             ).length;
             const multiplier = ownedUtilities === 2 ? 10 : 4;
@@ -615,8 +650,7 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
       const player = state.players.find((p) => p.id === action.playerId);
       if (!player) return state;
 
-      const boardToUse = state.board && state.board.length > 0 ? state.board : BOARD;
-      const tile = boardToUse[player.position];
+      const tile = BOARD[player.position];
 
       // Verify buyable
       if (!isTileBuyable(tile)) return { ...state, errorMessage: 'Nothing to buy here.' };
@@ -655,6 +689,8 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
       const player = state.players.find((p) => p.id === action.playerId);
       if (!player) return state;
 
+      if (!Number.isSafeInteger(action.amount) || action.amount < 0)
+        return { ...state, errorMessage: 'Invalid bid amount.' };
       if (action.amount <= state.auction.currentBid)
         return { ...state, errorMessage: 'Bid must be higher than current bid.' };
       if (player.money < action.amount) return { ...state, errorMessage: 'Insufficient funds.' };
@@ -799,6 +835,14 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
       if (action.playerId === action.targetPlayerId)
         return { ...state, errorMessage: 'You cannot trade with yourself.' };
 
+      const isValidOfferAmounts = (offer: TradeOffer) =>
+        Number.isSafeInteger(offer.money) &&
+        offer.money >= 0 &&
+        Number.isSafeInteger(offer.getOutOfJailCards) &&
+        offer.getOutOfJailCards >= 0;
+      if (!isValidOfferAmounts(action.offer) || !isValidOfferAmounts(action.request))
+        return { ...state, errorMessage: 'Invalid trade amounts.' };
+
       const initiator = state.players.find((p) => p.id === action.playerId);
       const target = state.players.find((p) => p.id === action.targetPlayerId);
       if (!initiator || !target) return state;
@@ -822,6 +866,12 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
         return { ...state, errorMessage: "You don't have enough money for this offer." };
       if (!hasProps) return { ...state, errorMessage: "You don't own all offered properties." };
       if (!hasCards) return { ...state, errorMessage: "You don't have enough GOOJ cards." };
+      // Trading a developed property would orphan its houses (the receiving
+      // player has no matching entry, and the seller's stale `houses` record
+      // would keep counting toward flat costs like the Repairs card). Require
+      // selling buildings back to the bank before the property can be traded.
+      if (hasHousesOnAny(initiator.houses, action.offer.properties))
+        return { ...state, errorMessage: 'Sell buildings before trading a developed property.' };
 
       // Validate Target (Request)
       const targetHasMoney = target.money >= action.request.money;
@@ -835,6 +885,11 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
         return { ...state, errorMessage: "Target doesn't own all requested properties." };
       if (!targetHasCards)
         return { ...state, errorMessage: "Target doesn't have enough GOOJ cards." };
+      if (hasHousesOnAny(target.houses, action.request.properties))
+        return {
+          ...state,
+          errorMessage: 'Target must sell buildings before trading a developed property.',
+        };
 
       const tradeRequest: TradeRequest = {
         id: Date.now().toString(),
@@ -881,6 +936,13 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
         return { ...state, errorMessage: "You don't own requested properties." };
       if (target.getOutOfJailCards < trade.request.getOutOfJailCards)
         return { ...state, errorMessage: "You don't have enough GOOJ cards." };
+
+      // Re-check for houses built after the trade was proposed but before it
+      // was accepted — the proposal-time check alone isn't enough.
+      if (hasHousesOnAny(initiator.houses, trade.offer.properties))
+        return { ...state, errorMessage: 'Initiator has since built on an offered property.' };
+      if (hasHousesOnAny(target.houses, trade.request.properties))
+        return { ...state, errorMessage: 'You have since built on a requested property.' };
 
       // Execute Trade
       let newInitiator = { ...initiator };
@@ -1184,59 +1246,12 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
     }
 
     case 'DECLARE_BANKRUPTCY': {
-      const playerIndex = state.players.findIndex((p) => p.id === action.playerId);
-      if (playerIndex === -1) return state;
-      const player = state.players[playerIndex];
-
-      // Determine next player ID before removing the current one
-      let nextPlayerId = state.currentPlayerId;
-      let phase = state.phase;
-      let doublesCount = state.doublesCount;
-
-      if (state.currentPlayerId === action.playerId) {
-        // If it's the bankrupt player's turn, pass turn to next player
-        const nextIndex = (playerIndex + 1) % state.players.length;
-        // If they are the only player left (should be caught by win condition, but logic holds),
-        // next is them (but they are being removed).
-        // Since we check length later, just get the ID.
-        nextPlayerId = state.players[nextIndex].id;
-        phase = 'roll';
-        doublesCount = 0;
-      }
-
-      const newPlayers = state.players.filter((p) => p.id !== action.playerId);
-
-      if (newPlayers.length === 0) {
-        // Should not happen in normal game with >1 player, but handled
-        return { ...state, players: [], winner: null };
-      }
-
-      if (newPlayers.length === 1) {
-        return {
-          ...state,
-          players: newPlayers,
-          winner: newPlayers[0].id,
-          currentPlayerId: newPlayers[0].id,
-          errorMessage: undefined,
-          toastMessage: `${player.name} went bankrupt! ${newPlayers[0].name} wins!`,
-          logs: [
-            ...state.logs,
-            `[${player.name}] Declared Bankruptcy.`,
-            `[Game] ${newPlayers[0].name} wins!`,
-          ],
-        };
-      }
-
-      return {
-        ...state,
-        players: newPlayers,
-        currentPlayerId: nextPlayerId,
-        phase,
-        doublesCount,
-        errorMessage: undefined,
-        toastMessage: `${player.name} went bankrupt.`,
-        logs: [...state.logs, `[${player.name}] Declared Bankruptcy.`],
-      };
+      if (!state.players.some((p) => p.id === action.playerId)) return state;
+      // Delegate to the same removal cleanup `removePlayerFromGame` uses so
+      // bankruptcy also cancels any trade/auction the player was part of
+      // instead of leaving a dangling reference to a player who no longer
+      // exists in state.players.
+      return removePlayerAndCleanup(state, action.playerId, 'went bankrupt');
     }
 
     case 'END_TURN': {
@@ -1268,4 +1283,19 @@ export const reduceGameAction = (state: GameState, action: Action): GameReducerR
     default:
       return state;
   }
+};
+
+/**
+ * Public entry point. Delegates to the unbounded reducer above, then caps
+ * `logs` at `MAX_LOGS` — a single choke point instead of touching every one
+ * of the reducer's ~25 individual log-append sites.
+ */
+export const reduceGameAction = (
+  state: GameState,
+  action: Action,
+  rng: Rng = Math.random
+): GameReducerResult => {
+  const result = reduceGameActionUnbounded(state, action, rng);
+  if (result === ACTION_REJECTED) return result;
+  return capLogs(result);
 };

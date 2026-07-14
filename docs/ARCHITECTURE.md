@@ -59,22 +59,34 @@ trade-tycoon/
 ## Multiplayer data flow
 
 1. **Action.** User clicks "Roll Dice" → client sends
-   `POST /api/rooms/:id/actions { userId, action: { type: 'ROLL_DICE', ... } }`.
-2. **Validation.** Server checks the room exists, the game has started, the
-   user is in the game, and the action's `playerId` matches the authenticated
-   user. The server also strips client-provided dice values and rolls its own.
+   `POST /api/rooms/:id/actions { token, action: { type: 'ROLL_DICE', ... } }`.
+   `token` is the private session credential returned at create/join —
+   never the public `playerId`.
+2. **Validation.** Server resolves `token` to a `playerId` via the room's
+   `sessions` map (401 if unknown), then checks the room exists, the game
+   has started, the user is in the game, and the action's `playerId`
+   matches the token-resolved one. The server also strips client-provided
+   dice values and rolls its own.
 3. **Reduce.** `RoomManager.handleGameAction` runs the shared `gameReducer`
    inside a `RoomStore.update` — an atomic compare-and-swap so two
-   simultaneous mutations on the same room can't clobber each other.
-4. **Publish.** The router calls `eventBus.publish(roomId, { type: 'game_state_update', state })`.
+   simultaneous mutations on the same room can't clobber each other. If the
+   action is rejected (hard sentinel, no-op, or soft rejection with
+   `errorMessage`), the update aborts: nothing is persisted or published,
+   and the route returns 409 with the rejection message to the caller only.
+4. **Publish.** On success, the router calls
+   `eventBus.publish(roomId, { type: 'game_state_update', state })`, where
+   `state` has already passed through `toPublicGameState` (strips
+   `errorMessage`).
 5. **Fan out.** Redis pub/sub forwards the event to every Vercel function
    instance currently holding an SSE stream open for that room. Each instance
    writes the event to its connected clients.
-6. **Render.** The client's `EventSource` receives the event and updates React
+6. **Render.** The client's `EventSource` (or, on native, a version-aware
+   poll — see `apps/client/AGENTS.md`) receives the update and sets React
    state. UI re-renders.
 
 The same flow applies to lobby mutations (create / join / start), with
-`lobby_update` events instead of `game_state_update`.
+`lobby_update` events instead of `game_state_update`, published only on a
+successful state change.
 
 ## Why pluggable backends
 

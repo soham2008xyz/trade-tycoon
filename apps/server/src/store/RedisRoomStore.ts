@@ -1,6 +1,6 @@
 import type Redis from 'ioredis';
 import type { LobbyState } from '@trade-tycoon/game-logic';
-import type { RoomStore } from './RoomStore';
+import { StoreConflictError, type RoomStore } from './RoomStore';
 
 const ROOM_KEY_PREFIX = 'room:';
 const DEFAULT_TTL_SECONDS = 60 * 60 * 24; // 24 hours
@@ -105,9 +105,7 @@ export class RedisRoomStore implements RoomStore {
       if (written === 1) return next;
       // Otherwise: another writer beat us; loop and re-read.
     }
-    throw new Error(
-      `[RedisRoomStore] update conflict on ${roomId} after ${MAX_UPDATE_RETRIES} retries`
-    );
+    throw new StoreConflictError(roomId);
   }
 
   async delete(roomId: string): Promise<void> {

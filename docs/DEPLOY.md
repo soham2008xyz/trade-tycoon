@@ -31,9 +31,14 @@ survive across requests.
 
 In the server project's **Settings → Environment Variables**:
 
-| Name        | Value                                    | Environments         |
-| ----------- | ---------------------------------------- | -------------------- |
-| `REDIS_URL` | `rediss://default:<token>@<host>:<port>` | Production + Preview |
+| Name              | Value                                                                         | Environments         |
+| ----------------- | ----------------------------------------------------------------------------- | -------------------- |
+| `REDIS_URL`       | `rediss://default:<token>@<host>:<port>`                                      | Production + Preview |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (e.g. the client's deployed URL) | Production + Preview |
+
+`ALLOWED_ORIGINS` falls back to known local-dev origins
+(`http://localhost:8081`, `http://localhost:19006`) when unset — always set
+it explicitly in any deployed environment.
 
 Keep the existing build command (`npm run build`) and start command
 (auto-detected from the Express app). No `vercel.json` is required —
@@ -62,11 +67,11 @@ curl https://trade-tycoon-server.sohambanerjee.me/api/health
 # 2. Two-process round-trip works (proves cross-instance fan-out via Redis)
 curl -X POST https://trade-tycoon-server.sohambanerjee.me/api/rooms \
   -H 'Content-Type: application/json' -d '{"playerName":"Alice"}'
-# returns { roomId, userId, isHost: true }
+# returns { roomId, playerId, token, isHost: true }
 
 curl -X POST https://trade-tycoon-server.sohambanerjee.me/api/rooms/<ROOMID>/join \
   -H 'Content-Type: application/json' -d '{"playerName":"Bob"}'
-# returns { roomId, userId, isHost: false }
+# returns { roomId, playerId, token, isHost: false }
 ```
 
 If the join returns `404` for a room you just created, Redis isn't wired up —

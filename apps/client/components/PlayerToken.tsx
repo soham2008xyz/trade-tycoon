@@ -77,7 +77,7 @@ const getInterpolatedCoords = (val: number) => {
   };
 };
 
-export const PlayerToken: React.FC<Props> = ({
+const PlayerTokenComponent: React.FC<Props> = ({
   player,
   boardSize,
   index,
@@ -125,6 +125,9 @@ export const PlayerToken: React.FC<Props> = ({
 
       // Use spread operator to pass array elements as arguments
       // @ts-ignore - spread operator works for withSequence
+      // Reanimated's SharedValue.value assignment is the documented API for
+      // driving an animation, not a disallowed mutation of a hook's return value.
+      // eslint-disable-next-line react-hooks/immutability
       visualIndex.value = withSequence(...animations);
     } else {
       visualIndex.value = player.position;
@@ -164,3 +167,5 @@ export const PlayerToken: React.FC<Props> = ({
 
   return <Animated.View style={style} />;
 };
+
+export const PlayerToken = React.memo(PlayerTokenComponent);
