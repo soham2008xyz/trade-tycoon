@@ -13,17 +13,14 @@ import type { GameState, LobbyState } from '@trade-tycoon/game-logic';
  * path persists one.
  */
 export function toPublicGameState(state: GameState): GameState {
-  // The leading destructure exists only to drop the field; the unused-vars
-  // rule can't see that intent.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { errorMessage: _errorMessage, ...rest } = state;
+  const { errorMessage, ...rest } = state;
+  void errorMessage; // destructured only to drop the field from the returned object
   return rest;
 }
 
 export function toPublicLobbyState(state: LobbyState): LobbyState {
-  // Destructure-and-drop, as above.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { sessions: _sessions, ...rest } = state;
+  const { sessions, ...rest } = state;
+  void sessions; // destructured only to drop the field from the returned object
   if (!rest.gameState) return rest;
   return { ...rest, gameState: toPublicGameState(rest.gameState) };
 }

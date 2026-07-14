@@ -14,7 +14,7 @@ interface Props {
    * per tile per render — that's what lets `React.memo` below actually skip
    * re-rendering tiles whose own props didn't change.
    */
-  onPress?: (tileId: string) => void;
+  onPress?: (_tileId: string) => void;
   testID?: string;
   /**
    * When true, edge tiles render without the name text. Used on narrow
@@ -25,6 +25,35 @@ interface Props {
 }
 
 const STRIPES = Array.from({ length: 40 });
+
+// Color bar runs along whichever edge faces the board's center; corners
+// simplify to a single fixed layout. Extracted as a lookup (rather than an
+// if/else chain inside the component) to keep TileComponent's own
+// complexity down — it's a pure mapping with no game-state dependency.
+const FLEX_DIRECTION_BY_ORIENTATION: Record<
+  Props['orientation'],
+  'column' | 'row' | 'column-reverse' | 'row-reverse'
+> = {
+  bottom: 'column-reverse', // Color on top
+  top: 'column', // Color on bottom
+  left: 'row-reverse', // Color on right
+  right: 'row', // Color on left
+  corner: 'column',
+};
+
+const renderHouses = (houseCount: number) => {
+  if (houseCount === 0) return null;
+  if (houseCount === 5) {
+    return <View style={styles.hotel} />;
+  }
+  return (
+    <View style={styles.houseContainer}>
+      {Array.from({ length: houseCount }).map((_, i) => (
+        <View key={i} style={styles.house} />
+      ))}
+    </View>
+  );
+};
 
 const TileComponent: React.FC<Props> = ({
   tile,
@@ -39,34 +68,7 @@ const TileComponent: React.FC<Props> = ({
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
   const houseCount = owner?.houses[tile.id] || 0;
   const isMortgaged = owner?.mortgaged.includes(tile.id);
-
-  // Determine flex direction based on orientation
-  let flexDirection: 'column' | 'row' | 'column-reverse' | 'row-reverse' = 'column';
-
-  if (orientation === 'bottom')
-    flexDirection = 'column-reverse'; // Color on top
-  else if (orientation === 'top')
-    flexDirection = 'column'; // Color on bottom
-  else if (orientation === 'left')
-    flexDirection = 'row-reverse'; // Color on right
-  else if (orientation === 'right') flexDirection = 'row'; // Color on left
-
-  // Override for corners (simplified)
-  if (orientation === 'corner') flexDirection = 'column';
-
-  const renderHouses = () => {
-    if (houseCount === 0) return null;
-    if (houseCount === 5) {
-      return <View style={styles.hotel} />;
-    }
-    return (
-      <View style={styles.houseContainer}>
-        {Array.from({ length: houseCount }).map((_, i) => (
-          <View key={i} style={styles.house} />
-        ))}
-      </View>
-    );
-  };
+  const flexDirection = FLEX_DIRECTION_BY_ORIENTATION[orientation];
 
   return (
     <Pressable
@@ -89,7 +91,7 @@ const TileComponent: React.FC<Props> = ({
           ]}
         >
           {/* Render Houses on Color Bar */}
-          <View style={styles.houseOverlay}>{renderHouses()}</View>
+          <View style={styles.houseOverlay}>{renderHouses(houseCount)}</View>
         </View>
       )}
       <View style={styles.content}>

@@ -8,7 +8,10 @@ import type { GameAction, TradeOffer } from './types';
  * rather than pulling in a schema library for a small, fixed action surface.
  *
  * Returns `null` for anything malformed: wrong types, out-of-range numbers,
- * unknown action types, or extra/missing fields on a known type.
+ * unknown action types, or missing required fields on a known type. Extra,
+ * unrecognized fields on an otherwise-valid action are silently dropped —
+ * the returned object is rebuilt field-by-field from only what each case
+ * expects, not passed through.
  */
 
 const MAX_MONEY = 1_000_000_000;

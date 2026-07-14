@@ -16,11 +16,13 @@ export const MIN_POLL_MS = 2000;
 /** Poll ceiling reached after an unchanged (version-identical) snapshot. */
 export const MAX_POLL_MS = 5000;
 
-type SyncMessageEvent = { data: string };
+interface SyncMessageEvent {
+  data: string;
+}
 
 /** Structural subset of the DOM EventSource, so tests can substitute a fake. */
 export interface EventSourceLike {
-  addEventListener(type: string, listener: (event: SyncMessageEvent) => void): void;
+  addEventListener(_type: string, listener: (event: SyncMessageEvent) => void): void;
   close(): void;
 }
 
@@ -30,12 +32,12 @@ export interface RoomSyncOptions {
   token: string;
   /** 'sse' when EventSource is available (web), 'poll' otherwise (native). */
   transport: 'sse' | 'poll';
-  onLobbyState: (state: LobbyState) => void;
-  onGameState: (state: GameState) => void;
+  onLobbyState: (_state: LobbyState) => void;
+  onGameState: (_state: GameState) => void;
   /** Poll transport only: the server reported the session gone (404). */
   onSessionExpired: () => void;
   /** Test injectable; defaults to `new EventSource(url)`. */
-  createEventSource?: (url: string) => EventSourceLike;
+  createEventSource?: (_url: string) => EventSourceLike;
   /** Test injectable; defaults to online-api's `reconnectToRoom`. */
   fetchSnapshot?: typeof reconnectToRoom;
 }
@@ -91,7 +93,11 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
       }
     });
 
-    return { stop: () => source.close() };
+    return {
+      stop: () => {
+        source.close();
+      },
+    };
   }
 
   // Poll transport (no EventSource on native). Polling on a fixed interval

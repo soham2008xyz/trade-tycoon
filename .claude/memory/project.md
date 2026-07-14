@@ -40,7 +40,7 @@
 - React 19 and ESLint 9 (via `eslint-config-expo`) are highly strict regarding render-phase `useRef` updates (e.g. `Cannot update ref during render` errors) and state updates in `useEffect` (e.g. `react-hooks/set-state-in-effect` errors). To persist modal contents during slide-out transitions and reset state on fresh opens, use standard `useEffect` blocks accompanied by a precise `// eslint-disable-next-line react-hooks/set-state-in-effect` directive explaining _why_ the synchronous sync is required, keeping in mind that ESLint will warn about unused disable comments if they are placed on lines that are not flagged. The same lint rule also rejects an unconditional `setState` call inside a body-level `useEffect` used purely to reset local state when a prop changes — do the reset during render instead (`if (cond) setX(...)` directly in the component body), which React explicitly allows and doesn't trigger the cascading-render warning.
 - SSE cleanup in Express must listen on `res.on('close', ...)`, not
   `req.on('close', ...)`. Since Node 16, `IncomingMessage`'s own `'close'`
-  fires when the *request body* finishes reading — immediately for a GET — not
+  fires when the _request body_ finishes reading — immediately for a GET — not
   when the underlying connection tears down. For a long-lived stream like SSE,
   only the response's `'close'` event reflects an actual client disconnect.
 - Client-local UI actions (e.g. dismissing a toast) must never be accepted as
