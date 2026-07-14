@@ -83,7 +83,10 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   // expired, host kicked the player), drop the stored session and bounce the
   // user back to the previous screen so they can start fresh.
   useEffect(() => {
-    if (initialMode !== 'resume' || !SERVER_URL) return;
+    // Deliberately `=== null`, not a truthy check: `''` is the intended
+    // same-origin sentinel for an unconfigured production web build (see
+    // online-platform.ts) and must be treated as configured.
+    if (initialMode !== 'resume' || SERVER_URL === null) return;
     const session = readStoredSession(Platform.OS);
     if (!session) {
       onBack();
@@ -132,7 +135,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   // callbacks onto React state. Re-runs when we join/create a room and have
   // both a roomId and a token.
   useEffect(() => {
-    if (!roomId || !token || !SERVER_URL) return;
+    if (!roomId || !token || SERVER_URL === null) return;
 
     const transport = supportsOnlineEventStream({
       platform: Platform.OS,
@@ -173,7 +176,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   }, [roomId, token, onBack, setTransientError]);
 
   const handleCreate = async () => {
-    if (!SERVER_URL) return;
+    if (SERVER_URL === null) return;
     if (!playerName.trim()) {
       setError('Please enter your name');
       return;
@@ -195,7 +198,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   };
 
   const handleJoin = async () => {
-    if (!SERVER_URL) return;
+    if (SERVER_URL === null) return;
     if (!playerName.trim() || !inputRoomId.trim()) {
       setError('Please enter name and room code');
       return;
@@ -220,7 +223,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   };
 
   const handleStartGame = async () => {
-    if (!token || !roomId || !SERVER_URL) return;
+    if (!token || !roomId || SERVER_URL === null) return;
     if (requestInFlightRef.current) return;
     requestInFlightRef.current = true;
     setBusy(true);
@@ -242,7 +245,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   // closure per render would defeat the Board/Tile memoization downstream.
   const handleGameDispatch = useCallback(
     async (action: GameAction) => {
-      if (!token || !roomId || !SERVER_URL) return;
+      if (!token || !roomId || SERVER_URL === null) return;
       if (requestInFlightRef.current) return;
       requestInFlightRef.current = true;
       setBusy(true);
@@ -265,7 +268,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     syncHandleRef.current?.stop();
     syncHandleRef.current = null;
 
-    if (roomId && token && SERVER_URL) {
+    if (roomId && token && SERVER_URL !== null) {
       const result = await apiLeaveRoom(SERVER_URL, roomId, token);
       if (!result.ok) {
         console.error('Leave request failed:', result.error);
@@ -295,7 +298,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   }
 
   // Render Logic
-  if (!SERVER_URL) {
+  if (SERVER_URL === null) {
     return (
       <View style={styles.container}>
         <View style={styles.card}>
@@ -427,7 +430,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         state={gameState}
         currentPlayerId={playerId || ''}
         onDispatch={handleGameDispatch}
-        uiToastMessage={uiToastMessage || error}
+        uiToastMessage={uiToastMessage ?? error}
         setUiToastMessage={setUiToastMessage}
         onLeaveGame={handleLeave}
         isMultiplayer={true}

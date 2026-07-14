@@ -27,16 +27,23 @@ export const readStoredSession = (platform: string): StoredSession | null => {
   try {
     const raw = localStorage.getItem(SESSION_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<StoredSession>;
+    // Parsed as `unknown`, not cast straight to `Partial<StoredSession>`: a
+    // cast would tell TypeScript the value is always an object, making the
+    // `!parsed` guard below look like dead code — but `JSON.parse('null')`
+    // and primitives are real possible results here, so the runtime check
+    // still matters.
+    const parsed: unknown = JSON.parse(raw);
     if (
       !parsed ||
-      typeof parsed.roomId !== 'string' ||
-      typeof parsed.playerId !== 'string' ||
-      typeof parsed.token !== 'string'
+      typeof parsed !== 'object' ||
+      typeof (parsed as Partial<StoredSession>).roomId !== 'string' ||
+      typeof (parsed as Partial<StoredSession>).playerId !== 'string' ||
+      typeof (parsed as Partial<StoredSession>).token !== 'string'
     ) {
       return null;
     }
-    return { roomId: parsed.roomId, playerId: parsed.playerId, token: parsed.token };
+    const session = parsed as StoredSession;
+    return { roomId: session.roomId, playerId: session.playerId, token: session.token };
   } catch {
     return null;
   }
@@ -44,10 +51,21 @@ export const readStoredSession = (platform: string): StoredSession | null => {
 
 export const writeStoredSession = (platform: string, session: StoredSession): void => {
   if (platform !== 'web') return;
-  localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+  } catch (err) {
+    // Private browsing / storage-disabled environments can throw here
+    // (SecurityError, QuotaExceededError). Losing resume-on-refresh is
+    // acceptable; crashing the app on write is not.
+    console.warn('Failed to write session to localStorage:', err);
+  }
 };
 
 export const clearStoredSession = (platform: string): void => {
   if (platform !== 'web') return;
-  localStorage.removeItem(SESSION_STORAGE_KEY);
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch (err) {
+    console.warn('Failed to clear session from localStorage:', err);
+  }
 };
