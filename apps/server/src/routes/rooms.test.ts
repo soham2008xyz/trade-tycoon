@@ -48,13 +48,20 @@ describe('REST: /api/rooms', () => {
     });
 
     it('never includes the sessions map in the response or a publish', async () => {
-      const events: RoomEvent[] = [];
       const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
-      await eventBus.subscribe(create.body.roomId, (e) => events.push(e));
-
+      const { roomId } = create.body;
       expect(create.body.sessions).toBeUndefined();
 
-      const room = await roomManager.getRoom(create.body.roomId);
+      // Subscribe before the next mutation so we can observe its publish —
+      // subscribing after create() would miss create's own publish entirely.
+      const events: RoomEvent[] = [];
+      await eventBus.subscribe(roomId, (e) => events.push(e));
+      await request(app).post(`/api/rooms/${roomId}/join`).send({ playerName: 'Bob' });
+
+      expect(events).toHaveLength(1);
+      expect((events[0].state as { sessions?: unknown }).sessions).toBeUndefined();
+
+      const room = await roomManager.getRoom(roomId);
       expect((room as unknown as { sessions?: unknown })?.sessions).toBeUndefined();
     });
   });

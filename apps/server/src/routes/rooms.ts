@@ -90,13 +90,15 @@ export const createRoomsRouter = (deps: {
     }
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
-    const room = await roomManager.getRoom(roomId);
-    if (!room) return res.status(404).json({ error: 'Room not found' });
-
     const result = await roomManager.handleGameAction(roomId, token, action);
     if (!result.ok) {
-      const status = result.reason === 'unauthorized' ? 401 : 409;
-      return res.status(status).json({ error: result.message });
+      if (result.reason === 'unauthorized') return res.status(401).json({ error: result.message });
+      // 'rejected' also covers "room doesn't exist" (the mutator never ran,
+      // so RoomManager can't tell us which) — check separately so a missing
+      // room still reports 404 instead of a misleading 409.
+      const room = await roomManager.getRoom(roomId);
+      if (!room) return res.status(404).json({ error: 'Room not found' });
+      return res.status(409).json({ error: result.message });
     }
 
     await eventBus.publish(roomId, { type: 'game_state_update', state: result.state });
