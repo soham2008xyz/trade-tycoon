@@ -36,8 +36,9 @@ In the server project's **Settings → Environment Variables**:
 | `REDIS_URL`       | `rediss://default:<token>@<host>:<port>`                                      | Production + Preview |
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (e.g. the client's deployed URL) | Production + Preview |
 
-`ALLOWED_ORIGINS` falls back to `*` when unset — fine for local dev,
-but always set it in any deployed environment.
+`ALLOWED_ORIGINS` falls back to known local-dev origins
+(`http://localhost:8081`, `http://localhost:19006`) when unset — always set
+it explicitly in any deployed environment.
 
 Keep the existing build command (`npm run build`) and start command
 (auto-detected from the Express app). No `vercel.json` is required —

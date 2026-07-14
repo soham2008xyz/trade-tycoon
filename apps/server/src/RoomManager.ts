@@ -36,11 +36,11 @@ export interface JoinRoomResult {
  * conflict → 409) so callers never have to re-fetch the room to figure out
  * *why* a mutation failed.
  */
-export type RoomFailure = {
+export interface RoomFailure {
   ok: false;
   reason: 'not_found' | 'unauthorized' | 'conflict';
   message: string;
-};
+}
 
 export type RoomResult<T> = ({ ok: true } & T) | RoomFailure;
 
@@ -163,9 +163,18 @@ export class RoomManager {
     return { ok: true, playerId: userId, token, state: toPublicLobbyState(state) };
   }
 
-  /** Resolves a private session token to the public player id it authenticates. */
+  /**
+   * Resolves a private session token to the public player id it
+   * authenticates. Guarded with `hasOwnProperty` rather than a plain bracket
+   * lookup so a token equal to `"__proto__"`/`"constructor"`/`"toString"`
+   * can't read an inherited `Object.prototype` value instead of a real
+   * session (CodeQL/Codacy generic-object-injection).
+   */
   private resolvePlayerId(current: LobbyState, token: string): string | null {
-    return current.sessions?.[token] ?? null;
+    if (!current.sessions || !Object.prototype.hasOwnProperty.call(current.sessions, token)) {
+      return null;
+    }
+    return current.sessions[token];
   }
 
   /**
@@ -175,7 +184,7 @@ export class RoomManager {
    */
   private bumpedUpdate(
     roomId: string,
-    mutator: (current: LobbyState) => LobbyState | null
+    mutator: (_current: LobbyState) => LobbyState | null
   ): Promise<LobbyState | null> {
     return this.store.update(roomId, (current) => {
       const next = mutator(current);

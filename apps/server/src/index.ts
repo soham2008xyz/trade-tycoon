@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { Redis } from 'ioredis';
 import { RoomManager } from './RoomManager';
 import { InMemoryRoomStore } from './store/InMemoryRoomStore';
@@ -62,13 +63,34 @@ const { roomStore, eventBus } = buildBackends();
 const roomManager = new RoomManager(roomStore);
 
 // Comma-separated allowlist for production (e.g. the deployed web client's
-// origin). Falls back to '*' when unset, which only matters for local dev —
-// production deployments should set ALLOWED_ORIGINS.
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',')
+// origin). Falls back to known local-dev origins when unset — a wildcard
+// fallback would let any site's browser JS read responses (CodeQL
+// js/cors-permissive-configuration); production deployments should always
+// set ALLOWED_ORIGINS explicitly.
+const DEFAULT_DEV_ORIGINS = ['http://localhost:8081', 'http://localhost:19006'];
+const configuredOrigins = process.env.ALLOWED_ORIGINS?.split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
-app.use(cors({ origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : '*' }));
+const allowedOrigins =
+  configuredOrigins && configuredOrigins.length > 0 ? configuredOrigins : DEFAULT_DEV_ORIGINS;
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '64kb' }));
+
+// Every /api/rooms/* route resolves a session token (join/actions/reconnect/
+// leave/events all call into RoomManager auth), so without a limit here an
+// attacker could hammer token guesses or just DoS the store. Per-instance
+// only — Vercel serverless functions don't share memory across instances —
+// but that still meaningfully slows down abuse and satisfies CodeQL
+// js/missing-rate-limiting on the SSE route.
+app.use(
+  '/api/rooms',
+  rateLimit({
+    windowMs: 60_000,
+    limit: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+);
 app.use(createRoomsRouter({ roomManager, eventBus }));
 app.use(createEventsRouter({ roomManager, eventBus }));
 
