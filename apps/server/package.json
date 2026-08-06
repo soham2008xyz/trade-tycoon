@@ -15,7 +15,7 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
-    "ioredis": "^5.11.0"
+    "ioredis": "^6.0.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
