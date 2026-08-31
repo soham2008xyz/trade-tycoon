@@ -208,6 +208,13 @@ they're the only places that document this contract in detail.
 Workspace-specific gotchas live in the workspace files. These are the
 ones that bite multiple workspaces or the repo as a whole.
 
+### Cloud Agent environment
+
+Repository-managed setup lives in `.cursor/environment.json` (Node 24
+base image, `npm ci` + game-logic build in `install`, API + Expo web
+dev-server terminals on ports 3001 and 8081). Redis is optional for
+local dev — the server uses in-memory storage when `REDIS_URL` is unset.
+
 ### TypeScript 6 — `rootDir` is no longer inferred
 
 Both `apps/server/tsconfig.json` and `packages/game-logic/tsconfig.json`
