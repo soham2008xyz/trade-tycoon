@@ -211,8 +211,8 @@ ones that bite multiple workspaces or the repo as a whole.
 ### Cloud Agent environment
 
 Repository-managed setup lives in `.cursor/environment.json` (Node 24
-base image, `npm ci` + game-logic build in `install`, API + Expo web
-dev-server terminals on ports 3001 and 8081). Redis is optional for
+base image, `npm ci` + game-logic build in `install`, API + static web
+serve terminals on ports 3001 and 8081). Redis is optional for
 local dev — the server uses in-memory storage when `REDIS_URL` is unset.
 
 ### TypeScript 6 — `rootDir` is no longer inferred

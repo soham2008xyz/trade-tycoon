@@ -12,4 +12,4 @@ RUN apt-get update \
 
 ENV CHROME_BIN=/usr/bin/chromium
 
-USER ubuntu
+USER node

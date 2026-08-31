@@ -4,7 +4,7 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-  "user": "ubuntu",
+  "user": "node",
   "install": "bash .cursor/scripts/install.sh",
   "ports": [
     {
@@ -24,8 +24,8 @@
     },
     {
       "name": "expo-web",
-      "command": "npm run web",
-      "description": "Expo web dev server on port 8081"
+      "command": "bash .cursor/scripts/serve-web.sh",
+      "description": "Static web build served on port 8081 (avoids Expo dev-server SSR failure)"
     }
   ],
   "chromeExecutablePath": "/usr/bin/chromium"
