@@ -1,0 +1,32 @@
+{
+  "name": "Trade Tycoon",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "user": "ubuntu",
+  "install": "bash .cursor/scripts/install.sh",
+  "ports": [
+    {
+      "name": "api-server",
+      "port": 3001
+    },
+    {
+      "name": "expo-web",
+      "port": 8081
+    }
+  ],
+  "terminals": [
+    {
+      "name": "api-server",
+      "command": "npm run server",
+      "description": "Express multiplayer API on port 3001 (in-memory store; Redis optional)"
+    },
+    {
+      "name": "expo-web",
+      "command": "npm run web",
+      "description": "Expo web dev server on port 8081"
+    }
+  ],
+  "chromeExecutablePath": "/usr/bin/chromium"
+}
