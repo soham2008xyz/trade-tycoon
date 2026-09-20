@@ -51,6 +51,13 @@
   boundary validator (`parseGameAction` in game-logic), not the reducer —
   dismissal stays a reducer action for local hotseat play, it's just excluded
   from what the server will parse from an untrusted client.
+- Expo SDK 57 apps built with Xcode 27 must enable the iOS scene lifecycle via
+  `expo-build-properties` and `ios.enableSceneSupport`; keep that plugin setting
+  until the project moves past SDK 57.
+- With React Native 0.86 and Reanimated 4, `@gorhom/bottom-sheet` 5.2.14 needs
+  the upstream mount-position fallback patch recorded in `patches/`. Fixed
+  percentage snap points must also set `enableDynamicSizing={false}` so the
+  sheet can mount before its content height has been measured.
 - `LobbyState.sessions` (private token → public playerId map) intentionally
   lives in `packages/game-logic`, not the server workspace, even though it's
   auth data rather than a game rule — it rides `LobbyState`'s existing CAS
