@@ -91,6 +91,12 @@ npm run start:server  # api-server only
 The local server defaults to in-memory state (no `REDIS_URL` needed) since it's
 a single Node process.
 
+Server integration tests use a real Redis database through `REDIS_TEST_URL`,
+which defaults to `redis://127.0.0.1:6379/15`. The suites run `FLUSHDB` before
+each test, so use a disposable database and never point `REDIS_TEST_URL` at
+production. Production clients set `protocol: 2` explicitly: ioredis 6 uses
+RESP3 by default, while this upgrade keeps the existing RESP2 wire behavior.
+
 ## Why not WebSockets?
 
 Vercel's standard runtime doesn't terminate WebSockets — the upgrade returns

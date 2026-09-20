@@ -1,5 +1,10 @@
 # Project Memory
 
+- Redis-backed server tests use `REDIS_TEST_URL`, defaulting to the disposable
+  local database `redis://127.0.0.1:6379/15`. They call `FLUSHDB`, never
+  `FLUSHALL`, and run test files in sequence so the shared database cannot be
+  cleared underneath another suite. Production and test ioredis 6 clients set
+  `protocol: 2` to retain the existing RESP2 wire behavior.
 - Online multiplayer leave is server-authoritative: `OnlineGame.handleLeave`
   must POST `/api/rooms/:id/leave` before returning to the menu, otherwise the
   departed player remains in the room snapshot and their board marker stays

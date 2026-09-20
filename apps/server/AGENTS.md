@@ -30,7 +30,7 @@ src/
     InMemoryRoomStore.ts      Tests + dev
     InMemoryRoomStore.test.ts
     RedisRoomStore.ts         Production (Upstash via ioredis)
-    RedisRoomStore.test.ts    Uses ioredis-mock
+    RedisRoomStore.test.ts    Real-Redis integration tests
   events/
     EventBus.ts               Pub/sub interface
     InMemoryEventBus.ts       Tests + dev
@@ -91,10 +91,11 @@ keep it close to the existing structure.
   with a tiny SSE-frame parser to read events. Don't bring in a
   heavier SSE client; the parser is ~10 lines and matches our
   `event: foo\ndata: ...\n\n` output exactly.
-- **Redis-backed tests** use `ioredis-mock`. **Always
-  `await redis.flushall()` in `beforeEach`** — `new RedisMock()`
-  instances share an underlying in-memory map and one test will
-  pollute the next.
+- **Redis-backed tests use a real Redis server.** Read `REDIS_TEST_URL`,
+  defaulting locally to `redis://127.0.0.1:6379/15`, and run
+  `await redis.flushdb()` before each test. Never use `FLUSHALL` and never point
+  the test URL at production or a shared database. The server test script runs
+  files in sequence because these suites share the selected Redis database.
 - **For rejected actions** (rejection sentinel, unchanged-state no-op,
   or soft rejection with `errorMessage`) `RoomManager.handleGameAction`
   aborts the store update and the route returns HTTP 409 carrying the
@@ -166,6 +167,10 @@ These cost us a production outage; please don't relearn them.
   prod across browsers, suspect this first.
 
 ## ioredis idioms
+
+- **Keep `protocol: 2` on production clients.** ioredis 6 defaults to RESP3;
+  the explicit RESP2 option keeps the existing Upstash wire behavior while the
+  library moves to v6. Test clients use RESP2 as well.
 
 - **Lua scripts via `redis.defineCommand('name', { numberOfKeys, lua })`**
   — ioredis caches the script and dispatches via EVALSHA on each

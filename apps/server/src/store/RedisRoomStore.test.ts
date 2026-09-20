@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import RedisMock from 'ioredis-mock';
-import type Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import type { LobbyState } from '@trade-tycoon/game-logic';
 import { RedisRoomStore } from './RedisRoomStore';
 import { StoreConflictError } from './RoomStore';
+
+const REDIS_TEST_URL = process.env.REDIS_TEST_URL ?? 'redis://127.0.0.1:6379/15';
 
 const sampleRoom = (overrides: Partial<LobbyState> = {}): LobbyState => ({
   roomId: 'ABCD1234',
@@ -17,10 +18,8 @@ describe('RedisRoomStore', () => {
   let store: RedisRoomStore;
 
   beforeEach(async () => {
-    redis = new RedisMock() as unknown as Redis;
-    // ioredis-mock instances share an underlying in-memory map, so flush
-    // before each test to keep state from previous tests from leaking in.
-    await redis.flushall();
+    redis = new Redis(REDIS_TEST_URL, { protocol: 2, maxRetriesPerRequest: 1 });
+    await redis.flushdb();
     store = new RedisRoomStore(redis, { ttlSeconds: 60 });
   });
 

@@ -42,6 +42,9 @@ function buildBackends(): { roomStore: RoomStore; eventBus: EventBus } {
   // check) is fine on its own; Fluid Compute will still reuse the instance
   // across invocations because `redis` is captured in module scope.
   const redis = new Redis(redisUrl, {
+    // ioredis 6 defaults to RESP3. Keep RESP2 for the existing Upstash wire
+    // behavior; this upgrade changes the client library, not the protocol.
+    protocol: 2,
     // Bound per-command retries so a hung Redis doesn't keep a request open
     // for the full 300s function timeout.
     maxRetriesPerRequest: 3,
