@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import RedisMock from 'ioredis-mock';
-import type Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import type { LobbyState } from '@trade-tycoon/game-logic';
 import { RedisEventBus } from './RedisEventBus';
 import type { RoomEvent } from './EventBus';
+
+const REDIS_TEST_URL = process.env.REDIS_TEST_URL ?? 'redis://127.0.0.1:6379/15';
 
 const lobbyEvent = (roomId: string): RoomEvent => ({
   type: 'lobby_update',
@@ -12,10 +13,10 @@ const lobbyEvent = (roomId: string): RoomEvent => ({
 
 /**
  * Wait until the predicate returns true, polling every `interval` ms.
- * The Redis mock fans out pub/sub via the next tick, so a tiny wait
- * lets handlers run before assertions.
+ * Redis pub/sub delivery is asynchronous, so poll until the subscriber has
+ * handled the message instead of relying on a fixed scheduling delay.
  */
-const waitFor = async (predicate: () => boolean, timeoutMs = 500, interval = 5) => {
+const waitFor = async (predicate: () => boolean, timeoutMs = 1_000, interval = 5) => {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (predicate()) return;
@@ -29,8 +30,8 @@ describe('RedisEventBus', () => {
   let bus: RedisEventBus;
 
   beforeEach(async () => {
-    redis = new RedisMock() as unknown as Redis;
-    await redis.flushall();
+    redis = new Redis(REDIS_TEST_URL, { protocol: 2, maxRetriesPerRequest: 1 });
+    await redis.flushdb();
     bus = new RedisEventBus(redis);
   });
 

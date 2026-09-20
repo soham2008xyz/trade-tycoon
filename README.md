@@ -48,6 +48,10 @@ For detailed feature tracking and implementation status, see
 
 **Tests:**
 
+The Redis-backed server suites use a real Redis database. Start Redis on
+`127.0.0.1:6379`, or set `REDIS_TEST_URL` to a disposable database. The local
+default is database 15; the tests clear it with `FLUSHDB`.
+
 ```bash
 npm test                                          # everything
 npm test --workspace=apps/server                  # server only

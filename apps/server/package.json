@@ -7,7 +7,7 @@
     "dev": "ts-node src/index.ts",
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit",
-    "test": "npm run build:game-logic --prefix ../.. && vitest run src"
+    "test": "npm run build:game-logic --prefix ../.. && vitest run src --no-file-parallelism"
   },
   "dependencies": {
     "@trade-tycoon/game-logic": "*",
@@ -15,14 +15,13 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
-    "ioredis": "^5.11.0"
+    "ioredis": "^6.0.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^26.4.0",
     "@types/supertest": "^7.2.0",
     "@types/ws": "^8.18.1",
-    "ioredis-mock": "^8.13.1",
     "supertest": "^7.2.2",
     "ts-node": "^10.9.1",
     "typescript": "^6.0.3",
