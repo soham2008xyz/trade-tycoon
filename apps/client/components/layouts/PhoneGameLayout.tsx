@@ -41,6 +41,7 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
         ref={sheetRef}
         index={0}
         snapPoints={snapPoints}
+        enableDynamicSizing={false}
         enablePanDownToClose={false}
         // Disable sheet panning while the auction modal is open so its gestures
         // don't fight the modal's. Spec § "Error handling and edge cases".
