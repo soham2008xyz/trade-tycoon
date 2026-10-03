@@ -127,7 +127,6 @@ const PlayerTokenComponent: React.FC<Props> = ({
       // @ts-ignore - spread operator works for withSequence
       // Reanimated's SharedValue.value assignment is the documented API for
       // driving an animation, not a disallowed mutation of a hook's return value.
-      // eslint-disable-next-line react-hooks/immutability
       visualIndex.value = withSequence(...animations);
     } else {
       visualIndex.value = player.position;

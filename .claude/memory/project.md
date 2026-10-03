@@ -27,6 +27,15 @@
   client components that import game-logic, and the husky pre-commit hook
   fails on a fresh clone. CI masks this because `test.yml` runs
   `npm run build:game-logic` as an explicit step before lint.
+- `react-hooks/immutability` does not fire on Reanimated `SharedValue.value`
+  writes under the current `eslint-config-expo` ~57 / ESLint 9 / React 19
+  setup, so the `// eslint-disable-next-line react-hooks/immutability`
+  directives that used to guard `rotation.value` / `scale.value` /
+  `visualIndex.value` were removed (2026-10-03) as unused. The explanatory
+  comments were kept — they still document that `.value` assignment is
+  Reanimated's sanctioned animation API rather than a React state mutation.
+  `reportUnusedDisableDirectives` is active, so any new directive must be
+  shown to suppress something real or lint warns; don't add one speculatively.
 - `expo lint` runs ESLint with `--cache` and
   `--cache-location=apps/client/.expo/cache/eslint/` (`@expo/cli`'s
   `lintAsync.js`, cache on by default, opt out with `expo lint --no-cache`).
