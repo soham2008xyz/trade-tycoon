@@ -103,10 +103,17 @@
   `localStorage`, so collapsing "room gone" and "token stale" into one 404 is
   intentional, not an inconsistency to "fix" toward 401.
 - Dependabot must not bump the Expo-pinned packages (`react`, `react-dom`,
-  `@types/react`, `react-native`, and the `react-native-*` native modules in
-  the root `overrides`). A lone bump (e.g. PR #230, react 19.3.0 on Expo SDK
-  57) leaves the root `overrides` at the old version, so `npm ci` fails with
+  `@types/react`, `react-native`, the `react-native-*` native modules in
+  the root `overrides`, plus major bumps of `expo`/`expo-*`/`@expo/*`, whose major is the SDK number — in-SDK patches are fine). A lone bump (e.g. PR #230, react 19.3.0 on Expo SDK 57) leaves the root `overrides` at the old version, so `npm ci` fails with
   "lock file's react@X does not satisfy react@Y", and it would also split
   `react` from `react-dom`. `.github/dependabot.yml` ignores them; upgrade
   them only as part of an Expo SDK upgrade, updating `overrides` in the same
-  change.
+  change. Likewise `expo-router` 58 alone (PR #226) fails `npm ci` with
+  ERESOLVE against SDK 57's `expo-constants`. TypeScript major bumps are also
+  ignored: TS 7 (PR #225) crashes `expo lint` with "Cannot read properties of
+  undefined (reading 'Intrinsic')" because typescript-eslint can't drive it —
+  remove that ignore once typescript-eslint supports TS 7.
+  Every Dependabot `ignore` rule must set `update-types`: a name-only ignore
+  also suppresses security-update PRs, while `update-types` only filters
+  routine version updates. Exact pins in `overrides` ignore
+  major/minor/patch; tilde pins ignore major/minor so in-range patches flow.
