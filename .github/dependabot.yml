@@ -23,3 +23,12 @@ updates:
       - dependency-name: 'react-native-screens'
       - dependency-name: 'react-native-worklets'
       - dependency-name: 'react-native-safe-area-context'
+      # Expo SDK packages: same rule — upgrade only with the whole SDK.
+      - dependency-name: 'expo'
+      - dependency-name: 'expo-*'
+      - dependency-name: '@expo/*'
+      # TypeScript 7 (the Go port) has no JS compiler API yet, which crashes
+      # typescript-eslint under `expo lint`. Drop this once typescript-eslint
+      # supports TS 7.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
