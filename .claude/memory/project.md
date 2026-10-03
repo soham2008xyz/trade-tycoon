@@ -113,3 +113,7 @@
   ignored: TS 7 (PR #225) crashes `expo lint` with "Cannot read properties of
   undefined (reading 'Intrinsic')" because typescript-eslint can't drive it —
   remove that ignore once typescript-eslint supports TS 7.
+  Every Dependabot `ignore` rule must set `update-types`: a name-only ignore
+  also suppresses security-update PRs, while `update-types` only filters
+  routine version updates. Exact pins in `overrides` ignore
+  major/minor/patch; tilde pins ignore major/minor so in-range patches flow.

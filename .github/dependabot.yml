@@ -13,16 +13,56 @@ updates:
     # `expo/bundledNativeModules.json`). They must move together during an
     # Expo SDK upgrade (`npx expo install --fix`), never one at a time —
     # a lone bump desyncs the lockfile from `overrides` and breaks `npm ci`.
+    #
+    # Every rule below sets `update-types` rather than ignoring by name alone:
+    # a name-only ignore also suppresses Dependabot *security* PRs, while an
+    # `update-types` rule only affects routine version updates.
     ignore:
+      # Exact pins in `overrides`: any version change breaks `npm ci`.
       - dependency-name: 'react'
+        update-types:
+          [
+            'version-update:semver-major',
+            'version-update:semver-minor',
+            'version-update:semver-patch',
+          ]
       - dependency-name: 'react-dom'
-      - dependency-name: '@types/react'
+        update-types:
+          [
+            'version-update:semver-major',
+            'version-update:semver-minor',
+            'version-update:semver-patch',
+          ]
       - dependency-name: 'react-native'
-      - dependency-name: 'react-native-gesture-handler'
+        update-types:
+          [
+            'version-update:semver-major',
+            'version-update:semver-minor',
+            'version-update:semver-patch',
+          ]
       - dependency-name: 'react-native-reanimated'
-      - dependency-name: 'react-native-screens'
+        update-types:
+          [
+            'version-update:semver-major',
+            'version-update:semver-minor',
+            'version-update:semver-patch',
+          ]
       - dependency-name: 'react-native-worklets'
+        update-types:
+          [
+            'version-update:semver-major',
+            'version-update:semver-minor',
+            'version-update:semver-patch',
+          ]
+      # Tilde ranges in `overrides`: patches stay in range, so let them through.
+      - dependency-name: '@types/react'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: 'react-native-gesture-handler'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: 'react-native-screens'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
       - dependency-name: 'react-native-safe-area-context'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
       # Expo SDK packages: their major version is the SDK number, so a major
       # bump only works as part of a whole-SDK upgrade. Patches/minors within
       # the current SDK are safe and still flow through.
