@@ -113,6 +113,12 @@
   ignored: TS 7 (PR #225) crashes `expo lint` with "Cannot read properties of
   undefined (reading 'Intrinsic')" because typescript-eslint can't drive it —
   remove that ignore once typescript-eslint supports TS 7.
+  ESLint major bumps are ignored too: ESLint 10 (PR #240) removed
+  `context.getFilename()`, and eslint-plugin-react 7.37.x (via
+  eslint-config-expo 57/58) still calls it, so `expo lint` dies with
+  "Error while loading rule 'react/display-name':
+  contextOrFilename.getFilename is not a function". Remove that ignore once
+  eslint-plugin-react declares ESLint 10 in its peer range.
   Every Dependabot `ignore` rule must set `update-types`: a name-only ignore
   also suppresses security-update PRs, while `update-types` only filters
   routine version updates. Exact pins in `overrides` ignore
