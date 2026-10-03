@@ -102,3 +102,11 @@
   resume flow branches on that exact shape to decide whether to clear
   `localStorage`, so collapsing "room gone" and "token stale" into one 404 is
   intentional, not an inconsistency to "fix" toward 401.
+- Dependabot must not bump the Expo-pinned packages (`react`, `react-dom`,
+  `@types/react`, `react-native`, and the `react-native-*` native modules in
+  the root `overrides`). A lone bump (e.g. PR #230, react 19.3.0 on Expo SDK
+  57) leaves the root `overrides` at the old version, so `npm ci` fails with
+  "lock file's react@X does not satisfy react@Y", and it would also split
+  `react` from `react-dom`. `.github/dependabot.yml` ignores them; upgrade
+  them only as part of an Expo SDK upgrade, updating `overrides` in the same
+  change.
