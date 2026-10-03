@@ -19,6 +19,23 @@
   package shape, so the server workspace test script must rebuild
   `packages/game-logic` first or reducer changes can be invisible to server
   tests.
+- Any workspace script that resolves `@trade-tycoon/game-logic` must build it
+  first, because the package's `main`/`types` point at `dist/`, which is
+  gitignored and not produced by `npm install`. That's why `apps/server`
+  chains `build:game-logic` into `build`/`test`, and why `apps/client`'s
+  `lint` now does too — without it, `import/no-unresolved` fires on all 11
+  client components that import game-logic, and the husky pre-commit hook
+  fails on a fresh clone. CI masks this because `test.yml` runs
+  `npm run build:game-logic` as an explicit step before lint.
+- `expo lint` runs ESLint with `--cache` and
+  `--cache-location=apps/client/.expo/cache/eslint/` (`@expo/cli`'s
+  `lintAsync.js`, cache on by default, opt out with `expo lint --no-cache`).
+  ESLint keys that cache on linted-file contents plus eslint config — **not**
+  on build artifacts — so a cache entry recorded while `dist/` was missing
+  keeps replaying `import/no-unresolved` errors even after game-logic is
+  rebuilt correctly. Debugging tell: bare `npx eslint <file>` passes while
+  `expo lint` still fails. Delete `apps/client/.expo/cache/eslint/` to clear
+  it; changing `package.json` scripts will not invalidate it.
 - ~~iPad shell~~ removed (2026-05-15): `AppShell.tsx`,
   `ipad-native-presentation.ts`, and their tests were deleted. All platforms
   now lock to `PORTRAIT_UP` via `ScreenOrientation.lockAsync` in `_layout.tsx`.
