@@ -9,3 +9,17 @@ updates:
     directory: '/' # Location of package manifests
     schedule:
       interval: 'weekly'
+    # These packages are pinned by the Expo SDK (see the root `overrides` and
+    # `expo/bundledNativeModules.json`). They must move together during an
+    # Expo SDK upgrade (`npx expo install --fix`), never one at a time —
+    # a lone bump desyncs the lockfile from `overrides` and breaks `npm ci`.
+    ignore:
+      - dependency-name: 'react'
+      - dependency-name: 'react-dom'
+      - dependency-name: '@types/react'
+      - dependency-name: 'react-native'
+      - dependency-name: 'react-native-gesture-handler'
+      - dependency-name: 'react-native-reanimated'
+      - dependency-name: 'react-native-screens'
+      - dependency-name: 'react-native-worklets'
+      - dependency-name: 'react-native-safe-area-context'
