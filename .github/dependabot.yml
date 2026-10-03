@@ -77,3 +77,9 @@ updates:
       # supports TS 7.
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
+      # ESLint 10 removed `context.getFilename()`, which eslint-plugin-react
+      # (pulled in by eslint-config-expo) still calls, so `expo lint` crashes
+      # loading `react/display-name` (PR #240). Drop this once
+      # eslint-plugin-react supports ESLint 10.
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
