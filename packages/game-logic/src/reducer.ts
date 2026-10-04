@@ -1,4 +1,4 @@
-import { GameState, Player, TradeOffer, TradeRequest } from './types';
+import { AuctionState, GameState, Player, TradeOffer, TradeRequest } from './types';
 import { BOARD, isTileBuyable } from './board-data';
 import { createPlayer } from './game-setup';
 import { processCardEffect } from './cards';
@@ -56,136 +56,281 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 /** Returns a number in [0, 1), same contract as `Math.random`. */
 export type Rng = () => number;
 
+const withoutDebt = (p: Player): Player => {
+  const copy = { ...p };
+  delete copy.debtOwedTo;
+  return copy;
+};
+
 /**
- * Shared cleanup for permanently removing a player mid-game: cancels any
- * trade or auction they're involved in (re-seating the auction winner if
- * they were the sole remaining bidder), advances the turn/win state, and
- * drops their tiles back to the unowned pool. `reason` only affects the
- * toast/log wording — the structural cleanup is identical whether the
- * player left the room or went bankrupt, so both paths share it (bankruptcy
- * used to skip this and leave a dangling activeTrade/auction reference).
+ * A player who is solvent has settled any earlier debt (e.g. via GO income
+ * earlier in the same roll), so a charge made after that point can only create
+ * a fresh one. Call this before applying any charge that is not routed through
+ * `chargePlayer`.
  */
-const removePlayerAndCleanup = (state: GameState, playerId: string, reason: string): GameState => {
-  const playerIndex = state.players.findIndex((p) => p.id === playerId);
-  if (playerIndex === -1) return state;
+const settleDebt = (p: Player): Player => (p.money >= 0 ? withoutDebt(p) : p);
 
-  const player = state.players[playerIndex];
-  let players = state.players.filter((p) => p.id !== playerId);
-  let currentPlayerId = state.currentPlayerId;
-  let phase = state.phase;
-  let doublesCount = state.doublesCount;
-  let winner = state.winner;
-  let auction = state.auction;
-  let activeTrade = state.activeTrade;
-  const toastParts = [`${player.name} ${reason}.`];
-  const logs = [...state.logs, `[${player.name}] ${reason}.`];
+/**
+ * Charges `p` `amount` and, when that leaves them below $0, records who they
+ * now owe. `creditorId` is the receiving player for player-to-player payments
+ * and `undefined` for the bank. A bank charge never overwrites an existing
+ * creditor: a player who already owes someone keeps owing them even if a tax
+ * deepens the hole. A later player-to-player payment replaces it (the most
+ * recent player creditor inherits).
+ */
+const chargePlayer = (p: Player, amount: number, creditorId?: string): Player => {
+  const money = p.money - amount;
+  const charged = { ...settleDebt(p), money };
+  // `amount > 0`: a $0 charge (rent on a mortgaged tile) owes the payee nothing,
+  // so it must not make them the creditor of debt that arose elsewhere.
+  if (amount > 0 && money < 0 && creditorId) charged.debtOwedTo = creditorId;
+  return charged;
+};
 
-  if (
-    activeTrade &&
-    (activeTrade.initiatorId === playerId || activeTrade.targetPlayerId === playerId)
-  ) {
-    activeTrade = null;
-    toastParts.push('Active trade cancelled.');
-    logs.push(`[Game] Cancelled active trade because ${player.name} left.`);
+/**
+ * Applies a "collect from every player" card: each other player is charged
+ * `amount` (owing the collector if that sinks them) and the collector is owed
+ * the total. Returns a new array; the collector's own entry is left as is.
+ */
+const collectFromOthers = (
+  players: Player[],
+  collectorId: string,
+  amount: number
+): { players: Player[]; total: number } => {
+  const others = players.filter((p) => p.id !== collectorId).length;
+  return {
+    players: players.map((p) => (p.id === collectorId ? p : chargePlayer(p, amount, collectorId))),
+    total: amount * others,
+  };
+};
+
+/**
+ * Drops `debtOwedTo` from players who are solvent again or whose creditor is
+ * no longer in the game. Runs once on every reducer result (see
+ * `reduceGameAction`) so every code path that changes money — selling,
+ * mortgaging, trades, auctions — restores the invariant "debtOwedTo is set
+ * only while money < 0" without each one knowing about debts. Returns the
+ * input untouched (reference-equal) when nothing needs clearing so the
+ * "unchanged state means rejected" contract still holds.
+ */
+const clearSettledDebts = (state: GameState): GameState => {
+  const stale = (p: Player) =>
+    p.debtOwedTo !== undefined &&
+    (p.money >= 0 || !state.players.some((other) => other.id === p.debtOwedTo));
+  if (!state.players.some(stale)) return state;
+  return { ...state, players: state.players.map((p) => (stale(p) ? withoutDebt(p) : p)) };
+};
+
+/**
+ * Who inherits `debtor`'s assets on bankruptcy, or `undefined` for the bank.
+ * Only a genuine outstanding debt counts: declaring while solvent, with a bank
+ * debt (tax, fine, repairs), or after the creditor has left the game forfeits
+ * everything to the bank.
+ */
+const bankruptcyCreditorId = (state: GameState, debtor: Player): string | undefined => {
+  const { debtOwedTo } = debtor;
+  if (debtor.money >= 0 || debtOwedTo === undefined || debtOwedTo === debtor.id) return undefined;
+  return state.players.some((p) => p.id === debtOwedTo) ? debtOwedTo : undefined;
+};
+
+/**
+ * Moves everything a bankrupt player owns to `creditor`, per standard rules:
+ * - properties transfer with their mortgage flag intact (no 10% transfer fee —
+ *   the new owner just inherits the mortgage);
+ * - buildings are sold back to the bank at half price and the proceeds go to
+ *   the creditor, so properties arrive bare;
+ * - any Get Out of Jail Free cards transfer;
+ * - positive cash (never the case for a genuine debtor) transfers too, but a
+ *   negative balance is NOT charged to the creditor: the unpaid shortfall is
+ *   written off. The creditor was already credited the full payment when the
+ *   debt arose (rent is credited in full even if the payer is short), so
+ *   clawing it back would be a surprising second penalty.
+ * Returns the updated creditor and the building proceeds for logging.
+ */
+const transferAssets = (
+  debtor: Player,
+  creditor: Player
+): { creditor: Player; buildingProceeds: number } => {
+  const buildingProceeds = Object.entries(debtor.houses).reduce((sum, [propertyId, count]) => {
+    const houseCost = BOARD.find((t) => t.id === propertyId)?.houseCost ?? 0;
+    return sum + count * (houseCost / 2);
+  }, 0);
+  return {
+    buildingProceeds,
+    creditor: {
+      ...creditor,
+      money: creditor.money + Math.max(0, debtor.money) + buildingProceeds,
+      properties: [...creditor.properties, ...debtor.properties],
+      mortgaged: [...creditor.mortgaged, ...debtor.mortgaged],
+      getOutOfJailCards: creditor.getOutOfJailCards + debtor.getOutOfJailCards,
+    },
+  };
+};
+
+/** Toast fragments and log lines produced by one step of a player's removal. */
+interface RemovalNotes {
+  toast: string[];
+  logs: string[];
+}
+
+/** Hands `player`'s assets to `inheritorId` when that player is still in `players`. */
+const giveAssetsToInheritor = (
+  player: Player,
+  players: Player[],
+  inheritorId?: string
+): { players: Player[]; assetsNote?: string; logs: string[] } => {
+  const inheritor = inheritorId ? players.find((p) => p.id === inheritorId) : undefined;
+  if (!inheritor) return { players, logs: [] };
+  const { creditor, buildingProceeds } = transferAssets(player, inheritor);
+  const sold =
+    buildingProceeds > 0
+      ? `; their buildings were sold to the bank for $${buildingProceeds}, paid to ${creditor.name}.`
+      : '.';
+  return {
+    players: players.map((p) => (p.id === creditor.id ? creditor : p)),
+    assetsNote: `${creditor.name} receives their assets.`,
+    logs: [`[Game] ${player.name}'s properties and cards went to ${creditor.name}${sold}`],
+  };
+};
+
+/**
+ * Settles an auction `playerId` is leaving. Cancels it when the leaver was the
+ * high bidder or nobody is left, awards it to the sole remaining bidder when
+ * that bidder already leads, and otherwise keeps it running with the bidder
+ * pointer re-aligned. `resetPhase` is true whenever the auction ended.
+ */
+const removeFromAuction = (
+  auction: AuctionState,
+  players: Player[],
+  player: Player
+): RemovalNotes & { auction: AuctionState | null; players: Player[]; resetPhase: boolean } => {
+  const propertyName = BOARD.find((tile) => tile.id === auction.propertyId)?.name ?? 'the property';
+  const cancelled = (log: string) => ({
+    auction: null,
+    players,
+    resetPhase: true,
+    toast: ['Auction cancelled.'],
+    logs: [log],
+  });
+
+  if (auction.highestBidderId === player.id) {
+    return cancelled(
+      `[Game] Cancelled auction for ${propertyName} because ${player.name} left as the high bidder.`
+    );
   }
 
-  if (auction && auction.participants.includes(playerId)) {
-    const currentAuction = auction;
-    const propertyName =
-      BOARD.find((tile) => tile.id === currentAuction.propertyId)?.name ?? 'the property';
-
-    if (currentAuction.highestBidderId === playerId) {
-      auction = null;
-      phase = 'action';
-      toastParts.push('Auction cancelled.');
-      logs.push(
-        `[Game] Cancelled auction for ${propertyName} because ${player.name} left as the high bidder.`
-      );
-    } else {
-      const removedBidderIndex = currentAuction.participants.indexOf(playerId);
-      const participants = currentAuction.participants.filter((id) => id !== playerId);
-
-      if (participants.length === 0) {
-        auction = null;
-        phase = 'action';
-        toastParts.push('Auction cancelled.');
-        logs.push(`[Game] Auction for ${propertyName} was cancelled because no bidders remained.`);
-      } else if (participants.length === 1 && currentAuction.highestBidderId === participants[0]) {
-        const winningBidderId = participants[0];
-        const winnerIndex = players.findIndex((p) => p.id === winningBidderId);
-        const auctionWinner = winnerIndex === -1 ? null : players[winnerIndex];
-
-        if (auctionWinner) {
-          const updatedWinner: Player = {
-            ...auctionWinner,
-            money: auctionWinner.money - currentAuction.currentBid,
-            properties: [...auctionWinner.properties, currentAuction.propertyId],
-          };
-          players = [...players];
-          players[winnerIndex] = updatedWinner;
-          toastParts.push(
-            `${auctionWinner.name} won the auction for $${currentAuction.currentBid}.`
-          );
-          logs.push(
-            `[${auctionWinner.name}] Won auction for ${propertyName} at $${currentAuction.currentBid}.`
-          );
-        }
-
-        auction = null;
-        phase = 'action';
-      } else {
-        let currentBidderIndex = currentAuction.currentBidderIndex;
-        if (removedBidderIndex < currentBidderIndex) {
-          currentBidderIndex -= 1;
-        }
-        currentBidderIndex %= participants.length;
-
-        auction = {
-          ...currentAuction,
-          participants,
-          currentBidderIndex,
-        };
-      }
-    }
+  const participants = auction.participants.filter((id) => id !== player.id);
+  if (participants.length === 0) {
+    return cancelled(
+      `[Game] Auction for ${propertyName} was cancelled because no bidders remained.`
+    );
   }
 
-  if (players.length === 0) {
+  if (participants.length === 1 && auction.highestBidderId === participants[0]) {
+    const auctionWinner = players.find((p) => p.id === participants[0]);
+    if (!auctionWinner) return { auction: null, players, resetPhase: true, toast: [], logs: [] };
+    const updatedWinner: Player = {
+      ...auctionWinner,
+      money: auctionWinner.money - auction.currentBid,
+      properties: [...auctionWinner.properties, auction.propertyId],
+    };
     return {
-      ...state,
-      players: [],
-      currentPlayerId: '',
-      doublesCount: 0,
-      phase: 'roll',
-      winner: null,
       auction: null,
-      activeTrade: null,
-      errorMessage: undefined,
-      toastMessage: toastParts.join(' '),
-      logs,
+      players: players.map((p) => (p.id === updatedWinner.id ? updatedWinner : p)),
+      resetPhase: true,
+      toast: [`${auctionWinner.name} won the auction for $${auction.currentBid}.`],
+      logs: [`[${auctionWinner.name}] Won auction for ${propertyName} at $${auction.currentBid}.`],
     };
   }
 
-  if (state.currentPlayerId === playerId) {
-    const nextIndex = (playerIndex + 1) % state.players.length;
-    currentPlayerId = state.players[nextIndex].id;
-    if (!players.some((p) => p.id === currentPlayerId)) {
-      currentPlayerId = players[0].id;
-    }
+  const removedBidderIndex = auction.participants.indexOf(player.id);
+  const shifted =
+    removedBidderIndex < auction.currentBidderIndex
+      ? auction.currentBidderIndex - 1
+      : auction.currentBidderIndex;
+  return {
+    auction: { ...auction, participants, currentBidderIndex: shifted % participants.length },
+    players,
+    resetPhase: false,
+    toast: [],
+    logs: [],
+  };
+};
+
+/** Whose turn it is once `leaverIndex` (of `state.players`) is gone and they were up. */
+const nextPlayerIdAfterRemoval = (
+  state: GameState,
+  players: Player[],
+  leaverIndex: number
+): string => {
+  const nextId = state.players[(leaverIndex + 1) % state.players.length].id;
+  return players.some((p) => p.id === nextId) ? nextId : players[0].id;
+};
+
+/** The pieces of a removal that change as its steps are applied in turn. */
+interface RemovalDraft {
+  players: Player[];
+  phase: GameState['phase'];
+  auction: AuctionState | null;
+  activeTrade: TradeRequest | null;
+  toast: string[];
+  logs: string[];
+}
+
+const cancelTradeInvolving = (draft: RemovalDraft, player: Player): RemovalDraft => {
+  const trade = draft.activeTrade;
+  if (trade?.initiatorId !== player.id && trade?.targetPlayerId !== player.id) return draft;
+  return {
+    ...draft,
+    activeTrade: null,
+    toast: [...draft.toast, 'Active trade cancelled.'],
+    logs: [...draft.logs, `[Game] Cancelled active trade because ${player.name} left.`],
+  };
+};
+
+const leaveAuction = (draft: RemovalDraft, player: Player): RemovalDraft => {
+  if (!draft.auction?.participants.includes(player.id)) return draft;
+  const removal = removeFromAuction(draft.auction, draft.players, player);
+  return {
+    ...draft,
+    auction: removal.auction,
+    players: removal.players,
+    phase: removal.resetPhase ? 'action' : draft.phase,
+    toast: [...draft.toast, ...removal.toast],
+    logs: [...draft.logs, ...removal.logs],
+  };
+};
+
+/** Picks the next turn holder and winner once the player has been removed. */
+const advanceAfterRemoval = (
+  state: GameState,
+  draft: RemovalDraft,
+  player: Player,
+  playerIndex: number,
+  headline: string[]
+): GameState => {
+  const { players } = draft;
+  let { phase, auction, activeTrade, toast, logs } = draft;
+  let currentPlayerId = state.currentPlayerId;
+  let doublesCount = state.doublesCount;
+  let winner = state.winner;
+
+  if (state.currentPlayerId === player.id) {
+    currentPlayerId = nextPlayerIdAfterRemoval(state, players, playerIndex);
     phase = 'roll';
     doublesCount = 0;
   }
 
   if (players.length === 1) {
     winner = players[0].id;
-    currentPlayerId = players[0].id;
+    currentPlayerId = winner;
     phase = 'roll';
     doublesCount = 0;
     auction = null;
     activeTrade = null;
-    toastParts.length = 0;
-    toastParts.push(`${player.name} ${reason}. ${players[0].name} wins!`);
-    logs.push(`[Game] ${players[0].name} wins!`);
-  } else if (winner === playerId || (winner && !players.some((p) => p.id === winner))) {
+    toast = [...headline, `${players[0].name} wins!`];
+    logs = [...logs, `[Game] ${players[0].name} wins!`];
+  } else if (winner && !players.some((p) => p.id === winner)) {
     winner = null;
   }
 
@@ -199,8 +344,67 @@ const removePlayerAndCleanup = (state: GameState, playerId: string, reason: stri
     auction,
     activeTrade,
     errorMessage: undefined,
-    toastMessage: toastParts.join(' '),
+    toastMessage: toast.join(' '),
     logs,
+  };
+};
+
+/**
+ * Shared cleanup for permanently removing a player mid-game: cancels any
+ * trade or auction they're involved in (re-seating the auction winner if
+ * they were the sole remaining bidder), advances the turn/win state, and
+ * either hands their assets to `inheritorId` or — when there is none — drops
+ * their tiles back to the unowned pool. `reason` only affects the toast/log
+ * wording — the structural cleanup is identical whether the player left the
+ * room or went bankrupt, so both paths share it (bankruptcy used to skip
+ * this and leave a dangling activeTrade/auction reference). Only bankruptcy
+ * to a player passes an `inheritorId`; leaving a room must never enrich
+ * anyone.
+ */
+const removePlayerAndCleanup = (
+  state: GameState,
+  playerId: string,
+  reason: string,
+  inheritorId?: string
+): GameState => {
+  const playerIndex = state.players.findIndex((p) => p.id === playerId);
+  if (playerIndex === -1) return state;
+
+  const player = state.players[playerIndex];
+  const remaining = state.players
+    .filter((p) => p.id !== playerId)
+    // Debts owed to the departing player die with them.
+    .map((p) => (p.debtOwedTo === playerId ? withoutDebt(p) : p));
+  const inherited = giveAssetsToInheritor(player, remaining, inheritorId);
+  const headline = [
+    `${player.name} ${reason}.`,
+    ...(inherited.assetsNote ? [inherited.assetsNote] : []),
+  ];
+
+  let draft: RemovalDraft = {
+    players: inherited.players,
+    phase: state.phase,
+    auction: state.auction,
+    activeTrade: state.activeTrade,
+    toast: headline,
+    logs: [...state.logs, `[${player.name}] ${reason}.`, ...inherited.logs],
+  };
+  draft = leaveAuction(cancelTradeInvolving(draft, player), player);
+
+  if (draft.players.length > 0)
+    return advanceAfterRemoval(state, draft, player, playerIndex, headline);
+  return {
+    ...state,
+    players: [],
+    currentPlayerId: '',
+    doublesCount: 0,
+    phase: 'roll',
+    winner: null,
+    auction: null,
+    activeTrade: null,
+    errorMessage: undefined,
+    toastMessage: draft.toast.join(' '),
+    logs: draft.logs,
   };
 };
 
@@ -428,7 +632,7 @@ const reduceGameActionUnbounded = (
       }
 
       let newPlayer = { ...player, position: newPosition, money };
-      const newPlayers = [...state.players];
+      let newPlayers = [...state.players];
       // Update immediately so Chance logic works on current state
       newPlayers[playerIndex] = newPlayer;
 
@@ -437,20 +641,16 @@ const reduceGameActionUnbounded = (
       if (targetTile.type === 'chance') {
         const card = CHANCE_CARDS[Math.floor(rng() * CHANCE_CARDS.length)];
 
-        const { player: updatedPlayer, sentToJail } = processCardEffect(newPlayer, card);
+        const { player: updatedPlayer, sentToJail } = processCardEffect(
+          settleDebt(newPlayer),
+          card
+        );
         newPlayer = updatedPlayer;
 
         if (card.action.type === 'COLLECT_FROM_ALL') {
-          const amount = card.action.amount;
-          let totalCollected = 0;
-          newPlayers.forEach((p, i) => {
-            if (p.id !== newPlayer.id) {
-              const newMoney = p.money - amount;
-              newPlayers[i] = { ...p, money: newMoney };
-              totalCollected += amount;
-            }
-          });
-          newPlayer.money += totalCollected;
+          const collected = collectFromOthers(newPlayers, newPlayer.id, card.action.amount);
+          newPlayers = collected.players;
+          newPlayer.money += collected.total;
         }
 
         const effectMsg = `Chance: ${card.text}`;
@@ -471,20 +671,16 @@ const reduceGameActionUnbounded = (
       if (targetTile.type === 'community_chest') {
         const card = COMMUNITY_CHEST_CARDS[Math.floor(rng() * COMMUNITY_CHEST_CARDS.length)];
 
-        const { player: updatedPlayer, sentToJail } = processCardEffect(newPlayer, card);
+        const { player: updatedPlayer, sentToJail } = processCardEffect(
+          settleDebt(newPlayer),
+          card
+        );
         newPlayer = updatedPlayer;
 
         if (card.action.type === 'COLLECT_FROM_ALL') {
-          const amount = card.action.amount;
-          let totalCollected = 0;
-          newPlayers.forEach((p, i) => {
-            if (p.id !== newPlayer.id) {
-              const newMoney = p.money - amount;
-              newPlayers[i] = { ...p, money: newMoney };
-              totalCollected += amount;
-            }
-          });
-          newPlayer.money += totalCollected;
+          const collected = collectFromOthers(newPlayers, newPlayer.id, card.action.amount);
+          newPlayers = collected.players;
+          newPlayer.money += collected.total;
         }
 
         const effectMsg = `Community Chest: ${card.text}`;
@@ -516,7 +712,7 @@ const reduceGameActionUnbounded = (
       // Tax Logic
       if (targetTile.type === 'tax') {
         const taxAmount = targetTile.price || 0;
-        newPlayer.money -= taxAmount;
+        newPlayer = chargePlayer(newPlayer, taxAmount);
         newPlayers[playerIndex] = newPlayer;
         const msg = `Paid $${taxAmount} in Tax.`;
         toastMessage = toastMessage ? `${toastMessage} ${msg}` : msg;
@@ -568,8 +764,10 @@ const reduceGameActionUnbounded = (
             rent = 0;
           }
 
-          // Deduct from current player
-          newPlayer.money -= rent;
+          // Deduct from current player. Rent is charged (and the owner credited)
+          // in full even if the payer is short; the payer then owes the owner,
+          // who inherits their assets if they go bankrupt (see transferAssets).
+          newPlayer = chargePlayer(newPlayer, rent, owner.id);
           // Update current player in array again (since we modified local var)
           newPlayers[playerIndex] = newPlayer;
 
@@ -1247,11 +1445,13 @@ const reduceGameActionUnbounded = (
 
     case 'DECLARE_BANKRUPTCY': {
       if (!state.players.some((p) => p.id === action.playerId)) return state;
+      const debtor = state.players.find((p) => p.id === action.playerId);
+      const creditorId = debtor ? bankruptcyCreditorId(state, debtor) : undefined;
       // Delegate to the same removal cleanup `removePlayerFromGame` uses so
       // bankruptcy also cancels any trade/auction the player was part of
       // instead of leaving a dangling reference to a player who no longer
       // exists in state.players.
-      return removePlayerAndCleanup(state, action.playerId, 'went bankrupt');
+      return removePlayerAndCleanup(state, action.playerId, 'went bankrupt', creditorId);
     }
 
     case 'END_TURN': {
@@ -1286,9 +1486,9 @@ const reduceGameActionUnbounded = (
 };
 
 /**
- * Public entry point. Delegates to the unbounded reducer above, then caps
- * `logs` at `MAX_LOGS` — a single choke point instead of touching every one
- * of the reducer's ~25 individual log-append sites.
+ * Public entry point. Delegates to the unbounded reducer above, then settles
+ * stale debts and caps `logs` at `MAX_LOGS` — single choke points instead of
+ * touching every one of the reducer's ~25 money/log sites.
  */
 export const reduceGameAction = (
   state: GameState,
@@ -1297,5 +1497,7 @@ export const reduceGameAction = (
 ): GameReducerResult => {
   const result = reduceGameActionUnbounded(state, action, rng);
   if (result === ACTION_REJECTED) return result;
-  return capLogs(result);
+  // A no-op must stay reference-equal (the server's rejection signal), even if
+  // the input carried a stale debt that clearSettledDebts would otherwise copy.
+  return result === state ? state : capLogs(clearSettledDebts(result));
 };

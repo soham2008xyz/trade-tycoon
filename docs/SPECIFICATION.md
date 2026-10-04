@@ -76,7 +76,11 @@ This document tracks the implementation status of features for the Trade Tycoon 
 
 - [x] **Bankruptcy**:
   - [x] Player explicitly declares bankruptcy via a `DECLARE_BANKRUPTCY` action (triggered when they cannot meet a debt obligation).
-  - [x] All assets (properties, buildings, cash) are forfeited to the bank. Any debt owed to another player transfers their properties to that player instead.
+  - [x] All assets (properties, buildings, cash) are forfeited to the bank, except when the player is in debt to another player: then the creditor inherits instead.
+  - [x] **Creditor tracking**: when a player-to-player payment (rent, or a "collect from every player" card) leaves a balance below $0, that player's `debtOwedTo` records the payee. Bank charges (tax, jail fine, repairs) never set it and never overwrite an existing creditor; a later player payment replaces it. It clears as soon as the balance is back to $0 or above, or the creditor leaves the game.
+  - [x] **Bankruptcy to a player**: the creditor receives the bankrupt player's properties (mortgaged ones stay mortgaged, with no transfer fee) and Get Out of Jail Free cards. Buildings are sold back to the bank at half price and that cash goes to the creditor, so properties arrive with no buildings.
+  - [x] **Unpaid shortfall is written off**: rent is credited to the owner in full when it is charged, so the creditor is not charged anything further for the part the bankrupt player could not cover.
+  - [x] Declaring bankruptcy while solvent, over a bank debt, or after the creditor has left the game forfeits everything to the bank. Leaving a room mid-game never transfers assets.
   - [x] Bankrupt player is removed from the game.
 - [x] **Winner Declaration**: Last player remaining wins.
 - [x] **Game-over screen**: Once a winner exists the status panel (phone peek / tablet board centre) shows a persistent winner card with the winner's name, colour, cash and property count. All turn actions and Trade buttons are hidden. Hotseat offers **New Game** (back to player setup) and **Back to Menu**; online offers **Back to Menu** (leaves the room). The server keeps the finished game for players still in the room even if the winner leaves first.
