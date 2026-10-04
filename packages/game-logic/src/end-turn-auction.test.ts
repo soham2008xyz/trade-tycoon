@@ -81,6 +81,28 @@ describe('END_TURN on an unowned buyable tile (#272)', () => {
     expect(next).not.toBe(ACTION_REJECTED);
   });
 
+  it('clears a stale error so the auction announcement is what the player sees', () => {
+    const state = stateWithP1On(MEDITERRANEAN, { errorMessage: 'Insufficient funds.' });
+
+    const next = endTurn(state);
+
+    expect(next.phase).toBe('auction');
+    expect(next.errorMessage).toBeUndefined();
+    expect(next.toastMessage).toBe('Auction started for Mediterranean Avenue!');
+  });
+
+  it('ignores a repeated END_TURN while the auction is running', () => {
+    const auctioning = endTurn(stateWithP1On(MEDITERRANEAN));
+
+    const repeated = reduceGameAction(auctioning, { type: 'END_TURN', playerId: 'p1' });
+
+    // Unchanged state is the server's rejection signal: nothing persisted or broadcast.
+    expect(repeated).toBe(auctioning);
+    expect(auctioning.phase).toBe('auction');
+    expect(auctioning.auction).not.toBeNull();
+    expect(auctioning.currentPlayerId).toBe('p1');
+  });
+
   it('does not mutate the input state', () => {
     const state = stateWithP1On(MEDITERRANEAN);
     const snapshot = JSON.parse(JSON.stringify(state));

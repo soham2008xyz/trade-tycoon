@@ -459,6 +459,9 @@ const startAuction = (state: GameState, tile: Tile): GameState => ({
   // A no-sale auction drops back to 'action' with the lander still on this
   // unowned tile; remember it so End Turn doesn't auction it again forever.
   auctionedPropertyId: tile.id,
+  // A stale rejection (e.g. a failed purchase) would otherwise outrank the
+  // announcement in local hotseat feedback and ride along through the auction.
+  errorMessage: undefined,
   toastMessage: `Auction started for ${tile.name}!`,
   logs: [...state.logs, `[Game] Auction started for ${tile.name}.`],
 });
@@ -1472,6 +1475,10 @@ const reduceGameActionUnbounded = (
 
     case 'END_TURN': {
       if (state.currentPlayerId !== action.playerId) return state;
+      // The turn can't end mid-auction. This also makes a repeated END_TURN
+      // (sent again before the client sees the auction-start update) a no-op
+      // instead of advancing the turn and orphaning the open auction.
+      if (state.phase === 'auction') return state;
 
       const player = state.players.find((p) => p.id === action.playerId);
       if (player && player.money < 0) {
