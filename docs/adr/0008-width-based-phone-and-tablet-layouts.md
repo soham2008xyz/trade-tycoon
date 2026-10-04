@@ -11,5 +11,5 @@ The decision came out of a design brainstorm for the iPhone layout. The app had 
 ## Consequences
 
 - On phones the five game modals take over the full screen, and edge tiles drop their names in favour of colour strip and price when the board is small. Names remain available through the tile-info modal.
-- Portrait only. The app locks orientation at the root layout for native platforms, and phone landscape was left out of scope.
+- Portrait only on native builds ([ADR 0011](0011-native-builds-are-portrait-locked-with-no-tablet-shell.md)); phone landscape was left out of scope.
 - The bottom sheet is a third-party library that needed a local patch for the current React Native and Reanimated versions; the patch is recorded in `patches/`.
