@@ -139,8 +139,9 @@
   sizes the `Board` (`onLayout` reports the border box including padding, so
   padding the measured view would size the board for space it doesn't have).
   The phone wrapper also carries the `zIndex: 0` from #257. Insets are 0 on web.
-  Verified on iPhone 17 and 17e (native dev build). Still open: `Toast` uses a
-  hard-coded `top: 50`, and the Auction modal header (#260) ignores the inset.
+  Verified on iPhone 17 and 17e (native dev build). `Toast` also uses the inset
+  (`top: insets.top + 8`, inline; 8px on web). Still open: the Auction modal
+  header (#260) ignores the inset.
 - Game-over UI (#269): bankrupt/departed players are removed from
   `state.players`, so once `state.winner` is set the winner is the only player
   left — there are no "final standings" to list, just the winner's cash and
