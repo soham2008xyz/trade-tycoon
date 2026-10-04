@@ -131,3 +131,13 @@
   `zIndex`/`elevation` on the sheet (`containerStyle`/`style`); keep that
   wrapper and don't strip the board's internal `zIndex`es. Verified on iPhone 17
   (Expo Go) with 2 and 6 players; Android `elevation` is untested.
+- Safe-area insets (#250): the game screen used to render from y=0, so the board
+  sat under the status bar / notch / Dynamic Island on iPhones. expo-router
+  already provides `SafeAreaProvider`, but nothing pads the root, so
+  `PhoneGameLayout` and `TabletGameLayout` apply `useSafeAreaInsets().top`
+  themselves, as `paddingTop` on a wrapper _outside_ the view whose `onLayout`
+  sizes the `Board` (`onLayout` reports the border box including padding, so
+  padding the measured view would size the board for space it doesn't have).
+  The phone wrapper also carries the `zIndex: 0` from #257. Insets are 0 on web.
+  Verified on iPhone 17 and 17e (native dev build). Still open: `Toast` uses a
+  hard-coded `top: 50`, and the Auction modal header (#260) ignores the inset.
