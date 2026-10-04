@@ -27,6 +27,9 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
 
   return (
     <View style={styles.root}>
+      {/* zIndex: 0 makes boardArea its own stacking context. Board's corners/center/
+          tokens use zIndex 10-100+, which otherwise compete with the sibling sheet
+          at the root and paint over the Players list and Trade button (#257). */}
       <View style={styles.boardArea} onLayout={handleBoardLayout}>
         <Board
           players={props.state.players}
@@ -40,6 +43,10 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
       <BottomSheet
         ref={sheetRef}
         index={0}
+        // Above boardArea (zIndex 0); elevation is the Android equivalent, where
+        // elevation rather than zIndex decides draw order across siblings.
+        containerStyle={styles.sheetContainer}
+        style={styles.sheet}
         snapPoints={snapPoints}
         enableDynamicSizing={false}
         enablePanDownToClose={false}
@@ -60,6 +67,14 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fff' },
-  boardArea: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', padding: 10 },
+  boardArea: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    padding: 10,
+    zIndex: 0,
+  },
+  sheetContainer: { zIndex: 1, elevation: 10 },
+  sheet: { elevation: 10 },
   peek: { borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
 });

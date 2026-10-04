@@ -166,6 +166,13 @@ opt-in design is what's correct; the test in
   `components/online-platform.ts`, so lobby/game state still refreshes
   on iOS and Android without a browser SSE implementation.
 
+- **Board stacking is contained.** `Board`, `Tile` and `PlayerToken` use
+  explicit `zIndex` values (10–100+). In `PhoneGameLayout` the board
+  wrapper has `zIndex: 0` and the `BottomSheet` a higher `zIndex` /
+  `elevation`, so nothing from the board can paint over the sheet
+  (#257). Keep that wrapper when restructuring the layout, and don't
+  strip the board's internal `zIndex`es.
+
 ## Test command
 
 ```sh
