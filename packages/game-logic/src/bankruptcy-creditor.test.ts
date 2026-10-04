@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createInitialState, createPlayer } from './index';
 import { gameReducer, reduceGameAction, removePlayerFromGame } from './reducer';
+import { CHANCE_CARDS } from './chance-cards';
 import { COMMUNITY_CHEST_CARDS } from './community-chest-cards';
 import type { GameState, Player } from './types';
 
@@ -98,6 +99,42 @@ describe('creditor tracking', () => {
 
     expect(byId(after, 'p3').position).toBe(13);
     expect(byId(after, 'p3').debtOwedTo).toBe('p2');
+  });
+
+  it('drops the old creditor when mid-roll income settles the debt before a bank charge', () => {
+    // p3 owes p2 (-$50), takes a doubles' extra roll, passes GO
+    // (+$200 -> $150), then lands on Income Tax ($200) and is negative again —
+    // but now owes the bank, not p2.
+    const state = issueState();
+    state.players[2] = { ...state.players[2], money: -50, debtOwedTo: 'p2', position: 38 };
+    state.phase = 'action';
+    state.doublesCount = 1;
+
+    const after = gameReducer(state, { type: 'ROLL_DICE', playerId: 'p3', ...ROLL_TO_ORIENTAL });
+
+    expect(byId(after, 'p3').position).toBe(4);
+    expect(byId(after, 'p3').money).toBe(-50);
+    expect(byId(after, 'p3').debtOwedTo).toBeUndefined();
+  });
+
+  it('drops the old creditor when mid-roll income settles the debt before a card charge', () => {
+    // GO takes p3 from -$200 to $0 (settled), then a Chance card charges $50 (bank).
+    const cardIndex = CHANCE_CARDS.findIndex((c) => c.id === 'c3'); // "Doctor's fees. Pay $50"
+    const state = issueState();
+    state.players[2] = { ...state.players[2], money: -200, debtOwedTo: 'p2', position: 36 };
+    state.phase = 'action';
+    state.doublesCount = 1;
+    const rng = () => (cardIndex + 0.5) / CHANCE_CARDS.length;
+
+    const result = reduceGameAction(
+      state,
+      { type: 'ROLL_DICE', playerId: 'p3', die1: 5, die2: 6 }, // 36 + 11 -> Chance (7)
+      rng
+    );
+    if (typeof result === 'symbol') throw new Error('rejected');
+
+    expect(byId(result, 'p3').money).toBe(-50);
+    expect(byId(result, 'p3').debtOwedTo).toBeUndefined();
   });
 
   it('keeps an existing creditor when a later bank payment deepens the debt', () => {
@@ -225,11 +262,8 @@ describe('DECLARE_BANKRUPTCY with a player creditor', () => {
     // 10 buildings * $50 (half of the $100 build cost).
     expect(creditor.money).toBe(creditorBefore.money + 10 * 50);
     // No building follows the property: the transferred tiles arrive bare.
-    for (const id of ['st_james', 'tennessee', 'new_york']) {
-      expect(creditor.houses[id] ?? 0).toBe(0);
-    }
-    // The creditor's own buildings are untouched.
-    expect(creditor.houses.oriental).toBe(4);
+    // The creditor's own buildings are untouched and nothing else was added.
+    expect(creditor.houses).toEqual({ oriental: 4, vermont: 4, connecticut: 4 });
   });
 
   it("hands the debtor's Get Out of Jail Free cards to the creditor", () => {

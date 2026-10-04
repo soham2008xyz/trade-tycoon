@@ -63,6 +63,14 @@ const withoutDebt = (p: Player): Player => {
 };
 
 /**
+ * A player who is solvent has settled any earlier debt (e.g. via GO income
+ * earlier in the same roll), so a charge made after that point can only create
+ * a fresh one. Call this before applying any charge that is not routed through
+ * `chargePlayer`.
+ */
+const settleDebt = (p: Player): Player => (p.money >= 0 ? withoutDebt(p) : p);
+
+/**
  * Charges `p` `amount` and, when that leaves them below $0, records who they
  * now owe. `creditorId` is the receiving player for player-to-player payments
  * and `undefined` for the bank. A bank charge never overwrites an existing
@@ -72,7 +80,7 @@ const withoutDebt = (p: Player): Player => {
  */
 const chargePlayer = (p: Player, amount: number, creditorId?: string): Player => {
   const money = p.money - amount;
-  const charged = { ...p, money };
+  const charged = { ...settleDebt(p), money };
   // `amount > 0`: a $0 charge (rent on a mortgaged tile) owes the payee nothing,
   // so it must not make them the creditor of debt that arose elsewhere.
   if (amount > 0 && money < 0 && creditorId) charged.debtOwedTo = creditorId;
@@ -94,6 +102,18 @@ const clearSettledDebts = (state: GameState): GameState => {
     (p.money >= 0 || !state.players.some((other) => other.id === p.debtOwedTo));
   if (!state.players.some(stale)) return state;
   return { ...state, players: state.players.map((p) => (stale(p) ? withoutDebt(p) : p)) };
+};
+
+/**
+ * Who inherits `debtor`'s assets on bankruptcy, or `undefined` for the bank.
+ * Only a genuine outstanding debt counts: declaring while solvent, with a bank
+ * debt (tax, fine, repairs), or after the creditor has left the game forfeits
+ * everything to the bank.
+ */
+const bankruptcyCreditorId = (state: GameState, debtor: Player): string | undefined => {
+  const { debtOwedTo } = debtor;
+  if (debtor.money >= 0 || debtOwedTo === undefined || debtOwedTo === debtor.id) return undefined;
+  return state.players.some((p) => p.id === debtOwedTo) ? debtOwedTo : undefined;
 };
 
 /**
@@ -166,11 +186,10 @@ const removePlayerAndCleanup = (
   const logs = [...state.logs, `[${player.name}] ${reason}.`];
   let assetsNote: string | undefined;
 
-  const inheritorIndex = inheritorId ? players.findIndex((p) => p.id === inheritorId) : -1;
-  if (inheritorIndex !== -1) {
-    const { creditor, buildingProceeds } = transferAssets(player, players[inheritorIndex]);
-    players = [...players];
-    players[inheritorIndex] = creditor;
+  const inheritor = inheritorId ? players.find((p) => p.id === inheritorId) : undefined;
+  if (inheritor) {
+    const { creditor, buildingProceeds } = transferAssets(player, inheritor);
+    players = players.map((p) => (p.id === creditor.id ? creditor : p));
     assetsNote = `${creditor.name} receives their assets.`;
     toastParts.push(assetsNote);
     logs.push(
@@ -540,7 +559,10 @@ const reduceGameActionUnbounded = (
       if (targetTile.type === 'chance') {
         const card = CHANCE_CARDS[Math.floor(rng() * CHANCE_CARDS.length)];
 
-        const { player: updatedPlayer, sentToJail } = processCardEffect(newPlayer, card);
+        const { player: updatedPlayer, sentToJail } = processCardEffect(
+          settleDebt(newPlayer),
+          card
+        );
         newPlayer = updatedPlayer;
 
         if (card.action.type === 'COLLECT_FROM_ALL') {
@@ -573,7 +595,10 @@ const reduceGameActionUnbounded = (
       if (targetTile.type === 'community_chest') {
         const card = COMMUNITY_CHEST_CARDS[Math.floor(rng() * COMMUNITY_CHEST_CARDS.length)];
 
-        const { player: updatedPlayer, sentToJail } = processCardEffect(newPlayer, card);
+        const { player: updatedPlayer, sentToJail } = processCardEffect(
+          settleDebt(newPlayer),
+          card
+        );
         newPlayer = updatedPlayer;
 
         if (card.action.type === 'COLLECT_FROM_ALL') {
@@ -617,7 +642,7 @@ const reduceGameActionUnbounded = (
       // Tax Logic
       if (targetTile.type === 'tax') {
         const taxAmount = targetTile.price || 0;
-        newPlayer.money -= taxAmount;
+        newPlayer = chargePlayer(newPlayer, taxAmount);
         newPlayers[playerIndex] = newPlayer;
         const msg = `Paid $${taxAmount} in Tax.`;
         toastMessage = toastMessage ? `${toastMessage} ${msg}` : msg;
@@ -1351,18 +1376,7 @@ const reduceGameActionUnbounded = (
     case 'DECLARE_BANKRUPTCY': {
       if (!state.players.some((p) => p.id === action.playerId)) return state;
       const debtor = state.players.find((p) => p.id === action.playerId);
-      // Assets go to the player the debt is owed to — but only for a genuine
-      // outstanding debt. Declaring while solvent, or with a bank debt (tax,
-      // fine, repairs), forfeits everything to the bank, as does a creditor
-      // who has since left the game.
-      const creditorId =
-        debtor &&
-        debtor.money < 0 &&
-        debtor.debtOwedTo !== undefined &&
-        debtor.debtOwedTo !== debtor.id &&
-        state.players.some((p) => p.id === debtor.debtOwedTo)
-          ? debtor.debtOwedTo
-          : undefined;
+      const creditorId = debtor ? bankruptcyCreditorId(state, debtor) : undefined;
       // Delegate to the same removal cleanup `removePlayerFromGame` uses so
       // bankruptcy also cancels any trade/auction the player was part of
       // instead of leaving a dangling reference to a player who no longer
