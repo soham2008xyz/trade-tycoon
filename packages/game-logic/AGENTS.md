@@ -128,6 +128,8 @@ src/
   reducer.ts                  gameReducer + Action union
   helpers.ts                  Pure helpers used by the reducer
   game-setup.ts               createInitialState, createPlayer
+  player-colors.ts            Color palette + uniqueness rule (client setup,
+                              server lobby, RESET_GAME all share it)
   board-data.ts               BOARD constant — every tile, in order
   cards.ts                    Chance + Community Chest deck logic
   jail-cards.ts               Which deck each held Get Out of Jail Free card

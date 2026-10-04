@@ -1495,6 +1495,16 @@ describe('Game Reducer', () => {
       // gameReducer collapses ACTION_REJECTED back to the unchanged state.
       expect(reset).toBe(state);
     });
+
+    it('should reject RESET_GAME when two players share a color', () => {
+      const state = createInitialState();
+      const players = [
+        { id: 'p1', name: 'P1', color: '#FF0000' },
+        { id: 'p2', name: 'P2', color: '#ff0000' },
+      ];
+      expect(reduceGameAction(state, { type: 'RESET_GAME', players })).toBe(ACTION_REJECTED);
+      expect(gameReducer(state, { type: 'RESET_GAME', players })).toBe(state);
+    });
   });
 
   describe('Self-trade prevention', () => {

@@ -1,4 +1,8 @@
-/** Token colors offered on the local Game Setup screen. */
+/**
+ * Token colors offered to players. Shared by local Game Setup, the online lobby
+ * (`RoomManager`) and the `RESET_GAME` reducer case so every path enforces the
+ * same "one color per player" rule.
+ */
 export const PLAYER_COLORS = [
   '#FF0000',
   '#0000FF',

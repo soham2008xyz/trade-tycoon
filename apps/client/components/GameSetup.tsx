@@ -6,7 +6,7 @@ import {
   hasDuplicateColors,
   isColorTakenByOthers,
   pickUnusedColor,
-} from './player-colors';
+} from '@trade-tycoon/game-logic';
 
 interface PlayerConfig {
   name: string;
