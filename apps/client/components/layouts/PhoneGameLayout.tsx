@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import BottomSheet from '@gorhom/bottom-sheet';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Board } from '../Board';
 import { Peek } from '../StatusPanel/Peek';
 import { Expanded } from '../StatusPanel/Expanded';
@@ -13,6 +14,7 @@ interface Props extends StatusPanelProps {
 
 export const PhoneGameLayout: React.FC<Props> = (props) => {
   const sheetRef = useRef<BottomSheet>(null);
+  const insets = useSafeAreaInsets();
   const snapPoints = useMemo(() => ['28%', '85%'], []);
   const [boardFrame, setBoardFrame] = React.useState<{ width: number; height: number } | null>(
     null
@@ -27,18 +29,23 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
 
   return (
     <View style={styles.root}>
-      {/* zIndex: 0 makes boardArea its own stacking context. Board's corners/center/
+      {/* zIndex: 0 makes this wrapper its own stacking context. Board's corners/center/
           tokens use zIndex 10-100+, which otherwise compete with the sibling sheet
-          at the root and paint over the Players list and Trade button (#257). */}
-      <View style={styles.boardArea} onLayout={handleBoardLayout}>
-        <Board
-          players={props.state.players}
-          availableWidth={boardFrame?.width}
-          availableHeight={boardFrame?.height}
-          onTilePress={props.onTilePress}
-          onTokenMovingChange={props.onTokenMovingChange}
-          slot={null}
-        />
+          at the root and paint over the Players list and Trade button (#257).
+          The top inset (status bar / notch / Dynamic Island) is padding on this
+          wrapper rather than on boardArea: boardArea's onLayout then reports the
+          inset-adjusted frame, so Board sizes itself to the visible area (#250). */}
+      <View style={[styles.boardWrapper, { paddingTop: insets.top }]}>
+        <View style={styles.boardArea} onLayout={handleBoardLayout}>
+          <Board
+            players={props.state.players}
+            availableWidth={boardFrame?.width}
+            availableHeight={boardFrame?.height}
+            onTilePress={props.onTilePress}
+            onTokenMovingChange={props.onTokenMovingChange}
+            slot={null}
+          />
+        </View>
       </View>
       <BottomSheet
         ref={sheetRef}
@@ -67,12 +74,12 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fff' },
+  boardWrapper: { flex: 1, zIndex: 0 },
   boardArea: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
     padding: 10,
-    zIndex: 0,
   },
   sheetContainer: { zIndex: 1, elevation: 10 },
   sheet: { elevation: 10 },

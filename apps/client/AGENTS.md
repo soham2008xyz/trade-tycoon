@@ -172,6 +172,13 @@ opt-in design is what's correct; the test in
   `elevation`, so nothing from the board can paint over the sheet
   (#257). Keep that wrapper when restructuring the layout, and don't
   strip the board's internal `zIndex`es.
+- **Safe-area insets are applied per screen, not at the root.** expo-router
+  already provides the `SafeAreaProvider`, but nothing pads the root, so
+  each game layout applies `useSafeAreaInsets().top` itself (#250). Put the
+  inset as `paddingTop` on a wrapper _outside_ the view whose `onLayout`
+  sizes the `Board` — `onLayout` reports the border box including padding,
+  so padding the measured view would leave the board sized for space it
+  doesn't have. Insets are 0 on web, so it's a no-op there.
 
 ## Test command
 
