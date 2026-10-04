@@ -185,3 +185,10 @@
   starts a turn on last turn's unsold tile from triggering an auction when
   they end the turn before rolling. `DECLINE_BUY` (the Auction button) can
   still re-auction a tile after a no-sale auction — pre-existing, left alone.
+- Get Out of Jail Free cards are tracked per deck in `GameState.jailCardHolders`
+  (optional; always read via `resolveJailCardHolders`, which rebuilds it from the
+  authoritative `Player.getOutOfJailCards` counts for older rooms and
+  count-only fixtures). A held jail card is filtered out of the draw pool, which
+  keeps exactly one `rng()` call per card draw — server tests that script rng
+  order depend on that. Anything that moves counted cards between players must
+  move the matching holder too (details in `packages/game-logic/AGENTS.md`).

@@ -80,6 +80,15 @@ export interface AuctionState {
   currentBidderIndex: number;
 }
 
+/** The two decks that each contain exactly one Get Out of Jail Free card. */
+export type JailCardDeck = 'chance' | 'communityChest';
+
+/**
+ * Who holds each deck's Get Out of Jail Free card; `null` means it is still in
+ * the deck (and so can be drawn).
+ */
+export type JailCardHolders = Record<JailCardDeck, string | null>;
+
 export interface GameState {
   players: Player[];
   currentPlayerId: string;
@@ -96,6 +105,15 @@ export interface GameState {
    * Cleared when the player moves (ROLL_DICE) or the turn ends.
    */
   auctionedPropertyId?: string;
+  /**
+   * Which player holds each deck's Get Out of Jail Free card, so a held card is
+   * never dealt a second time. `Player.getOutOfJailCards` stays the per-player
+   * count (trades, the "Use Card" button); this says which deck each counted card
+   * belongs to. Optional because rooms saved before it existed, and hand-built
+   * fixtures, only carry counts — `resolveJailCardHolders` (jail-cards.ts) rebuilds
+   * it from them, so always read it through that rather than directly.
+   */
+  jailCardHolders?: JailCardHolders;
   activeTrade: TradeRequest | null;
   errorMessage?: string;
   toastMessage?: string;

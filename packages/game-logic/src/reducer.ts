@@ -1,9 +1,25 @@
-import { AuctionState, GameState, Player, Tile, TradeOffer, TradeRequest } from './types';
+import {
+  AuctionState,
+  GameState,
+  JailCardDeck,
+  JailCardHolders,
+  Player,
+  Tile,
+  TradeOffer,
+  TradeRequest,
+} from './types';
 import { BOARD, isTileBuyable } from './board-data';
 import { createPlayer } from './game-setup';
-import { processCardEffect } from './cards';
+import { type Card, processCardEffect } from './cards';
 import { CHANCE_CARDS } from './chance-cards';
 import { COMMUNITY_CHEST_CARDS } from './community-chest-cards';
+import {
+  drawableCards,
+  jailDecksHeldBy,
+  moveJailCards,
+  resolveJailCardHolders,
+  swapJailCards,
+} from './jail-cards';
 import {
   getUnmortgageCost,
   ownsCompleteGroup,
@@ -376,6 +392,24 @@ const removePlayerAndCleanup = (
   if (playerIndex === -1) return state;
 
   const player = state.players[playerIndex];
+  // The leaver's jail cards follow their assets: to the inheritor when there is
+  // one (matching the counts in transferAssets), otherwise back into their decks.
+  // Left untouched when they hold none, so states without the field stay as is.
+  const holders = resolveJailCardHolders(state.players, state.jailCardHolders);
+  const heldCount = jailDecksHeldBy(holders, playerId).length;
+  const heirsCards = inheritorId && state.players.some((p) => p.id === inheritorId);
+  const afterRemoval: GameState =
+    heldCount === 0
+      ? state
+      : {
+          ...state,
+          jailCardHolders: moveJailCards(
+            holders,
+            playerId,
+            heirsCards ? inheritorId : null,
+            heldCount
+          ),
+        };
   const remaining = state.players
     .filter((p) => p.id !== playerId)
     // Debts owed to the departing player die with them.
@@ -397,9 +431,9 @@ const removePlayerAndCleanup = (
   draft = leaveAuction(cancelTradeInvolving(draft, player), player);
 
   if (draft.players.length > 0)
-    return advanceAfterRemoval(state, draft, player, playerIndex, headline);
+    return advanceAfterRemoval(afterRemoval, draft, player, playerIndex, headline);
   return {
-    ...state,
+    ...afterRemoval,
     players: [],
     currentPlayerId: '',
     doublesCount: 0,
@@ -439,6 +473,24 @@ const capLogs = (state: GameState): GameState => {
  */
 const hasHousesOnAny = (houses: Record<string, number>, propertyIds: string[]): boolean =>
   Object.entries(houses).some(([propId, count]) => count > 0 && propertyIds.includes(propId));
+
+/**
+ * Deals one card from `deck`. A held Get Out of Jail Free card is out of the
+ * deck, so it is excluded from the pool (still exactly one rng call per draw).
+ * Returns the reconciled holders for the caller to extend if the card drawn is
+ * the jail card.
+ */
+const drawFromDeck = (
+  deck: JailCardDeck,
+  cards: readonly Card[],
+  players: readonly Player[],
+  stored: JailCardHolders | undefined,
+  rng: Rng
+): { card: Card; holders: JailCardHolders } => {
+  const holders = resolveJailCardHolders(players, stored);
+  const pool = drawableCards(cards, holders[deck] !== null);
+  return { card: pool[Math.floor(rng() * pool.length)], holders };
+};
 
 /**
  * Opens an auction for `tile` with every player as a bidder. Shared by
@@ -494,6 +546,7 @@ const reduceGameActionUnbounded = (
         winner: null,
         auction: null,
         auctionedPropertyId: undefined,
+        jailCardHolders: undefined, // a fresh game has every jail card back in its deck
         activeTrade: null,
         errorMessage: undefined,
         toastMessage: undefined,
@@ -552,10 +605,16 @@ const reduceGameActionUnbounded = (
       const newPlayers = [...state.players];
       newPlayers[playerIndex] = newPlayer;
 
+      // The used card goes back into its deck so it can be drawn again. A counted
+      // card with no deck (old duplicate-draw state) is used up first instead.
+      const holders = resolveJailCardHolders(state.players, state.jailCardHolders);
+      const hasDeckless = player.getOutOfJailCards > jailDecksHeldBy(holders, player.id).length;
+
       const toastMessage = 'Used a "Get Out of Jail Free" card!';
       return {
         ...state,
         players: newPlayers,
+        jailCardHolders: hasDeckless ? holders : moveJailCards(holders, player.id, null, 1),
         // Stay in roll phase to allow movement
         errorMessage: undefined,
         toastMessage,
@@ -670,14 +729,26 @@ const reduceGameActionUnbounded = (
 
       // Chance Logic
       let targetTile = BOARD[newPosition];
+      // Only changes when a Get Out of Jail Free card is drawn; a Chance card can
+      // move the player onto Community Chest, so the second draw must see the first.
+      let jailCardHolders = state.jailCardHolders;
       if (targetTile.type === 'chance') {
-        const card = CHANCE_CARDS[Math.floor(rng() * CHANCE_CARDS.length)];
+        const { card, holders } = drawFromDeck(
+          'chance',
+          CHANCE_CARDS,
+          newPlayers,
+          jailCardHolders,
+          rng
+        );
 
         const { player: updatedPlayer, sentToJail } = processCardEffect(
           settleDebt(newPlayer),
           card
         );
         newPlayer = updatedPlayer;
+        if (card.action.type === 'GET_OUT_OF_JAIL') {
+          jailCardHolders = { ...holders, chance: newPlayer.id };
+        }
 
         if (card.action.type === 'COLLECT_FROM_ALL') {
           const collected = collectFromOthers(newPlayers, newPlayer.id, card.action.amount);
@@ -701,13 +772,22 @@ const reduceGameActionUnbounded = (
 
       // Community Chest Logic
       if (targetTile.type === 'community_chest') {
-        const card = COMMUNITY_CHEST_CARDS[Math.floor(rng() * COMMUNITY_CHEST_CARDS.length)];
+        const { card, holders } = drawFromDeck(
+          'communityChest',
+          COMMUNITY_CHEST_CARDS,
+          newPlayers,
+          jailCardHolders,
+          rng
+        );
 
         const { player: updatedPlayer, sentToJail } = processCardEffect(
           settleDebt(newPlayer),
           card
         );
         newPlayer = updatedPlayer;
+        if (card.action.type === 'GET_OUT_OF_JAIL') {
+          jailCardHolders = { ...holders, communityChest: newPlayer.id };
+        }
 
         if (card.action.type === 'COLLECT_FROM_ALL') {
           const collected = collectFromOthers(newPlayers, newPlayer.id, card.action.amount);
@@ -820,6 +900,7 @@ const reduceGameActionUnbounded = (
         dice: [die1, die2],
         doublesCount: newDoublesCount,
         players: newPlayers,
+        ...(jailCardHolders !== state.jailCardHolders && { jailCardHolders }),
         phase: 'action', // Move to action phase
         auctionedPropertyId: undefined, // new landing, new auction chance
         errorMessage: undefined,
@@ -1210,9 +1291,20 @@ const reduceGameActionUnbounded = (
       newPlayers[initiatorIndex] = newInitiator;
       newPlayers[targetIndex] = newTarget;
 
+      // The counts above say how many cards moved; carry the matching decks'
+      // cards along so they stay held (by their new owner) instead of re-entering play.
+      const jailCardHolders = swapJailCards(
+        resolveJailCardHolders(state.players, state.jailCardHolders),
+        initiator.id,
+        trade.offer.getOutOfJailCards,
+        target.id,
+        trade.request.getOutOfJailCards
+      );
+
       return {
         ...state,
         players: newPlayers,
+        jailCardHolders,
         activeTrade: null,
         toastMessage: 'Trade completed!',
         logs: [
