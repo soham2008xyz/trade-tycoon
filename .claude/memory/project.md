@@ -192,3 +192,16 @@
   keeps exactly one `rng()` call per card draw — server tests that script rng
   order depend on that. Anything that moves counted cards between players must
   move the matching holder too (details in `packages/game-logic/AGENTS.md`).
+- `npm run lint:md` and `npm run format` do **not** cover any dot-directory.
+  Both use a `**` glob that skips dotfiles, so `.github/`, `.claude/`,
+  `.cursor/`, `.vscode/`, `.kiro/` and `.agents/` are silently unlinted and
+  unformatted — verified by planting an MD012 violation in each and confirming
+  `markdownlint '**/*.md'` still exits 0, while passing the same file by
+  explicit path exits 1. The absence of these dirs from
+  `.markdownlintignore` / `.prettierignore` is a red herring: they are never
+  reached in the first place, so adding them there would change nothing. Do not
+  assume `lint:md` covers all markdown. Lint `.github/` explicitly, or switch
+  the globs to `dot: true`. Related: `.github/pull_request_template.md` opens
+  with a tied `markdownlint-disable MD041` because MD041 wants an H1 first line
+  and fires even behind a leading HTML comment; the reason is inline, per the
+  no-unexplained-disables rule.
