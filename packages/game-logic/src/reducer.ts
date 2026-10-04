@@ -10,6 +10,7 @@ import {
 } from './types';
 import { BOARD, isTileBuyable } from './board-data';
 import { createPlayer } from './game-setup';
+import { hasDuplicateColors } from './player-colors';
 import { type Card, processCardEffect } from './cards';
 import { CHANCE_CARDS } from './chance-cards';
 import { COMMUNITY_CHEST_CARDS } from './community-chest-cards';
@@ -531,6 +532,9 @@ const reduceGameActionUnbounded = (
   switch (action.type) {
     case 'RESET_GAME': {
       if (action.players.length === 0) return ACTION_REJECTED;
+      // Indistinguishable tokens/ownership dots; GameSetup also blocks this, but
+      // the reducer is the backstop for any caller that bypasses the UI.
+      if (hasDuplicateColors(action.players)) return ACTION_REJECTED;
       const newPlayers = action.players.map((p) => {
         const player = createPlayer(p.id, p.name);
         player.color = p.color;

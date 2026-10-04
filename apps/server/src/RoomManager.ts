@@ -9,6 +9,8 @@ import {
   GameAction,
   createPlayer,
   mulberry32,
+  PLAYER_COLORS,
+  isColorTakenByOthers,
 } from '@trade-tycoon/game-logic';
 import { randomBytes, randomInt } from 'crypto';
 import type { RoomStore } from './store/RoomStore';
@@ -328,7 +330,11 @@ export class RoomManager {
 
       // Basic validation: name length, unique color
       // If color is taken by someone else, ignore change (or pick random)
-      const isColorTaken = current.players.some((p) => p.id !== userId && p.color === color);
+      const isColorTaken = isColorTakenByOthers(
+        current.players,
+        current.players.indexOf(player),
+        color
+      );
 
       const updatedPlayers = current.players.map((p) =>
         p.id === userId
@@ -548,17 +554,7 @@ export class RoomManager {
   }
 
   private getRandomColor(excludeColors: string[] = []): string {
-    const colors = [
-      '#FF0000', // Red
-      '#0000FF', // Blue
-      '#008000', // Green
-      '#FFFF00', // Yellow
-      '#FFA500', // Orange
-      '#800080', // Purple
-      '#00FFFF', // Cyan
-      '#FFC0CB', // Pink
-    ];
-    const available = colors.filter((c) => !excludeColors.includes(c));
+    const available = PLAYER_COLORS.filter((c) => !excludeColors.includes(c));
     if (available.length > 0) {
       return available[Math.floor(Math.random() * available.length)];
     }

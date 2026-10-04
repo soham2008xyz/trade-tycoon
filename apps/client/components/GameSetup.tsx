@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { IconButton } from './ui/IconButton';
+import {
+  PLAYER_COLORS,
+  hasDuplicateColors,
+  isColorTakenByOthers,
+  pickUnusedColor,
+} from '@trade-tycoon/game-logic';
 
 interface PlayerConfig {
   name: string;
@@ -12,30 +18,22 @@ interface Props {
   onBack: () => void;
 }
 
-const COLORS = [
-  '#FF0000',
-  '#0000FF',
-  '#008000',
-  '#FFFF00',
-  '#FFA500',
-  '#800080',
-  '#00FFFF',
-  '#FFC0CB',
-];
-
 export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
   const [playerCount, setPlayerCount] = useState(2);
   const [players, setPlayers] = useState<PlayerConfig[]>([
-    { name: 'Player 1', color: COLORS[0] },
-    { name: 'Player 2', color: COLORS[1] },
+    { name: 'Player 1', color: PLAYER_COLORS[0] },
+    { name: 'Player 2', color: PLAYER_COLORS[1] },
   ]);
+  const [error, setError] = useState<string | null>(null);
 
   const handlePlayerCountChange = (count: number) => {
     setPlayerCount(count);
     const newPlayers = [...players];
     if (count > players.length) {
       for (let i = players.length; i < count; i++) {
-        newPlayers.push({ name: `Player ${i + 1}`, color: COLORS[i % COLORS.length] });
+        // First unused color, not `COLORS[i]`: players may have picked colors
+        // out of order, so the i-th palette slot can already be taken.
+        newPlayers.push({ name: `Player ${i + 1}`, color: pickUnusedColor(newPlayers) });
       }
     } else {
       newPlayers.splice(count);
@@ -50,6 +48,14 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
   };
 
   const handleSubmit = () => {
+    // The swatches already disable taken colors; this guards against any path
+    // that still lets two players share one (tokens and ownership dots would
+    // be indistinguishable on the board).
+    if (hasDuplicateColors(players)) {
+      setError('Each player needs a different color.');
+      return;
+    }
+    setError(null);
     onStartGame(players);
   };
 
@@ -93,21 +99,35 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
                 placeholder="Name"
               />
               <View style={styles.colorPicker}>
-                {COLORS.slice(0, 8).map((color) => (
-                  <TouchableOpacity
-                    key={color}
-                    style={[
-                      styles.colorOption,
-                      { backgroundColor: color },
-                      player.color === color && styles.selectedColor,
-                    ]}
-                    onPress={() => updatePlayer(index, 'color', color)}
-                  />
-                ))}
+                {PLAYER_COLORS.map((color) => {
+                  const taken = isColorTakenByOthers(players, index, color);
+                  return (
+                    <TouchableOpacity
+                      key={color}
+                      style={[
+                        styles.colorOption,
+                        { backgroundColor: color },
+                        player.color === color && styles.selectedColor,
+                        taken && styles.takenColor,
+                      ]}
+                      disabled={taken}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Player ${index + 1} color ${color}${taken ? ' (taken)' : ''}`}
+                      accessibilityState={{ disabled: taken, selected: player.color === color }}
+                      onPress={() => updatePlayer(index, 'color', color)}
+                    />
+                  );
+                })}
               </View>
             </View>
           ))}
         </ScrollView>
+
+        {error && (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {error}
+          </Text>
+        )}
 
         <View style={styles.actionButtons}>
           <IconButton
@@ -205,6 +225,14 @@ const styles = StyleSheet.create({
   selectedColor: {
     borderWidth: 2,
     borderColor: 'black',
+  },
+  takenColor: {
+    opacity: 0.2,
+  },
+  errorText: {
+    color: '#b00020',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   actionButtons: {
     flexDirection: 'row',
