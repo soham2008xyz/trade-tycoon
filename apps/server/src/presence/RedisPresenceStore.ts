@@ -40,8 +40,9 @@ export class RedisPresenceStore implements PresenceStore {
     const reply = (await this.redis.call('HGETALL', this.key(roomId))) as string[];
     const seen = new Map<string, number>();
     for (let i = 0; i + 1 < reply.length; i += 2) {
-      const at = Number(reply[i + 1]);
-      if (Number.isFinite(at)) seen.set(reply[i], at);
+      const [field, value] = reply.slice(i, i + 2);
+      const at = Number(value);
+      if (Number.isFinite(at)) seen.set(field, at);
     }
     return seen;
   }

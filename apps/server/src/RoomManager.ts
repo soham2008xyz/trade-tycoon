@@ -114,7 +114,7 @@ export class RoomManager {
     try {
       await this.presence.touch(roomId, playerId, this.clock());
     } catch (err) {
-      console.warn(`[RoomManager] presence touch failed for room ${roomId}`, err);
+      console.warn('[RoomManager] presence touch failed for room %s', roomId, err);
     }
   }
 
@@ -155,7 +155,7 @@ export class RoomManager {
 
       return getDisconnectedPlayerIds(ids, lastSeen, now);
     } catch (err) {
-      console.warn(`[RoomManager] presence read failed for room ${roomId}`, err);
+      console.warn('[RoomManager] presence read failed for room %s', roomId, err);
       return [];
     }
   }
@@ -395,7 +395,7 @@ export class RoomManager {
 
     const disconnected = new Set(await this.getDisconnectedPlayerIds(roomId));
 
-    let failure: RoomFailure | null = null;
+    let failure = null as RoomFailure | null;
     const reject = (reason: RoomFailure['reason'], message: string): null => {
       failure = { ok: false, reason, message };
       return null;
@@ -438,7 +438,7 @@ export class RoomManager {
     try {
       await this.presence.forget(roomId, targetPlayerId);
     } catch (err) {
-      console.warn(`[RoomManager] presence forget failed for room ${roomId}`, err);
+      console.warn('[RoomManager] presence forget failed for room %s', roomId, err);
     }
 
     return {
@@ -628,7 +628,7 @@ export class RoomManager {
     // The token-resolved caller, captured so presence can be touched *after*
     // the update (never inside the mutator). Set even when the action is later
     // rejected: any authenticated request proves the player is alive.
-    let authenticatedPlayerId: string | null = null;
+    let authenticatedPlayerId = null as string | null;
 
     const updated = await this.bumpedUpdate(roomId, (current) => {
       if (!current.gameState) {

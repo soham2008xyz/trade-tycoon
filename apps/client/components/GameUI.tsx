@@ -318,9 +318,9 @@ export const GameUI: React.FC<GameUIProps> = ({
         onConcede={handleConcedeAuction}
         isMultiplayer={isMultiplayer}
         myPlayerId={myPlayerId}
-        disconnectedPlayerIds={disconnectedPlayerIds}
-        removablePlayerIds={removablePlayerIds}
-        onRemovePlayer={onRemovePlayer}
+        presence={
+          onRemovePlayer ? { disconnectedPlayerIds, removablePlayerIds, onRemovePlayer } : undefined
+        }
       />
 
       {currentPlayer && selfId && (

@@ -31,19 +31,18 @@ interface Props {
    * true. Ignored otherwise.
    */
   myPlayerId?: string;
-  /** Online only: auction participants the server hasn't heard from lately. */
-  disconnectedPlayerIds?: readonly string[];
   /**
-   * The subset of `disconnectedPlayerIds` the local user may remove (resolved
-   * through `canRemovePlayer` upstream). This modal covers the status panel, so
-   * without its own button an auction stuck on an absent bidder could never be
-   * unstuck by the host.
+   * Online only: who the server hasn't heard from lately and which of them the
+   * local user may remove (resolved through `canRemovePlayer` upstream). This
+   * modal covers the status panel, so without its own button an auction stuck
+   * on an absent bidder could never be unstuck by the host. Omitted in hotseat.
    */
-  removablePlayerIds?: readonly string[];
-  onRemovePlayer?: (targetPlayerId: string) => void;
+  presence?: {
+    disconnectedPlayerIds: readonly string[];
+    removablePlayerIds: readonly string[];
+    onRemovePlayer: (targetPlayerId: string) => void;
+  };
 }
-
-const NO_PLAYERS: readonly string[] = [];
 
 // `shouldShowAuctionControls` lives in `./multiplayer-gating` so it can be
 // unit-tested in a plain Node vitest environment without React Native. We
@@ -183,9 +182,7 @@ export const AuctionModal: React.FC<Props> = ({
   onConcede,
   isMultiplayer = false,
   myPlayerId,
-  disconnectedPlayerIds = NO_PLAYERS,
-  removablePlayerIds = NO_PLAYERS,
-  onRemovePlayer,
+  presence,
 }) => {
   if (!auction) return null;
 
@@ -223,9 +220,9 @@ export const AuctionModal: React.FC<Props> = ({
                   increments={increments}
                   onBid={onBid}
                   onConcede={onConcede}
-                  isDisconnected={disconnectedPlayerIds.includes(playerId)}
-                  canRemove={!!onRemovePlayer && removablePlayerIds.includes(playerId)}
-                  onRemove={(id) => onRemovePlayer?.(id)}
+                  isDisconnected={!!presence?.disconnectedPlayerIds.includes(playerId)}
+                  canRemove={!!presence?.removablePlayerIds.includes(playerId)}
+                  onRemove={(id) => presence?.onRemovePlayer(id)}
                 />
               );
             })}

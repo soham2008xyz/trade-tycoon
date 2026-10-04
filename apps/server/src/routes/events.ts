@@ -122,8 +122,11 @@ export const createEventsRouter = (deps: {
     // instances.
     let lastPresence: string | null = null;
     let presenceInFlight = false;
+    // `cleanedUp` flips from `cleanup()` while this awaits; reading it through a
+    // function keeps TypeScript from narrowing it to `false` across the awaits.
+    const isClosed = () => cleanedUp;
     const sendPresence = async () => {
-      if (presenceInFlight || cleanedUp) return;
+      if (presenceInFlight || isClosed()) return;
       presenceInFlight = true;
       try {
         // This open stream is a heartbeat for the player (and must land before
@@ -131,7 +134,7 @@ export const createEventsRouter = (deps: {
         await roomManager.recordSeen(roomId, auth.playerId);
         const disconnectedPlayerIds = await roomManager.getDisconnectedPlayerIds(roomId);
         const payload = JSON.stringify({ disconnectedPlayerIds });
-        if (cleanedUp || payload === lastPresence) return;
+        if (isClosed() || payload === lastPresence) return;
         lastPresence = payload;
         // One write so a frame can never be split across a chunk boundary.
         res.write(`event: presence\ndata: ${payload}\n\n`);
