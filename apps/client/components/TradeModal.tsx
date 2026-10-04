@@ -8,6 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { GROUP_COLORS } from '../constants';
 import { canAcceptTrade, canCancelTrade } from './multiplayer-gating';
+import { useGameLayout } from '../hooks/useGameLayout';
 
 export { canAcceptTrade, canCancelTrade };
 
@@ -66,6 +67,12 @@ export const TradeModal: React.FC<Props> = ({
   onClose,
   isMultiplayer = false,
 }) => {
+  // On phone the shell already draws the "Trade" title + close button and
+  // fills the screen, so the card-on-grey-backdrop chrome (own ✕, redundant
+  // Cancel, "Trade Proposal" heading) would duplicate it. Wide layouts get a
+  // bare transparent Modal from the shell, so there the card keeps its chrome.
+  const isPhone = useGameLayout() === 'phone';
+
   const [offerMoney, setOfferMoney] = useState(0);
   const [offerProps, setOfferProps] = useState<string[]>([]);
   const [offerCards, setOfferCards] = useState(0);
@@ -149,8 +156,8 @@ export const TradeModal: React.FC<Props> = ({
       const tradeTarget = players.find((p) => p.id === effectiveActiveTrade.targetPlayerId);
 
       return (
-        <View style={styles.modalContent}>
-          <Text style={styles.title}>Trade Proposal</Text>
+        <View style={isPhone ? styles.phoneContent : styles.modalContent}>
+          {!isPhone && <Text style={styles.title}>Trade Proposal</Text>}
           <View style={[styles.headerSubtitle, styles.nameRow, { flexWrap: 'wrap' }]}>
             <View style={[styles.playerColor, { backgroundColor: tradeInitiator?.color }]} />
             <Text>{tradeInitiator?.name}</Text>
@@ -230,18 +237,20 @@ export const TradeModal: React.FC<Props> = ({
 
     if (initiator && target) {
       return (
-        <View style={styles.modalContent}>
+        <View style={isPhone ? styles.phoneContent : styles.modalContent}>
           <View style={styles.headerRow}>
             <View style={styles.nameRow}>
               <Text style={styles.title}>Propose Trade to</Text>
               <View style={[styles.playerColor, { backgroundColor: target.color }]} />
               <Text style={styles.title}>{target.name}</Text>
             </View>
-            <View style={styles.closeButtonContainer}>
-              <CloseButton onPress={onClose} />
-            </View>
+            {!isPhone && (
+              <View style={styles.closeButtonContainer}>
+                <CloseButton onPress={onClose} />
+              </View>
+            )}
           </View>
-          <ScrollView style={styles.scrollArea}>
+          <ScrollView style={isPhone ? styles.phoneScrollArea : styles.scrollArea}>
             <View style={styles.columns}>
               {/* Left: You Offer */}
               <View style={styles.column}>
@@ -415,8 +424,12 @@ export const TradeModal: React.FC<Props> = ({
           </ScrollView>
           <View style={styles.footer}>
             <IconButton title="Propose" icon="handshake" onPress={handlePropose} />
-            <View style={{ width: 10 }} />
-            <IconButton title="Cancel" icon="close" onPress={onClose} color="#666" />
+            {!isPhone && (
+              <>
+                <View style={{ width: 10 }} />
+                <IconButton title="Cancel" icon="close" onPress={onClose} color="#666" />
+              </>
+            )}
           </View>
         </View>
       );
@@ -427,12 +440,16 @@ export const TradeModal: React.FC<Props> = ({
 
   return (
     <FullScreenModalShell visible={visible} onClose={onClose} title="Trade">
-      <View style={styles.modalOverlay}>{renderContent()}</View>
+      <View style={isPhone ? styles.phoneOverlay : styles.modalOverlay}>{renderContent()}</View>
     </FullScreenModalShell>
   );
 };
 
 const styles = StyleSheet.create({
+  phoneOverlay: { flex: 1, backgroundColor: 'white' },
+  phoneContent: { flex: 1, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
+  // flex:1 (not flexGrow:0) so the Propose button row pins to the bottom.
+  phoneScrollArea: { flex: 1, marginBottom: 12 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

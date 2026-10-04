@@ -4,6 +4,7 @@ import { Tile, Player } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { GROUP_COLORS } from '../constants';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
+import { useGameLayout } from '../hooks/useGameLayout';
 
 interface Props {
   visible: boolean;
@@ -14,6 +15,9 @@ interface Props {
 
 // Descriptions for special tiles
 export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }) => {
+  // Hook must run before the early return below to keep hook order stable.
+  const isPhone = useGameLayout() === 'phone';
+
   // Skip rendering entirely when closed — the FullScreenModalShell would hide
   // its Modal anyway, but the children tree (backdrop + ScrollView + rent
   // table) would still reconcile on every parent re-render. Cheap early-exit.
@@ -102,13 +106,18 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
 
   return (
     <FullScreenModalShell visible={visible} onClose={onClose} title={tile?.name ?? 'Tile'}>
-      <View style={styles.overlayContainer}>
-        <View style={styles.backdrop} onTouchEnd={onClose} />
-        <View style={styles.modalContent}>
-          {/* Header Card */}
-          <View style={[styles.header, { backgroundColor: color }]}>
-            <Text style={[styles.title, { color: textColor }]}>{tile.name}</Text>
-          </View>
+      <View style={isPhone ? styles.phoneContainer : styles.overlayContainer}>
+        {!isPhone && <View style={styles.backdrop} onTouchEnd={onClose} />}
+        <View style={isPhone ? styles.phoneContent : styles.modalContent}>
+          {/* On phone the shell header already shows the tile name and ✕, so
+              the colour banner is just the group-colour strip. */}
+          {isPhone ? (
+            <View style={[styles.colorStrip, { backgroundColor: color }]} />
+          ) : (
+            <View style={[styles.header, { backgroundColor: color }]}>
+              <Text style={[styles.title, { color: textColor }]}>{tile.name}</Text>
+            </View>
+          )}
 
           <ScrollView style={styles.scrollContent}>
             {/* Price & Status */}
@@ -164,9 +173,11 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
             </View>
           </ScrollView>
 
-          <View style={styles.footer}>
-            <IconButton title="Close" icon="close" onPress={onClose} size="small" />
-          </View>
+          {!isPhone && (
+            <View style={styles.footer}>
+              <IconButton title="Close" icon="close" onPress={onClose} size="small" />
+            </View>
+          )}
         </View>
       </View>
     </FullScreenModalShell>
@@ -174,6 +185,9 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
 };
 
 const styles = StyleSheet.create({
+  phoneContainer: { flex: 1, backgroundColor: '#fff' },
+  phoneContent: { flex: 1 },
+  colorStrip: { height: 16, borderBottomWidth: 2, borderBottomColor: '#000' },
   overlayContainer: {
     position: 'absolute',
     top: 0,
