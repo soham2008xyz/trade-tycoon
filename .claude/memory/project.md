@@ -205,3 +205,9 @@
   with a tied `markdownlint-disable MD041` because MD041 wants an H1 first line
   and fires even behind a leading HTML comment; the reason is inline, per the
   no-unexplained-disables rule.
+- Modals wrapped in `FullScreenModalShell` get the shell's own header (title +
+  ✕) only on the phone layout; on wide layouts the shell is a bare transparent
+  `Modal` and the children draw the backdrop/card. Children therefore branch on
+  `useGameLayout() === 'phone'` to drop their legacy title/✕/backdrop (see
+  `LogModal`, `TradeModal`); otherwise phone shows two headers and two close
+  buttons (#253). Detail lives in `apps/client/AGENTS.md`.
