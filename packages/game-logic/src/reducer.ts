@@ -1,4 +1,4 @@
-import { AuctionState, GameState, Player, TradeOffer, TradeRequest } from './types';
+import { AuctionState, GameState, Player, Tile, TradeOffer, TradeRequest } from './types';
 import { BOARD, isTileBuyable } from './board-data';
 import { createPlayer } from './game-setup';
 import { processCardEffect } from './cards';
@@ -440,6 +440,32 @@ const capLogs = (state: GameState): GameState => {
 const hasHousesOnAny = (houses: Record<string, number>, propertyIds: string[]): boolean =>
   Object.entries(houses).some(([propId, count]) => count > 0 && propertyIds.includes(propId));
 
+/**
+ * Opens an auction for `tile` with every player as a bidder. Shared by
+ * DECLINE_BUY and END_TURN (ending a turn on an unowned tile is a decline) so
+ * both paths agree. The turn holder and `doublesCount` are left untouched, so
+ * the lander keeps their turn (and any pending double).
+ */
+const startAuction = (state: GameState, tile: Tile): GameState => ({
+  ...state,
+  phase: 'auction',
+  auction: {
+    propertyId: tile.id,
+    currentBid: 0,
+    highestBidderId: null,
+    participants: state.players.map((p) => p.id),
+    currentBidderIndex: 0,
+  },
+  // A no-sale auction drops back to 'action' with the lander still on this
+  // unowned tile; remember it so End Turn doesn't auction it again forever.
+  auctionedPropertyId: tile.id,
+  // A stale rejection (e.g. a failed purchase) would otherwise outrank the
+  // announcement in local hotseat feedback and ride along through the auction.
+  errorMessage: undefined,
+  toastMessage: `Auction started for ${tile.name}!`,
+  logs: [...state.logs, `[Game] Auction started for ${tile.name}.`],
+});
+
 const reduceGameActionUnbounded = (
   state: GameState,
   action: Action,
@@ -467,6 +493,7 @@ const reduceGameActionUnbounded = (
         phase: 'roll',
         winner: null,
         auction: null,
+        auctionedPropertyId: undefined,
         activeTrade: null,
         errorMessage: undefined,
         toastMessage: undefined,
@@ -794,6 +821,7 @@ const reduceGameActionUnbounded = (
         doublesCount: newDoublesCount,
         players: newPlayers,
         phase: 'action', // Move to action phase
+        auctionedPropertyId: undefined, // new landing, new auction chance
         errorMessage: undefined,
         toastMessage,
         logs: toastMessage ? [...state.logs, `[${player.name}] ${toastMessage}`] : state.logs,
@@ -861,21 +889,7 @@ const reduceGameActionUnbounded = (
       const isOwned = state.players.some((p) => p.properties.includes(tile.id));
       if (isOwned) return { ...state, errorMessage: 'Property is already owned.' };
 
-      // Start Auction
-      const participants = state.players.map((p) => p.id);
-      return {
-        ...state,
-        phase: 'auction',
-        auction: {
-          propertyId: tile.id,
-          currentBid: 0,
-          highestBidderId: null,
-          participants,
-          currentBidderIndex: 0,
-        },
-        toastMessage: `Auction started for ${tile.name}!`,
-        logs: [...state.logs, `[Game] Auction started for ${tile.name}.`],
-      };
+      return startAuction(state, tile);
     }
 
     case 'PLACE_BID': {
@@ -1461,6 +1475,10 @@ const reduceGameActionUnbounded = (
 
     case 'END_TURN': {
       if (state.currentPlayerId !== action.playerId) return state;
+      // The turn can't end mid-auction. This also makes a repeated END_TURN
+      // (sent again before the client sees the auction-start update) a no-op
+      // instead of advancing the turn and orphaning the open auction.
+      if (state.phase === 'auction') return state;
 
       const player = state.players.find((p) => p.id === action.playerId);
       if (player && player.money < 0) {
@@ -1469,6 +1487,23 @@ const reduceGameActionUnbounded = (
           errorMessage:
             'You cannot end your turn with negative funds. Sell, mortgage, or declare bankruptcy.',
         };
+      }
+
+      // Ending the turn on an unowned, buyable tile is a decline: the property
+      // goes to auction (as DECLINE_BUY does) instead of silently staying out of
+      // the game. The turn is kept; End Turn works again once the auction ends.
+      // Only in the action phase (not before rolling, when the player may still
+      // be standing on last turn's unsold tile), and not for a tile this landing
+      // has already auctioned (a no-sale auction leaves it unowned).
+      if (player && state.phase === 'action') {
+        const tile = BOARD[player.position];
+        if (
+          isTileBuyable(tile) &&
+          tile.id !== state.auctionedPropertyId &&
+          !state.players.some((p) => p.properties.includes(tile.id))
+        ) {
+          return startAuction(state, tile);
+        }
       }
 
       // Next player
@@ -1480,6 +1515,7 @@ const reduceGameActionUnbounded = (
         currentPlayerId: state.players[nextIndex].id,
         phase: 'roll',
         doublesCount: 0,
+        auctionedPropertyId: undefined,
         errorMessage: undefined,
         toastMessage: undefined, // Clear any persisting messages
       };

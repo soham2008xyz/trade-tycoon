@@ -89,6 +89,13 @@ export interface GameState {
   phase: 'roll' | 'action' | 'auction' | 'end'; // Game phase
   winner: string | null;
   auction: AuctionState | null;
+  /**
+   * Tile an auction has already been held for during the current landing.
+   * A no-sale auction returns to the 'action' phase with the player still on
+   * the unowned tile; this stops End Turn from auctioning it a second time.
+   * Cleared when the player moves (ROLL_DICE) or the turn ends.
+   */
+  auctionedPropertyId?: string;
   activeTrade: TradeRequest | null;
   errorMessage?: string;
   toastMessage?: string;
