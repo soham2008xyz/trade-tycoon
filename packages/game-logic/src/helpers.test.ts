@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
   getPropertiesInGroup,
+  getUnmortgageCost,
   ownsCompleteGroup,
   validateEvenBuild,
   validateEvenSell,
 } from './helpers';
 import type { Player } from './types';
+import { BOARD } from './board-data';
 
 const createPlayer = (overrides: Partial<Player> = {}): Player => ({
   id: 'p1',
@@ -119,5 +121,32 @@ describe('helpers', () => {
       expect(validateEvenSell(player, 'mediterranean')).toBe(true);
       expect(validateEvenSell(player, 'baltic')).toBe(true);
     });
+  });
+});
+
+describe('getUnmortgageCost', () => {
+  const distinctMortgageValues = [
+    ...new Set(BOARD.flatMap((t) => (t.mortgageValue ? [t.mortgageValue] : []))),
+  ];
+
+  it('covers every mortgage value on the board', () => {
+    expect(distinctMortgageValues.length).toBeGreaterThan(0);
+  });
+
+  it.each(distinctMortgageValues)('charges value + 10%% rounded up for $%i', (value) => {
+    expect(getUnmortgageCost(value)).toBe(value + Math.ceil(value / 10));
+  });
+
+  it('does not overshoot where float maths would (50 * 1.1 = 55.00000000000001)', () => {
+    expect(getUnmortgageCost(50)).toBe(55);
+    expect(getUnmortgageCost(90)).toBe(99);
+    expect(getUnmortgageCost(100)).toBe(110);
+    expect(getUnmortgageCost(110)).toBe(121);
+    expect(getUnmortgageCost(200)).toBe(220);
+  });
+
+  it('still rounds up when 10% is fractional', () => {
+    expect(getUnmortgageCost(75)).toBe(83); // 75 + 7.5 -> 83
+    expect(getUnmortgageCost(175)).toBe(193); // 175 + 17.5 -> 193
   });
 });

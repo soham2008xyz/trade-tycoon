@@ -4,7 +4,12 @@ import { createPlayer } from './game-setup';
 import { processCardEffect } from './cards';
 import { CHANCE_CARDS } from './chance-cards';
 import { COMMUNITY_CHEST_CARDS } from './community-chest-cards';
-import { ownsCompleteGroup, validateEvenBuild, validateEvenSell } from './helpers';
+import {
+  getUnmortgageCost,
+  ownsCompleteGroup,
+  validateEvenBuild,
+  validateEvenSell,
+} from './helpers';
 
 export type Action =
   | { type: 'JOIN_GAME'; playerId: string; name: string }
@@ -1419,7 +1424,7 @@ const reduceGameActionUnbounded = (
         return { ...state, errorMessage: 'Property is not mortgaged.' };
 
       // Cost Calculation (Value + 10%)
-      const cost = Math.ceil(tile.mortgageValue * 1.1);
+      const cost = getUnmortgageCost(tile.mortgageValue);
       if (player.money < cost)
         return { ...state, errorMessage: `Insufficient funds. Cost: $${cost}` };
 

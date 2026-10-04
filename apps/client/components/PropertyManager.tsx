@@ -6,6 +6,7 @@ import {
   Tile,
   ownsCompleteGroup,
   getPropertiesInGroup,
+  getUnmortgageCost,
   PropertyGroup,
 } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
@@ -81,7 +82,7 @@ const MortgageControls: React.FC<{
   onUnmortgage: PropertyAction;
 }> = ({ tile, player, houses, isMortgaged, groupHasHouses, onMortgage, onUnmortgage }) => {
   const mortgageValue = tile.mortgageValue || 0;
-  const unmortgageCost = Math.ceil(mortgageValue * 1.1);
+  const unmortgageCost = getUnmortgageCost(mortgageValue);
   if (isMortgaged) {
     return (
       <IconButton

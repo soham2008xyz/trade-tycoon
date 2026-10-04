@@ -19,6 +19,16 @@ export const mulberry32 = (seed: number): (() => number) => {
   };
 };
 
+/**
+ * Cost to lift a mortgage: the mortgage value plus 10% interest, rounded up
+ * to a whole dollar. Integer maths on purpose — `Math.ceil(value * 1.1)`
+ * overshoots by $1 for some values because of float error
+ * (`50 * 1.1 === 55.00000000000001`). The reducer and the Manage UI both call
+ * this so the button label can never disagree with the amount charged.
+ */
+export const getUnmortgageCost = (mortgageValue: number): number =>
+  mortgageValue + Math.ceil(mortgageValue / 10);
+
 export const getPropertiesInGroup = (group: PropertyGroup): Tile[] => {
   return BOARD.filter((tile) => tile.group === group);
 };
