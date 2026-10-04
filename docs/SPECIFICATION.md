@@ -110,7 +110,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 ### 8.2a Disconnected Players
 
 - [x] **Presence tracking**: The server records when it last heard from each player (any authenticated request or an open event stream). A player in a running game unheard-from for more than 45 seconds is reported as disconnected, over the `presence` SSE event and the `disconnectedPlayerIds` field of `/reconnect` (native poll).
-- [x] **Disconnected badge**: Disconnected players show a "Disconnected" badge in the player list, and the status panel reads "Waiting for Bob… (disconnected)" when they hold the turn.
+- [x] **Disconnected badge**: Disconnected players show a "Disconnected" badge in the player list and in the auction participant list, and the status panel reads "Waiting for Bob… (disconnected)" when they hold the turn. The auction modal covers the status panel, so it carries its own inline Remove confirm (an auction stuck on an absent bidder is a soft-lock too).
 - [x] **Remove a disconnected player**: The host (or any player, once the host is disconnected too) can remove a disconnected player after a confirmation. They leave the game exactly as if they had left the room (turn passes on, assets go to nobody) and cannot rejoin. A connected player can never be removed; the server enforces this.
 - [~] **Known limitation**: A closed _web_ tab can keep looking present for up to ~5 minutes on Vercel, until the SSE function times out. Native is unaffected. Removal is manual only; there is no automatic timeout.
 

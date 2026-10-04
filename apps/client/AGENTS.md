@@ -159,6 +159,10 @@ state in a `useEffect` keyed on `[roomId, token]`.
   passes it, plus `hostId`, to `GameUI`, which resolves which players the
   local user may remove through `canRemovePlayer` and hands the panels
   plain id lists (`disconnectedPlayerIds`, `removablePlayerIds`).
+- The auction modal covers the status panel, so `AuctionModal` renders its
+  own badge and Remove button and confirms **inline** — not via
+  `CustomAlert`, which is a second `Modal` and can fail to present on iOS
+  while the auction `Modal` is up.
 - Being removed is judged by `wasRemovedFromRoom` on the **lobby** roster,
   never `gameState.players`: a bankrupt player leaves the game roster but
   is still in the room.
