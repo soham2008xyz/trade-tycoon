@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { GROUP_COLORS } from '../../constants';
 import { IconButton } from '../ui/IconButton';
+import { GOOJBadge } from '../ui/GOOJBadge';
 import { Dice } from '../Dice';
 import { GameOverCard } from './GameOverCard';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
@@ -60,14 +61,17 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
             <View key={player.id} style={styles.playerRow}>
               <View style={styles.playerInfo}>
                 <View style={[styles.playerColor, { backgroundColor: player.color }]} />
-                <Text
-                  style={[
-                    styles.playerText,
-                    currentPlayer?.id === player.id && styles.activePlayerText,
-                  ]}
-                >
-                  {player.name} (${player.money}){state.winner === player.id ? ' 🏆' : ''}
-                </Text>
+                <View style={styles.playerLabel}>
+                  <Text
+                    style={[
+                      styles.playerText,
+                      currentPlayer?.id === player.id && styles.activePlayerText,
+                    ]}
+                  >
+                    {player.name} (${player.money}){state.winner === player.id ? ' 🏆' : ''}
+                  </Text>
+                  <GOOJBadge count={player.getOutOfJailCards} />
+                </View>
               </View>
               {/* The reducer ignores PROPOSE_TRADE after a win. */}
               {!isGameOver && player.id !== selfId && (
@@ -99,6 +103,7 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
                 <Text style={styles.statusText}>Current: </Text>
                 <View style={[styles.playerColor, { backgroundColor: currentPlayer.color }]} />
                 <Text style={styles.statusText}>{currentPlayer.name}</Text>
+                <GOOJBadge count={currentPlayer.getOutOfJailCards} />
               </View>
               <View style={styles.currentTileInfo}>
                 <Text style={styles.statusText}>Position: </Text>
@@ -198,12 +203,27 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     justifyContent: 'space-between',
   },
-  playerInfo: { flexDirection: 'row', alignItems: 'center' },
-  playerColor: { width: 12, height: 12, marginRight: 6, borderRadius: 2 },
+  // flex: 1 + shrinking label keeps the Trade button inside the 300px panel
+  // when large Dynamic Type makes the name wrap.
+  playerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  playerLabel: {
+    flexShrink: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: 6,
+  },
+  playerColor: { width: 12, height: 12, marginRight: 6, borderRadius: 2, flexShrink: 0 },
   playerText: { fontSize: 14 },
   activePlayerText: { fontWeight: 'bold' },
   gameInfo: { marginBottom: 15, alignItems: 'center', gap: 4 },
-  currentPlayerInfo: { flexDirection: 'row', alignItems: 'center' },
+  currentPlayerInfo: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    columnGap: 6,
+  },
   currentTileInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   statusText: { fontSize: 14 },
   tileColor: { width: 12, height: 12, marginRight: 6, borderWidth: 1, borderColor: '#333' },
