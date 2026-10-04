@@ -191,7 +191,10 @@ opt-in design is what's correct; the test in
   inset as `paddingTop` on a wrapper _outside_ the view whose `onLayout`
   sizes the `Board` — `onLayout` reports the border box including padding,
   so padding the measured view would leave the board sized for space it
-  doesn't have. Insets are 0 on web, so it's a no-op there.
+  doesn't have. Insets are 0 on web, so it's a no-op there. Absolutely
+  positioned overlays do the same: `ui/Toast.tsx` sets
+  `top: insets.top + 8` inline (not a hard-coded offset) so it clears the
+  Dynamic Island / notch and sits 8px from the top on web.
 
 ## Test command
 
