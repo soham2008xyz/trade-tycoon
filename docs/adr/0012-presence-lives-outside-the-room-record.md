@@ -20,6 +20,6 @@ An online player whose client vanishes without calling Leave used to soft-lock t
 
 ## Consequences
 
-- Native polling now costs a few more Redis commands per poll (a presence write pipeline on every poll, plus a read), relevant to per-command billing.
+- Redis cost goes up, which matters under per-command billing. A native poll adds a presence write (one pipelined round trip) and a presence read. Each open web SSE stream does a presence write, a room read and a presence read every 15 seconds.
 - **Known limitation.** On Vercel a closed browser tab may not be noticed by the function until its roughly 300 second timeout, and until then the stream keeps pinging and recording the player as seen. A vanished _web_ player can therefore look present for up to about five minutes. Native clients poll, so they stop being seen promptly. Check on a preview deploy before relying on the web timing.
 - **Accepted race.** A target can reconnect between the presence read and the store write and be removed while live. The window is small and the read is deliberately outside the mutator to keep it pure; do not move it inside to "fix" this.

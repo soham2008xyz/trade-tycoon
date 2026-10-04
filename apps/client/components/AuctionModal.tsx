@@ -97,8 +97,9 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
   const [confirming, setConfirming] = React.useState(false);
 
   return (
-    <View style={[styles.playerRow, isTurn ? styles.activePlayerRow : styles.inactivePlayerRow]}>
-      <View style={styles.playerInfo}>
+    <View style={[styles.playerRow, isTurn && styles.activePlayerRow]}>
+      {/* Dimmed per element, not per row: a faded Remove button reads as disabled. */}
+      <View style={[styles.playerInfo, !isTurn && styles.inactiveDim]}>
         <View style={[styles.playerColor, { backgroundColor: player.color }]} />
         <Text style={[styles.playerName, isTurn && styles.activePlayerName]}>
           {player.name} (${player.money}) {isTurn && ' (Bidding)'}
@@ -113,7 +114,7 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
         (confirming ? (
           <View style={styles.controls}>
             <Text style={styles.confirmText}>
-              {`Remove ${player.name} from the game? They won't be able to rejoin.`}
+              {`Remove ${player.name} from the game? They won't be able to rejoin. If only one player is left, that player wins.`}
             </Text>
             <View style={styles.bidButtons}>
               <IconButton
@@ -141,7 +142,7 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
           />
         ))}
       {showControls && (
-        <View style={styles.controls}>
+        <View style={[styles.controls, !isTurn && styles.inactiveDim]}>
           <View style={styles.bidButtons}>
             {increments.map((inc) => {
               const bidAmount = currentBid + inc;
@@ -290,7 +291,7 @@ const styles = StyleSheet.create({
     borderColor: '#007AFF',
     backgroundColor: '#f0f8ff',
   },
-  inactivePlayerRow: {
+  inactiveDim: {
     opacity: 0.6,
   },
   playerInfo: {

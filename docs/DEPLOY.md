@@ -19,7 +19,8 @@ survive across requests.
   every authenticated player request. No extra env var — it follows
   `REDIS_URL`. A native client's poll now costs a presence write (one
   pipelined round trip) plus a presence read on top of the room read, which
-  matters under Upstash's per-command billing.
+  matters under Upstash's per-command billing. Each open web SSE stream also
+  does a presence write, a room read and a presence read every 15 s.
 
 ## One-time setup
 

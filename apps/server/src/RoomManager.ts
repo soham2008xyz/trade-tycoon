@@ -133,10 +133,11 @@ export class RoomManager {
    * Fails open: if presence can't be read nobody is flagged, so an outage can
    * only ever withhold the remove button, never open it wrongly.
    */
-  async getDisconnectedPlayerIds(roomId: string): Promise<string[]> {
+  async getDisconnectedPlayerIds(roomId: string, knownRoom?: LobbyState): Promise<string[]> {
     roomId = roomId.trim().toUpperCase();
     try {
-      const room = await this.store.get(roomId);
+      // Callers that just read the room (reconnect) pass it to save a Redis GET.
+      const room = knownRoom ?? (await this.store.get(roomId));
       if (!room?.gameState || room.gameState.winner) return [];
 
       const now = this.clock();
@@ -477,7 +478,7 @@ export class RoomManager {
       ok: true,
       state: toPublicLobbyState(room),
       gameState: room.gameState ? toPublicGameState(room.gameState) : undefined,
-      disconnectedPlayerIds: await this.getDisconnectedPlayerIds(roomId),
+      disconnectedPlayerIds: await this.getDisconnectedPlayerIds(roomId, room),
     };
   }
 

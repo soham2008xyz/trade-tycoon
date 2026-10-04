@@ -201,7 +201,7 @@ export const GameUI: React.FC<GameUIProps> = ({
       const name = state.players.find((p) => p.id === targetId)?.name ?? 'this player';
       showAlert(
         'Remove Player',
-        `Remove ${name} from the game? They've lost connection. Their turn will pass to the next player and they won't be able to rejoin.`,
+        `Remove ${name} from the game? They've lost connection and won't be able to rejoin. If only one player is left, that player wins.`,
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Remove', style: 'destructive', onPress: () => onRemovePlayer?.(targetId) },
