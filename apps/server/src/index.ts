@@ -7,27 +7,36 @@ import { InMemoryRoomStore } from './store/InMemoryRoomStore';
 import { InMemoryEventBus } from './events/InMemoryEventBus';
 import { RedisRoomStore } from './store/RedisRoomStore';
 import { RedisEventBus } from './events/RedisEventBus';
+import { InMemoryPresenceStore } from './presence/InMemoryPresenceStore';
+import { RedisPresenceStore } from './presence/RedisPresenceStore';
 import { createRoomsRouter } from './routes/rooms';
 import { createEventsRouter } from './routes/events';
 import { errorHandler } from './middleware/errors';
 import type { RoomStore } from './store/RoomStore';
 import type { EventBus } from './events/EventBus';
+import type { PresenceStore } from './presence/PresenceStore';
 
 const app = express();
 
 const PORT = process.env.PORT || 3001;
 
 /**
- * Wire the room store and event bus based on `REDIS_URL`. Setting it picks
- * the Redis-backed pair (used in production on Vercel + Upstash); leaving it
- * unset falls back to the single-process in-memory pair (tests + local dev).
+ * Wire the room store, event bus and presence store based on `REDIS_URL`.
+ * Setting it picks the Redis-backed set (used in production on Vercel +
+ * Upstash); leaving it unset falls back to the single-process in-memory set
+ * (tests + local dev).
  */
-function buildBackends(): { roomStore: RoomStore; eventBus: EventBus } {
+function buildBackends(): {
+  roomStore: RoomStore;
+  eventBus: EventBus;
+  presenceStore: PresenceStore;
+} {
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {
     return {
       roomStore: new InMemoryRoomStore(),
       eventBus: new InMemoryEventBus(),
+      presenceStore: new InMemoryPresenceStore(),
     };
   }
 
@@ -59,11 +68,12 @@ function buildBackends(): { roomStore: RoomStore; eventBus: EventBus } {
   return {
     roomStore: new RedisRoomStore(redis),
     eventBus: new RedisEventBus(redis),
+    presenceStore: new RedisPresenceStore(redis),
   };
 }
 
-const { roomStore, eventBus } = buildBackends();
-const roomManager = new RoomManager(roomStore);
+const { roomStore, eventBus, presenceStore } = buildBackends();
+const roomManager = new RoomManager(roomStore, { presence: presenceStore });
 
 // Comma-separated allowlist for production (e.g. the deployed web client's
 // origin). Falls back to known local-dev origins when unset — a wildcard
