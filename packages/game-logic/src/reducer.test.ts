@@ -708,6 +708,21 @@ describe('Game Reducer', () => {
       expect(newState.errorMessage).toBeUndefined();
     });
 
+    it('charges exactly mortgage value + 10% where float maths overshoots', () => {
+      // Oriental Avenue: mortgage value 50 -> $55 (not $56 from 50 * 1.1).
+      unmortgageState.players[0].properties = ['oriental'];
+      unmortgageState.players[0].mortgaged = ['oriental'];
+      const newState = gameReducer(unmortgageState, {
+        type: 'UNMORTGAGE_PROPERTY',
+        playerId: 'p1',
+        propertyId: 'oriental',
+      });
+
+      expect(newState.players[0].mortgaged).not.toContain('oriental');
+      expect(newState.players[0].money).toBe(945); // 1000 - 55
+      expect(newState.toastMessage).toBe('Unmortgaged Oriental Avenue for $55.');
+    });
+
     it('should fail if not mortgaged', () => {
       unmortgageState.players[0].mortgaged = [];
       const newState = gameReducer(unmortgageState, {

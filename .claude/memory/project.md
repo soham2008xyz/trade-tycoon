@@ -169,3 +169,8 @@
   The unpaid shortfall is deliberately written off (rent already credits the
   owner in full), and buildings are sold to the bank at half price with the
   cash going to the creditor.
+- Unmortgage cost (#271): never compute interest with float multiplication —
+  `Math.ceil(50 * 1.1)` is 56 because `50 * 1.1 === 55.00000000000001`. Use
+  `getUnmortgageCost` (`helpers.ts`, value + `Math.ceil(value / 10)`) from both
+  the reducer and `PropertyManager`; `helpers.test.ts` checks it against every
+  `mortgageValue` in `BOARD`. Same trap applies to any future "+N%" rule.
