@@ -15,6 +15,9 @@ import {
 } from '@trade-tycoon/game-logic';
 import { randomBytes, randomInt } from 'crypto';
 import type { RoomStore } from './store/RoomStore';
+import type { PresenceStore } from './presence/PresenceStore';
+import { getDisconnectedPlayerIds } from './presence/PresenceStore';
+import { InMemoryPresenceStore } from './presence/InMemoryPresenceStore';
 import { toPublicGameState, toPublicLobbyState } from './serialize';
 
 const MAX_ROOM_ID_RETRIES = 10;
@@ -84,7 +87,78 @@ const INVALID_TOKEN_MESSAGE = 'Invalid or expired session token';
  * public id (which every client can see) confers no ability to act as them.
  */
 export class RoomManager {
-  constructor(private readonly store: RoomStore) {}
+  private readonly presence: PresenceStore;
+  private readonly clock: () => number;
+
+  /**
+   * `presence` and `clock` are optional so callers that don't care about
+   * presence (and the many existing tests) keep working: the defaults are an
+   * in-memory store and the wall clock. Tests inject a controllable clock to
+   * age presence deterministically.
+   */
+  constructor(
+    private readonly store: RoomStore,
+    options: { presence?: PresenceStore; clock?: () => number } = {}
+  ) {
+    this.presence = options.presence ?? new InMemoryPresenceStore();
+    this.clock = options.clock ?? Date.now;
+  }
+
+  /**
+   * Best-effort heartbeat. A presence-store failure must never fail the request
+   * it piggybacks on, and this must never be called from inside a store
+   * mutator (those are synchronous, pure and may be retried — ADR 0003), so
+   * callers capture the playerId and touch after the update returns.
+   */
+  private async touch(roomId: string, playerId: string): Promise<void> {
+    try {
+      await this.presence.touch(roomId, playerId, this.clock());
+    } catch (err) {
+      console.warn('[RoomManager] presence touch failed for room %s', roomId, err);
+    }
+  }
+
+  /** Public heartbeat for callers that already authenticated (the SSE route). */
+  async recordSeen(roomId: string, playerId: string): Promise<void> {
+    await this.touch(roomId.trim().toUpperCase(), playerId);
+  }
+
+  /**
+   * Ids of players in a running game who have not been seen for longer than
+   * `PRESENCE_TIMEOUT_MS`. Computed over the **lobby** roster, not
+   * `gameState.players`: a bankrupt player leaves the game roster but keeps
+   * their lobby entry and session, and a bankrupt host who then vanishes must
+   * still be flaggable or the host-gone removal fallback could never fire.
+   *
+   * Fails open: if presence can't be read nobody is flagged, so an outage can
+   * only ever withhold the remove button, never open it wrongly.
+   */
+  async getDisconnectedPlayerIds(roomId: string, knownRoom?: LobbyState): Promise<string[]> {
+    roomId = roomId.trim().toUpperCase();
+    try {
+      // Callers that just read the room (reconnect) pass it to save a Redis GET.
+      const room = knownRoom ?? (await this.store.get(roomId));
+      if (!room?.gameState || room.gameState.winner) return [];
+
+      const now = this.clock();
+      const lastSeen = await this.presence.getLastSeen(roomId);
+      const ids = room.players.map((p) => p.id);
+
+      // A player with no record counts as present (a deploy or Redis flush must
+      // not flag the whole table) — but seed one so they go stale 45 s later
+      // rather than staying "present" forever.
+      await Promise.all(
+        ids
+          .filter((id) => !lastSeen.has(id))
+          .map((id) => this.presence.seedIfAbsent(roomId, id, now))
+      );
+
+      return getDisconnectedPlayerIds(ids, lastSeen, now);
+    } catch (err) {
+      console.warn('[RoomManager] presence read failed for room %s', roomId, err);
+      return [];
+    }
+  }
 
   async createRoom(hostName: string): Promise<CreateRoomResult> {
     const hostId = this.generateUserId();
@@ -108,6 +182,7 @@ export class RoomManager {
       });
       if (created) {
         console.log(`[RoomManager] Creating room ${roomId} for host ${hostName} (${hostId})`);
+        await this.touch(roomId, hostId);
         return { roomId, playerId: hostId, token };
       }
     }
@@ -162,6 +237,7 @@ export class RoomManager {
     }
 
     console.log(`[RoomManager] Player ${playerName} (${userId}) joined room ${roomId}`);
+    await this.touch(roomId, userId);
     return { ok: true, playerId: userId, token, state: toPublicLobbyState(state) };
   }
 
@@ -194,6 +270,78 @@ export class RoomManager {
     });
   }
 
+  /**
+   * The single definition of "this player is no longer in the room": drops
+   * their lobby entry and session, reassigns the host if needed, and removes
+   * them from the running game (which advances the turn and unwinds auctions
+   * and trades). Shared by a player leaving and by the room removing a
+   * disconnected player so the two paths cannot drift apart.
+   *
+   * Pure function of `current` (it runs inside store mutators, which may be
+   * retried). The caller must have checked that `userId` is in the lobby.
+   */
+  private removePlayerFrom(current: LobbyState, userId: string): LobbyState {
+    const remainingSessions = Object.fromEntries(
+      Object.entries(current.sessions ?? {}).filter(([, id]) => id !== userId)
+    );
+
+    const remainingPlayers = current.players.filter((entry) => entry.id !== userId);
+    const reassignedPlayers = remainingPlayers.map((entry, index) => ({
+      ...entry,
+      isHost: remainingPlayers.some((candidate) => candidate.isHost) ? entry.isHost : index === 0,
+    }));
+
+    if (reassignedPlayers.length === 0) {
+      return {
+        ...current,
+        players: [],
+        status: 'lobby' as const,
+        gameState: undefined,
+        sessions: remainingSessions,
+      };
+    }
+
+    if (!current.gameState) {
+      return {
+        ...current,
+        players: reassignedPlayers,
+        sessions: remainingSessions,
+      };
+    }
+
+    // A finished game is a frozen snapshot. `removePlayerFromGame` skips the
+    // reducer's post-game guard, and bankrupt players are already gone from
+    // `gameState.players`, so the winner leaving would empty the roster and
+    // reset `winner` — dropping the game-over screen for everyone still
+    // connected. Keep the snapshot; only the lobby entry and session go.
+    if (current.gameState.winner) {
+      return {
+        ...current,
+        players: reassignedPlayers,
+        sessions: remainingSessions,
+      };
+    }
+
+    const nextGameState = removePlayerFromGame(current.gameState, userId);
+
+    if (nextGameState.players.length === 0) {
+      return {
+        ...current,
+        players: reassignedPlayers,
+        status: 'lobby' as const,
+        gameState: undefined,
+        sessions: remainingSessions,
+      };
+    }
+
+    return {
+      ...current,
+      players: reassignedPlayers,
+      gameState: nextGameState,
+      sessions: remainingSessions,
+    };
+  }
+
   async leaveRoom(
     roomId: string,
     token: string
@@ -205,66 +353,7 @@ export class RoomManager {
       if (!userId) return null;
       const player = current.players.find((entry) => entry.id === userId);
       if (!player) return null;
-
-      const remainingSessions = Object.fromEntries(
-        Object.entries(current.sessions ?? {}).filter(([, id]) => id !== userId)
-      );
-
-      const remainingPlayers = current.players.filter((entry) => entry.id !== userId);
-      const reassignedPlayers = remainingPlayers.map((entry, index) => ({
-        ...entry,
-        isHost: remainingPlayers.some((candidate) => candidate.isHost) ? entry.isHost : index === 0,
-      }));
-
-      if (reassignedPlayers.length === 0) {
-        return {
-          ...current,
-          players: [],
-          status: 'lobby' as const,
-          gameState: undefined,
-          sessions: remainingSessions,
-        };
-      }
-
-      if (!current.gameState) {
-        return {
-          ...current,
-          players: reassignedPlayers,
-          sessions: remainingSessions,
-        };
-      }
-
-      // A finished game is a frozen snapshot. `removePlayerFromGame` skips the
-      // reducer's post-game guard, and bankrupt players are already gone from
-      // `gameState.players`, so the winner leaving would empty the roster and
-      // reset `winner` — dropping the game-over screen for everyone still
-      // connected. Keep the snapshot; only the lobby entry and session go.
-      if (current.gameState.winner) {
-        return {
-          ...current,
-          players: reassignedPlayers,
-          sessions: remainingSessions,
-        };
-      }
-
-      const nextGameState = removePlayerFromGame(current.gameState, userId);
-
-      if (nextGameState.players.length === 0) {
-        return {
-          ...current,
-          players: reassignedPlayers,
-          status: 'lobby' as const,
-          gameState: undefined,
-          sessions: remainingSessions,
-        };
-      }
-
-      return {
-        ...current,
-        players: reassignedPlayers,
-        gameState: nextGameState,
-        sessions: remainingSessions,
-      };
+      return this.removePlayerFrom(current, userId);
     });
 
     // Whether the room is gone or the token is stale, the caller's session is
@@ -279,11 +368,93 @@ export class RoomManager {
     };
   }
 
+  /**
+   * Removes a player the room has stopped hearing from, so the game can go on
+   * without them. Allowed for the host, or for anyone once the host is itself
+   * disconnected (otherwise a vanished host would recreate the soft-lock one
+   * level up). The target must currently be disconnected — a live player can
+   * never be removed.
+   *
+   * The presence read happens *before* the store update, so the mutator stays
+   * a pure function of its input (ADR 0003). That leaves a small, accepted
+   * window where a target reconnects between the read and the write; do not
+   * "fix" it by moving the read into the mutator.
+   */
+  async removeDisconnectedPlayer(
+    roomId: string,
+    token: string,
+    targetPlayerId: string
+  ): Promise<RoomResult<{ state: LobbyState; gameState: GameState | null }>> {
+    roomId = roomId.trim().toUpperCase();
+
+    // An authenticated request proves the caller is alive, so count it before
+    // reading presence — otherwise a host whose last poll was just over the
+    // timeout ago would be judged disconnected by their own request.
+    const auth = await this.authenticate(roomId, token);
+    if (auth) await this.touch(roomId, auth.playerId);
+
+    const disconnected = new Set(await this.getDisconnectedPlayerIds(roomId));
+
+    let failure = null as RoomFailure | null;
+    const reject = (reason: RoomFailure['reason'], message: string): null => {
+      failure = { ok: false, reason, message };
+      return null;
+    };
+
+    const updated = await this.bumpedUpdate(roomId, (current) => {
+      const callerId = this.resolvePlayerId(current, token);
+      const caller = callerId ? current.players.find((p) => p.id === callerId) : undefined;
+      if (!callerId || !caller) return reject('unauthorized', INVALID_TOKEN_MESSAGE);
+
+      const game = current.gameState;
+      if (!game || game.winner) return reject('conflict', 'No game is in progress');
+
+      if (targetPlayerId === callerId) return reject('conflict', 'You cannot remove yourself');
+      // Checked against the *game* roster: a bankrupt player is already out of
+      // the game and has nothing left to be removed from.
+      if (!game.players.some((p) => p.id === targetPlayerId)) {
+        return reject('conflict', 'Player not found');
+      }
+      if (!disconnected.has(targetPlayerId)) {
+        return reject('conflict', 'Player is still connected');
+      }
+
+      // Checked against the *lobby* roster: a bankrupt host is still the host.
+      const host = current.players.find((p) => p.isHost);
+      const hostGone = !!host && disconnected.has(host.id);
+      if (!caller.isHost && !hostGone) {
+        return reject('conflict', 'Only the host can remove a player');
+      }
+
+      console.log(`[RoomManager] ${callerId} removed disconnected ${targetPlayerId} in ${roomId}`);
+      return this.removePlayerFrom(current, targetPlayerId);
+    });
+
+    if (!updated) {
+      if (failure) return failure;
+      return { ok: false, reason: 'not_found', message: 'Room not found' };
+    }
+
+    try {
+      await this.presence.forget(roomId, targetPlayerId);
+    } catch (err) {
+      console.warn('[RoomManager] presence forget failed for room %s', roomId, err);
+    }
+
+    return {
+      ok: true,
+      state: toPublicLobbyState(updated),
+      gameState: updated.gameState ? toPublicGameState(updated.gameState) : null,
+    };
+  }
+
   // Handle re-connection
   async reconnect(
     roomId: string,
     token: string
-  ): Promise<RoomResult<{ state: LobbyState; gameState?: GameState }>> {
+  ): Promise<
+    RoomResult<{ state: LobbyState; gameState?: GameState; disconnectedPlayerIds: string[] }>
+  > {
     roomId = roomId.trim().toUpperCase();
     const room = await this.store.get(roomId);
     if (!room) return SESSION_EXPIRED;
@@ -299,10 +470,15 @@ export class RoomManager {
 
     if (!playerInLobby && !playerInGame) return SESSION_EXPIRED;
 
+    // Touch before reading so the polling client sees its own heartbeat
+    // registered in the same round trip.
+    await this.touch(roomId, userId);
+
     return {
       ok: true,
       state: toPublicLobbyState(room),
       gameState: room.gameState ? toPublicGameState(room.gameState) : undefined,
+      disconnectedPlayerIds: await this.getDisconnectedPlayerIds(roomId, room),
     };
   }
 
@@ -449,6 +625,10 @@ export class RoomManager {
     // matters, and an aborted mutator never triggers a retry.
     let rejectionMessage = 'Action rejected';
     let rejectionReason: 'unauthorized' | 'rejected' = 'rejected';
+    // The token-resolved caller, captured so presence can be touched *after*
+    // the update (never inside the mutator). Set even when the action is later
+    // rejected: any authenticated request proves the player is alive.
+    let authenticatedPlayerId = null as string | null;
 
     const updated = await this.bumpedUpdate(roomId, (current) => {
       if (!current.gameState) {
@@ -457,6 +637,7 @@ export class RoomManager {
       }
 
       const userId = this.resolvePlayerId(current, token);
+      authenticatedPlayerId = userId;
       if (!userId) {
         console.warn(`[RoomManager] Unknown/expired session token for room ${roomId}`);
         rejectionReason = 'unauthorized';
@@ -504,6 +685,8 @@ export class RoomManager {
 
       return { ...current, gameState: newState };
     });
+
+    if (authenticatedPlayerId) await this.touch(roomId, authenticatedPlayerId);
 
     if (!updated?.gameState) {
       return { ok: false, reason: rejectionReason, message: rejectionMessage };

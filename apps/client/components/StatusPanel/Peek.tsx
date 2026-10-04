@@ -24,6 +24,9 @@ export const Peek: React.FC<StatusPanelProps> = ({
   onNewGame,
   onBackToMenu,
   isTokenMoving,
+  disconnectedPlayerIds,
+  removablePlayerIds,
+  onRemovePlayer,
 }) => {
   const { currentPlayer, currentTile, buttons, isGameOver } = useStatusPanelActions(
     state,
@@ -71,7 +74,20 @@ export const Peek: React.FC<StatusPanelProps> = ({
 
       <View style={styles.actions}>
         {buttons.waiting.visible && (
-          <Text style={styles.waitingText}>Waiting for {currentPlayer.name}…</Text>
+          <>
+            <Text style={styles.waitingText}>
+              Waiting for {currentPlayer.name}…
+              {disconnectedPlayerIds.includes(currentPlayer.id) ? ' (disconnected)' : ''}
+            </Text>
+            {removablePlayerIds.includes(currentPlayer.id) && (
+              <IconButton
+                title={`Remove ${currentPlayer.name}`}
+                icon="account-remove"
+                onPress={() => onRemovePlayer(currentPlayer.id)}
+                color="#d9534f"
+              />
+            )}
+          </>
         )}
         {buttons.roll.visible && <IconButton title="Roll Dice" icon="dice-5" onPress={onRoll} />}
         {buttons.payFine.visible && (

@@ -219,3 +219,15 @@
   `useGameLayout() === 'phone'` to drop their legacy title/✕/backdrop (see
   `LogModal`, `TradeModal`); otherwise phone shows two headers and two close
   buttons (#253). Detail lives in `apps/client/AGENTS.md`.
+- Player presence (who has gone quiet, #259) lives in its own `PresenceStore`
+  (ADR 0012), not in `LobbyState`: native clients poll every 2-5 s, and writing
+  that into the room record would be a whole-room CAS write per poll. Never
+  touch presence from inside a `bumpedUpdate` mutator (pure, retryable); touch
+  after the update returns. Compute disconnection over the _lobby_ roster, not
+  `gameState.players` — bankrupt players leave the game roster but stay in the
+  room, so a game-roster check would bounce them to the menu client-side and
+  hide a bankrupt host who vanishes server-side.
+- SSE test pitfall: a frame written as two `res.write` calls can be split
+  across chunks (write each frame in one call), and racing `reader.read()`
+  against a timer leaves a queued read that swallows the next chunk — use one
+  long-lived pump that fills a buffer and have the test sleep and inspect it.

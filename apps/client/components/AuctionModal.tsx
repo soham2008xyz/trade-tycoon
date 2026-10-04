@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { AuctionState, Player, BOARD } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
+import { DisconnectedBadge } from './ui/DisconnectedBadge';
 import { shouldShowAuctionControls } from './multiplayer-gating';
 
 export { shouldShowAuctionControls };
@@ -30,6 +31,17 @@ interface Props {
    * true. Ignored otherwise.
    */
   myPlayerId?: string;
+  /**
+   * Online only: who the server hasn't heard from lately and which of them the
+   * local user may remove (resolved through `canRemovePlayer` upstream). This
+   * modal covers the status panel, so without its own button an auction stuck
+   * on an absent bidder could never be unstuck by the host. Omitted in hotseat.
+   */
+  presence?: {
+    disconnectedPlayerIds: readonly string[];
+    removablePlayerIds: readonly string[];
+    onRemovePlayer: (targetPlayerId: string) => void;
+  };
 }
 
 // `shouldShowAuctionControls` lives in `./multiplayer-gating` so it can be
@@ -55,6 +67,9 @@ interface ParticipantRowProps {
   increments: readonly number[];
   onBid: (playerId: string, amount: number) => void;
   onConcede: (playerId: string) => void;
+  isDisconnected: boolean;
+  canRemove: boolean;
+  onRemove: (playerId: string) => void;
 }
 
 /**
@@ -71,46 +86,93 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
   increments,
   onBid,
   onConcede,
-}) => (
-  <View style={[styles.playerRow, isTurn ? styles.activePlayerRow : styles.inactivePlayerRow]}>
-    <View style={styles.playerInfo}>
-      <View style={[styles.playerColor, { backgroundColor: player.color }]} />
-      <Text style={[styles.playerName, isTurn && styles.activePlayerName]}>
-        {player.name} (${player.money}) {isTurn && ' (Bidding)'}
-      </Text>
-    </View>
-    {showControls && (
-      <View style={styles.controls}>
-        <View style={styles.bidButtons}>
-          {increments.map((inc) => {
-            const bidAmount = currentBid + inc;
-            return (
-              <View key={inc} style={styles.buttonWrapper}>
-                <IconButton
-                  title={`+${inc}`}
-                  icon="arrow-up-bold"
-                  onPress={() => onBid(player.id, bidAmount)}
-                  disabled={player.money < bidAmount || !isTurn}
-                  size="small"
-                />
-              </View>
-            );
-          })}
-        </View>
-        <View style={styles.foldButton}>
+  isDisconnected,
+  canRemove,
+  onRemove,
+}) => {
+  // Confirmed inline rather than through `CustomAlert`: that is a second
+  // `Modal`, and presenting one while this auction `Modal` is up can fail to
+  // show on iOS.
+  const [confirming, setConfirming] = React.useState(false);
+
+  return (
+    <View style={[styles.playerRow, isTurn && styles.activePlayerRow]}>
+      {/* Dimmed per element, not per row: a faded Remove button reads as disabled. */}
+      <View style={[styles.playerInfo, !isTurn && styles.inactiveDim]}>
+        <View style={[styles.playerColor, { backgroundColor: player.color }]} />
+        <Text style={[styles.playerName, isTurn && styles.activePlayerName]}>
+          {player.name} (${player.money}) {isTurn && ' (Bidding)'}
+        </Text>
+        {isDisconnected && (
+          <View style={styles.badgeWrapper}>
+            <DisconnectedBadge name={player.name} />
+          </View>
+        )}
+      </View>
+      {canRemove &&
+        (confirming ? (
+          <View style={styles.controls}>
+            <Text style={styles.confirmText}>
+              {`Remove ${player.name} from the game? They won't be able to rejoin. If only one player is left, that player wins.`}
+            </Text>
+            <View style={styles.bidButtons}>
+              <IconButton
+                title="Yes, remove"
+                icon="account-remove"
+                onPress={() => onRemove(player.id)}
+                color="#d9534f"
+                size="small"
+              />
+              <IconButton
+                title="Cancel"
+                onPress={() => setConfirming(false)}
+                color="#666"
+                size="small"
+              />
+            </View>
+          </View>
+        ) : (
           <IconButton
-            title="Fold"
-            icon="close-circle"
-            onPress={() => onConcede(player.id)}
+            title={`Remove ${player.name}`}
+            icon="account-remove"
+            onPress={() => setConfirming(true)}
             color="#d9534f"
-            disabled={!isTurn || isHighestBidder}
             size="small"
           />
+        ))}
+      {showControls && (
+        <View style={[styles.controls, !isTurn && styles.inactiveDim]}>
+          <View style={styles.bidButtons}>
+            {increments.map((inc) => {
+              const bidAmount = currentBid + inc;
+              return (
+                <View key={inc} style={styles.buttonWrapper}>
+                  <IconButton
+                    title={`+${inc}`}
+                    icon="arrow-up-bold"
+                    onPress={() => onBid(player.id, bidAmount)}
+                    disabled={player.money < bidAmount || !isTurn}
+                    size="small"
+                  />
+                </View>
+              );
+            })}
+          </View>
+          <View style={styles.foldButton}>
+            <IconButton
+              title="Fold"
+              icon="close-circle"
+              onPress={() => onConcede(player.id)}
+              color="#d9534f"
+              disabled={!isTurn || isHighestBidder}
+              size="small"
+            />
+          </View>
         </View>
-      </View>
-    )}
-  </View>
-);
+      )}
+    </View>
+  );
+};
 
 export const AuctionModal: React.FC<Props> = ({
   visible,
@@ -120,6 +182,7 @@ export const AuctionModal: React.FC<Props> = ({
   onConcede,
   isMultiplayer = false,
   myPlayerId,
+  presence,
 }) => {
   if (!auction) return null;
 
@@ -157,6 +220,9 @@ export const AuctionModal: React.FC<Props> = ({
                   increments={increments}
                   onBid={onBid}
                   onConcede={onConcede}
+                  isDisconnected={!!presence?.disconnectedPlayerIds.includes(playerId)}
+                  canRemove={!!presence?.removablePlayerIds.includes(playerId)}
+                  onRemove={(id) => presence?.onRemovePlayer(id)}
                 />
               );
             })}
@@ -222,7 +288,7 @@ const styles = StyleSheet.create({
     borderColor: '#007AFF',
     backgroundColor: '#f0f8ff',
   },
-  inactivePlayerRow: {
+  inactiveDim: {
     opacity: 0.6,
   },
   playerInfo: {
@@ -248,6 +314,13 @@ const styles = StyleSheet.create({
   },
   controls: {
     gap: 10,
+  },
+  badgeWrapper: {
+    marginLeft: 10,
+  },
+  confirmText: {
+    fontSize: 15,
+    color: '#444',
   },
   bidButtons: {
     flexDirection: 'row',

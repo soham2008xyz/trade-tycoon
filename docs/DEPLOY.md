@@ -15,6 +15,12 @@ survive across requests.
 - Push channel: Server-Sent Events at `GET /api/rooms/:id/events`.
 - State store: Upstash Redis at `room:<roomId>` (24h TTL).
 - Fan-out: Upstash Redis pub/sub on `room:<roomId>`.
+- Presence: Upstash Redis hash at `presence:<roomId>` (24h TTL), written on
+  every authenticated player request. No extra env var — it follows
+  `REDIS_URL`. A native client's poll now costs a presence write (one
+  pipelined round trip) plus a presence read on top of the room read, which
+  matters under Upstash's per-command billing. Each open web SSE stream also
+  does a presence write, a room read and a presence read every 15 s.
 
 ## One-time setup
 

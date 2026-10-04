@@ -74,3 +74,49 @@ export const canCancelTrade = (
  * only way out is "Back to Menu" — which leaves the room.
  */
 export const canStartNewGame = (isMultiplayer: boolean): boolean => !isMultiplayer;
+
+/**
+ * Whether the local user (`selfId`) should be offered "Remove" for `targetId`,
+ * a player the server has stopped hearing from.
+ *
+ * Hotseat has no presence at all — one device, everyone "present" — so this is
+ * always false there. Online, the target must be disconnected (a live player
+ * can never be removed) and cannot be the local user. The authority matches the
+ * server: the host, or anyone once the host is itself disconnected (otherwise a
+ * vanished host would recreate the soft-lock). The local user's own client is
+ * alive by definition, so their own presence is not part of the rule; the
+ * server re-checks everything regardless.
+ */
+export const canRemovePlayer = ({
+  selfId,
+  hostId,
+  targetId,
+  disconnectedPlayerIds,
+  isMultiplayer,
+}: {
+  selfId: string | undefined;
+  hostId: string | undefined;
+  targetId: string;
+  disconnectedPlayerIds: readonly string[];
+  isMultiplayer: boolean;
+}): boolean => {
+  if (!isMultiplayer || !selfId || !hostId) return false;
+  if (targetId === selfId) return false;
+  if (!disconnectedPlayerIds.includes(targetId)) return false;
+  return selfId === hostId || disconnectedPlayerIds.includes(hostId);
+};
+
+/**
+ * Whether the room has dropped the local player, i.e. they were removed while
+ * away. Looks only at the **lobby** roster: a bankrupt player leaves
+ * `gameState.players` but stays in the lobby until they leave, so keying this
+ * on the game roster would bounce every bankrupt player to the menu. Unknown
+ * state (no lobby yet, no local id) is never "removed".
+ */
+export const wasRemovedFromRoom = (
+  lobby: { players: readonly { id: string }[] } | null | undefined,
+  selfId: string | null | undefined
+): boolean => {
+  if (!lobby || !selfId) return false;
+  return !lobby.players.some((player) => player.id === selfId);
+};

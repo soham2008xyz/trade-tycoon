@@ -57,7 +57,7 @@ export class RedisRoomStore implements RoomStore {
     try {
       return JSON.parse(json) as LobbyState;
     } catch (err) {
-      console.error(`[RedisRoomStore] Failed to parse room ${roomId}`, err);
+      console.error('[RedisRoomStore] Failed to parse room %s', roomId, err);
       return null;
     }
   }
@@ -88,7 +88,7 @@ export class RedisRoomStore implements RoomStore {
       try {
         current = JSON.parse(json) as LobbyState;
       } catch (err) {
-        console.error(`[RedisRoomStore] Corrupt JSON for ${roomId}`, err);
+        console.error('[RedisRoomStore] Corrupt JSON for %s', roomId, err);
         return null;
       }
 

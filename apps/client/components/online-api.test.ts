@@ -6,6 +6,7 @@ import {
   sendGameAction,
   reconnectToRoom,
   leaveRoom,
+  removePlayer,
 } from './online-api';
 
 const jsonResponse = (status: number, body: unknown): Response =>
@@ -139,5 +140,28 @@ describe('online-api', () => {
       'http://server/api/rooms/ABCD1234/leave',
       expect.objectContaining({ body: JSON.stringify({ token: 'tok' }) })
     );
+  });
+
+  it('removePlayer posts the token and the target to the remove-player route', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { ok: true }));
+
+    const result = await removePlayer('http://server', 'ABCD1234', 'tok', 'p2');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://server/api/rooms/ABCD1234/remove-player',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ token: 'tok', targetPlayerId: 'p2' }),
+      })
+    );
+    expect(result).toEqual({ ok: true, data: { ok: true } });
+  });
+
+  it('removePlayer surfaces the server reason on a 409', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(409, { error: 'Player is still connected' }));
+
+    const result = await removePlayer('http://server', 'ABCD1234', 'tok', 'p2');
+
+    expect(result).toEqual({ ok: false, status: 409, error: 'Player is still connected' });
   });
 });

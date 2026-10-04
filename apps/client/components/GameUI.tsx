@@ -12,6 +12,7 @@ import { TabletGameLayout } from './layouts/TabletGameLayout';
 import { PhoneGameLayout } from './layouts/PhoneGameLayout';
 import { useGameLayout } from '../hooks/useGameLayout';
 import { getGameFeedback } from './game-feedback';
+import { canRemovePlayer } from './multiplayer-gating';
 
 interface GameUIProps {
   state: GameState;
@@ -24,7 +25,16 @@ interface GameUIProps {
   onNewGame?: () => void;
   isHost?: boolean;
   isMultiplayer?: boolean;
+  /** Online only: players the server hasn't heard from lately. */
+  disconnectedPlayerIds?: readonly string[];
+  /** Online only: the room host's player id (a host can also be a bankrupt non-player). */
+  hostId?: string;
+  /** Online only: remove a disconnected player from the room. */
+  onRemovePlayer?: (targetPlayerId: string) => void;
 }
+
+// Stable identity: a fresh `[]` per render would defeat `sharedProps` memoization.
+const NO_PLAYERS: readonly string[] = [];
 
 export const GameUI: React.FC<GameUIProps> = ({
   state,
@@ -35,6 +45,9 @@ export const GameUI: React.FC<GameUIProps> = ({
   onLeaveGame,
   onNewGame,
   isMultiplayer = false,
+  disconnectedPlayerIds = NO_PLAYERS,
+  hostId,
+  onRemovePlayer,
 }) => {
   const layout = useGameLayout();
 
@@ -154,6 +167,50 @@ export const GameUI: React.FC<GameUIProps> = ({
     ]);
   }, [onLeaveGame, showAlert]);
 
+  // Which disconnected players the local user may remove, resolved once here so
+  // the panels just render buttons for these ids (the rule lives in
+  // `canRemovePlayer`). Nothing is removable once the game is over: the server
+  // rejects it and the panels show the game-over card instead.
+  const removablePlayerIds = React.useMemo(
+    () =>
+      isGameOver || !onRemovePlayer
+        ? NO_PLAYERS
+        : state.players
+            .filter((p) =>
+              canRemovePlayer({
+                selfId: myPlayerId,
+                hostId,
+                targetId: p.id,
+                disconnectedPlayerIds,
+                isMultiplayer,
+              })
+            )
+            .map((p) => p.id),
+    [
+      isGameOver,
+      onRemovePlayer,
+      state.players,
+      myPlayerId,
+      hostId,
+      disconnectedPlayerIds,
+      isMultiplayer,
+    ]
+  );
+  const handleRemovePlayer = React.useCallback(
+    (targetId: string) => {
+      const name = state.players.find((p) => p.id === targetId)?.name ?? 'this player';
+      showAlert(
+        'Remove Player',
+        `Remove ${name} from the game? They've lost connection and won't be able to rejoin. If only one player is left, that player wins.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Remove', style: 'destructive', onPress: () => onRemovePlayer?.(targetId) },
+        ]
+      );
+    },
+    [state.players, onRemovePlayer, showAlert]
+  );
+
   const gameFeedback = getGameFeedback(state, isMultiplayer);
 
   // In multiplayer, dismissing reducer feedback is local-only: the server
@@ -175,6 +232,9 @@ export const GameUI: React.FC<GameUIProps> = ({
       state,
       myPlayerId,
       isMultiplayer,
+      disconnectedPlayerIds,
+      removablePlayerIds,
+      onRemovePlayer: handleRemovePlayer,
       onRoll: handleRoll,
       onBuy: handleBuy,
       onDeclineBuy: handleDeclineBuy,
@@ -197,6 +257,9 @@ export const GameUI: React.FC<GameUIProps> = ({
       state,
       myPlayerId,
       isMultiplayer,
+      disconnectedPlayerIds,
+      removablePlayerIds,
+      handleRemovePlayer,
       isTokenMoving,
       handleRoll,
       handleBuy,
@@ -255,6 +318,9 @@ export const GameUI: React.FC<GameUIProps> = ({
         onConcede={handleConcedeAuction}
         isMultiplayer={isMultiplayer}
         myPlayerId={myPlayerId}
+        presence={
+          onRemovePlayer ? { disconnectedPlayerIds, removablePlayerIds, onRemovePlayer } : undefined
+        }
       />
 
       {currentPlayer && selfId && (

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { IconButton } from '../ui/IconButton';
 import { GOOJBadge } from '../ui/GOOJBadge';
+import { DisconnectedBadge } from '../ui/DisconnectedBadge';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
 import type { StatusPanelProps } from './types';
 
@@ -11,6 +12,9 @@ export const Expanded: React.FC<StatusPanelProps> = ({
   onShowLog,
   onRestart,
   onOpenTrade,
+  disconnectedPlayerIds,
+  removablePlayerIds,
+  onRemovePlayer,
 }) => {
   const { currentPlayer, isGameOver } = useStatusPanelActions(state, myPlayerId);
 
@@ -31,8 +35,22 @@ export const Expanded: React.FC<StatusPanelProps> = ({
                 {player.name} (${player.money}){state.winner === player.id ? ' 🏆 Winner' : ''}
               </Text>
               <GOOJBadge count={player.getOutOfJailCards} />
+              {disconnectedPlayerIds.includes(player.id) && (
+                <DisconnectedBadge name={player.name} />
+              )}
             </View>
           </View>
+          {removablePlayerIds.includes(player.id) && (
+            <View style={{ marginLeft: 10 }}>
+              <IconButton
+                title="Remove"
+                icon="account-remove"
+                onPress={() => onRemovePlayer(player.id)}
+                color="#d9534f"
+                size="small"
+              />
+            </View>
+          )}
           {/* The reducer ignores PROPOSE_TRADE after a win. */}
           {!isGameOver && player.id !== myPlayerId && (
             <View style={{ marginLeft: 10 }}>
