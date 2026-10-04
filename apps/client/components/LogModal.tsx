@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Player } from '@trade-tycoon/game-logic';
 import { CloseButton } from './ui/CloseButton';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
+import { useGameLayout } from '../hooks/useGameLayout';
 
 interface Props {
   visible: boolean;
@@ -12,18 +13,26 @@ interface Props {
 }
 
 export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose }) => {
+  // On phone the shell already draws the title + close button and fills the
+  // screen, so the legacy overlay chrome (grey backdrop, floating card, own
+  // header/✕) would duplicate it. Wide layouts get a bare transparent Modal
+  // from the shell, so there the card still owns all of that.
+  const isPhone = useGameLayout() === 'phone';
+
   return (
     <FullScreenModalShell visible={visible} onClose={onClose} title="Game Log">
-      <View style={styles.modalContainer}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Game Log</Text>
-            <View style={styles.closeBtnContainer}>
-              <CloseButton onPress={onClose} />
+      <View style={isPhone ? styles.phoneContainer : styles.modalContainer}>
+        <View style={isPhone ? styles.phoneContent : styles.content}>
+          {!isPhone && (
+            <View style={styles.header}>
+              <Text style={styles.title}>Game Log</Text>
+              <View style={styles.closeBtnContainer}>
+                <CloseButton onPress={onClose} />
+              </View>
             </View>
-          </View>
+          )}
 
-          <ScrollView style={styles.logList}>
+          <ScrollView style={isPhone ? undefined : styles.logList}>
             {!logs || logs.length === 0 ? (
               <Text style={styles.emptyText}>No logs yet.</Text>
             ) : (
@@ -54,6 +63,8 @@ export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose }) =
 };
 
 const styles = StyleSheet.create({
+  phoneContainer: { flex: 1, backgroundColor: 'white' },
+  phoneContent: { flex: 1, paddingHorizontal: 16, paddingTop: 8 },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',

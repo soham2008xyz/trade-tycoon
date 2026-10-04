@@ -12,6 +12,7 @@ import {
 import { IconButton } from './ui/IconButton';
 import { CloseButton } from './ui/CloseButton';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
+import { useGameLayout } from '../hooks/useGameLayout';
 import { GROUP_COLORS, GROUP_DISPLAY_NAMES } from '../constants';
 
 // Both `GROUP_COLORS` and `GROUP_DISPLAY_NAMES` are imported as `Record<string, string>`.
@@ -250,6 +251,11 @@ export const PropertyManager: React.FC<Props> = ({
   onMortgage,
   onUnmortgage,
 }) => {
+  // On phone the shell already draws the title + close button and fills the
+  // screen; the card-on-grey-backdrop chrome below is only for wide layouts,
+  // where the shell renders a bare transparent Modal.
+  const isPhone = useGameLayout() === 'phone';
+
   // Group properties by color. Returned as a Map (not a Record<string, Tile[]>)
   // so iteration uses .entries() and static analyzers don't flag the key
   // access as object-injection.
@@ -278,14 +284,16 @@ export const PropertyManager: React.FC<Props> = ({
 
   return (
     <FullScreenModalShell visible={visible} onClose={onClose} title="Manage Properties">
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Manage Properties</Text>
-            <View style={styles.closeBtnContainer}>
-              <CloseButton onPress={onClose} />
+      <View style={isPhone ? styles.phoneOverlay : styles.modalOverlay}>
+        <View style={isPhone ? styles.phoneContent : styles.modalContent}>
+          {!isPhone && (
+            <View style={styles.header}>
+              <Text style={styles.title}>Manage Properties</Text>
+              <View style={styles.closeBtnContainer}>
+                <CloseButton onPress={onClose} />
+              </View>
             </View>
-          </View>
+          )}
           <Text style={styles.balance}>Cash: ${player.money}</Text>
 
           <ScrollView style={styles.scroll}>
@@ -314,6 +322,8 @@ export const PropertyManager: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
+  phoneOverlay: { flex: 1, backgroundColor: 'white' },
+  phoneContent: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
