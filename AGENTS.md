@@ -154,6 +154,8 @@ workspace's `AGENTS.md`.
 - `POST /api/rooms/:id/actions` — game actions (rolls, buys, trades, …)
 - `POST /api/rooms/:id/leave` — remove the authenticated player from the room
   and, if the game is running, from the authoritative game state too
+- `POST /api/rooms/:id/remove-player` — remove a disconnected player (host,
+  or anyone once the host is disconnected); the target must be disconnected
 - `POST /api/rooms/:id/reconnect` — resume a session
 - `GET /api/rooms/:id/events?token=…` — SSE stream (EventSource can't set
   headers, so this one endpoint takes the token as a query param)

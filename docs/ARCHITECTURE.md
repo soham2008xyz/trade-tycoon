@@ -43,6 +43,13 @@ trade-tycoon/
 - **Fan-out:** Pluggable. Production uses Redis pub/sub (`RedisEventBus`);
   tests use an in-memory bus (`InMemoryEventBus`). Wiring is selected by the
   presence of `REDIS_URL`.
+- **Presence:** Pluggable, same wiring. `PresenceStore` records when each
+  player was last seen (`RedisPresenceStore` hash `presence:<roomId>` in
+  production, `InMemoryPresenceStore` otherwise) so the server can tell which
+  players of a running game have gone quiet. It is deliberately separate from
+  the room record and travels to clients as a side channel (SSE `presence`
+  event / `disconnectedPlayerIds` on `/reconnect`) — see
+  [ADR 0012](adr/0012-presence-lives-outside-the-room-record.md).
 
 ### 3. `packages/game-logic`
 
@@ -92,6 +99,8 @@ successful state change.
 
 The two abstractions — `RoomStore` (state) and `EventBus` (push) — exist so
 the server can run identically on three substrates:
+
+The same switch also selects the `PresenceStore` (Redis hash vs in-memory map).
 
 | Substrate                            | RoomStore impl      | EventBus impl                      |
 | ------------------------------------ | ------------------- | ---------------------------------- |

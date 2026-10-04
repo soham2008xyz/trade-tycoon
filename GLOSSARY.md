@@ -130,6 +130,10 @@ A Lobby player's signal that they are prepared to start.
 The private credential issued when a player creates or joins a Room; it proves who they are, unlike the public player id, which anyone may see.
 _Avoid_: Token (alone), password
 
+**Disconnected player**:
+A player in a running online game whom the server has not heard from for 45 seconds; the Host (or anyone, once the Host is also disconnected) may remove them.
+_Avoid_: Offline, AFK, kicked
+
 **Resume**:
 Rejoining a Room using a stored session after a refresh or restart.
 

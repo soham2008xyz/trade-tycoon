@@ -37,7 +37,39 @@ src/
     InMemoryEventBus.test.ts
     RedisEventBus.ts          Production
     RedisEventBus.test.ts
+  presence/
+    PresenceStore.ts          Last-seen interface + PRESENCE_TIMEOUT_MS +
+                              the pure getDisconnectedPlayerIds rule
+    InMemoryPresenceStore.ts  Tests + dev
+    RedisPresenceStore.ts     Production (hash presence:<roomId>, no CAS)
+    presence-store-contract.ts  Shared behaviour both backends must pass
+  test-utils/
+    room-game.ts              setupGame()/bankrupt()/silenceAllBut(): a
+                              started game on a controllable clock
 ```
+
+## Presence
+
+Presence (who has gone quiet) is **not** in `LobbyState`: it is time-based
+and written on every native poll, so it lives in its own `PresenceStore`
+(ADR 0012). Rules that bite:
+
+- **Touch after the update, never inside a `bumpedUpdate` mutator** —
+  mutators are pure and may be retried. Capture the playerId in a closure
+  variable and call `RoomManager`'s `touch` once the update returns (see
+  `handleGameAction`). Touches are best-effort: a presence failure must not
+  fail the request.
+- Compute disconnection over the **lobby** roster (`room.players`), not
+  `gameState.players` — bankrupt players leave the game roster but stay in
+  the lobby. Only a removal _target_ is checked against the game roster.
+- Presence reads **fail open** (`[]`) and the removal route re-checks the
+  target server-side, so an outage can only withhold the remove button.
+- Tests use `test-utils/room-game.ts` with an injected clock; never sleep
+  for 45 s. `RoomManager` takes `{ presence, clock }` options and defaults
+  to an in-memory store and `Date.now`, so most tests need no setup.
+- The `presence` SSE event is written directly by `routes/events.ts` (one
+  `res.write` per frame) and is deliberately **not** a `RoomEvent` — it is
+  never put on the `EventBus`.
 
 ## Adding a new REST endpoint
 
@@ -128,7 +160,10 @@ keep it close to the existing structure.
 6. Set a **15-second heartbeat** (`res.write(': ping\n\n')`) so
    intermediaries don't tear down the connection. The cleanup must
    run on the function's natural 300s timeout too — Vercel eventually
-   closes the connection and we get the close event.
+   closes the connection and we get the close event. The same tick
+   records the player as seen and sends a `presence` event when the
+   disconnected set changed (plus once on connect); `heartbeatMs` is
+   injectable so tests don't wait 15 s.
 
 ## CORS
 

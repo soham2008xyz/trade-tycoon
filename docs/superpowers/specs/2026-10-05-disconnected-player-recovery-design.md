@@ -248,3 +248,35 @@ Per workspace, TDD:
 - Presence refresh on web depends on the SSE stream being open; a backgrounded
   web tab keeps its SSE connection, so it stays "present" — acceptable, and
   consistent with the server's view of a live connection.
+
+## As built — deviations from the design above
+
+Review of the plan and the implementation changed these points; the ADR
+(`docs/adr/0012-presence-lives-outside-the-room-record.md`) is the current
+statement of the decisions.
+
+- **`PresenceStore.getLastSeen` returns a `ReadonlyMap`, not a `Record`**, and
+  the interface gained `seedIfAbsent`. A plain object silently drops a
+  `__proto__` key; a `Map` has no such hazard.
+- **"No record means present" is not permanent.** The presence read seeds a
+  missing record at "now", so a player who vanished before their first
+  heartbeat (or during a deploy/Redis flush) goes stale 45 s later instead of
+  never.
+- **Disconnection is computed over the lobby roster**, not the game roster.
+  Bankrupt players leave `gameState.players` but keep their lobby entry; keying
+  on the game roster would hide a bankrupt host who then vanishes and defeat the
+  host-gone fallback. The removal _target_ is still checked against the game
+  roster. The client's "was I removed" check likewise uses the lobby roster so
+  bankrupt players are not bounced to the menu.
+- **Presence is touched after the store update, never inside the mutator**
+  (ADR 0003), and `handleGameAction` touches even when the action is rejected.
+- **Caller authorization (rule 5) no longer requires the caller to be
+  "connected".** A removal request is an authenticated request and is counted as
+  a heartbeat before presence is read, so "caller is alive" is true by
+  construction. The rule is: the caller is the host, or the host is
+  disconnected.
+- **The Redis touch is one pipelined round trip** (`HSET` + `EXPIRE`), to limit
+  per-command cost on every native poll.
+- **Known limitation recorded in the ADR:** on Vercel a vanished _web_ player
+  can look present until the SSE function times out (~5 min); native polling is
+  unaffected.

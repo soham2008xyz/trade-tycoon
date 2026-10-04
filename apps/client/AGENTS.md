@@ -151,6 +151,17 @@ state in a `useEffect` keyed on `[roomId, token]`.
 - Native poll: backs off from 2s to 5s while the server's
   `lobby.version` is unchanged, resets to 2s on a real change, and
   stops on a 404 (`onSessionExpired`).
+- Presence (`onPresence`): who the server considers disconnected arrives
+  as an SSE `presence` event, or as `disconnectedPlayerIds` on every poll
+  snapshot. It never moves `version`, so the poll compares it separately —
+  a presence-only change must still reach `onPresence` and keeps the fast
+  cadence for one more poll. `OnlineGame` holds it in its own state and
+  passes it, plus `hostId`, to `GameUI`, which resolves which players the
+  local user may remove through `canRemovePlayer` and hands the panels
+  plain id lists (`disconnectedPlayerIds`, `removablePlayerIds`).
+- Being removed is judged by `wasRemovedFromRoom` on the **lobby** roster,
+  never `gameState.players`: a bankrupt player leaves the game roster but
+  is still in the room.
 - `startRoomSync` returns a `{ stop() }` handle; `OnlineGame` keeps it
   in a ref and calls `stop()` both on effect cleanup and in
   `handleLeave` (before the `/api/rooms/:id/leave` POST, so the
