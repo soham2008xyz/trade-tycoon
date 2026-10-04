@@ -73,7 +73,9 @@ const withoutDebt = (p: Player): Player => {
 const chargePlayer = (p: Player, amount: number, creditorId?: string): Player => {
   const money = p.money - amount;
   const charged = { ...p, money };
-  if (money < 0 && creditorId) charged.debtOwedTo = creditorId;
+  // `amount > 0`: a $0 charge (rent on a mortgaged tile) owes the payee nothing,
+  // so it must not make them the creditor of debt that arose elsewhere.
+  if (amount > 0 && money < 0 && creditorId) charged.debtOwedTo = creditorId;
   return charged;
 };
 
@@ -1411,5 +1413,7 @@ export const reduceGameAction = (
 ): GameReducerResult => {
   const result = reduceGameActionUnbounded(state, action, rng);
   if (result === ACTION_REJECTED) return result;
-  return capLogs(clearSettledDebts(result));
+  // A no-op must stay reference-equal (the server's rejection signal), even if
+  // the input carried a stale debt that clearSettledDebts would otherwise copy.
+  return result === state ? state : capLogs(clearSettledDebts(result));
 };

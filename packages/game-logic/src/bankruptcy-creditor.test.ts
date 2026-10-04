@@ -70,6 +70,36 @@ describe('creditor tracking', () => {
     expect(byId(after, 'p3').debtOwedTo).toBeUndefined();
   });
 
+  it('records no creditor when the "rent" is $0 because the tile is mortgaged', () => {
+    // p3 is in jail on its 3rd failed roll: the forced $50 fine (a bank debt)
+    // leaves them at -$20, then 1+2 moves them onto States Avenue, which p2
+    // owns but has mortgaged. p2 is owed nothing, so must not become creditor.
+    const state = issueState();
+    state.players[1] = { ...state.players[1], properties: ['states'], mortgaged: ['states'] };
+    state.players[2] = { ...state.players[2], money: 30, position: 10, isInJail: true };
+    state.players[2].jailTurns = 2;
+
+    const after = gameReducer(state, { type: 'ROLL_DICE', playerId: 'p3', die1: 1, die2: 2 });
+
+    expect(byId(after, 'p3').position).toBe(13);
+    expect(byId(after, 'p3').money).toBe(-20);
+    expect(byId(after, 'p3').debtOwedTo).toBeUndefined();
+  });
+
+  it('does not let a $0 mortgaged-tile charge replace an existing creditor', () => {
+    const state = issueState();
+    state.players[0] = { ...state.players[0], properties: ['states'], mortgaged: ['states'] };
+    state.players[2] = { ...state.players[2], money: -30, debtOwedTo: 'p2' };
+    state.phase = 'action';
+    state.doublesCount = 1; // doubles grant another roll even while negative
+
+    state.players[2].position = 10; // 1+2 from Jail (10) lands on States (13)
+    const after = gameReducer(state, { type: 'ROLL_DICE', playerId: 'p3', die1: 1, die2: 2 });
+
+    expect(byId(after, 'p3').position).toBe(13);
+    expect(byId(after, 'p3').debtOwedTo).toBe('p2');
+  });
+
   it('keeps an existing creditor when a later bank payment deepens the debt', () => {
     // p3 already owes p2 and rolls again (doubles grant another roll while in 'action').
     const state = issueState();
@@ -135,6 +165,18 @@ describe('creditor tracking', () => {
     const settled = gameReducer(funded, { type: 'DISMISS_TOAST' });
     expect(byId(settled, 'p3').debtOwedTo).toBeUndefined();
     expect('debtOwedTo' in byId(settled, 'p3')).toBe(false);
+  });
+});
+
+describe('rejection contract', () => {
+  it('returns a no-op action reference-equal even if the input carries a stale debt', () => {
+    const state = issueState();
+    state.players[2] = { ...state.players[2], debtOwedTo: 'p2' }; // money >= 0: stale
+
+    // Out of turn -> reducer no-ops; the server relies on `result === state` to 409.
+    const result = reduceGameAction(state, { type: 'ROLL_DICE', playerId: 'p1' });
+
+    expect(result).toBe(state);
   });
 });
 
