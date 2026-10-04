@@ -123,3 +123,11 @@
   also suppresses security-update PRs, while `update-types` only filters
   routine version updates. Exact pins in `overrides` ignore
   major/minor/patch; tilde pins ignore major/minor so in-range patches flow.
+- Phone layout stacking (#257): `Board`, `Tile` and `PlayerToken` use explicit
+  `zIndex` values (10–100+). In `PhoneGameLayout` the sibling `BottomSheet` has
+  no stacking of its own by default, so those values painted over the expanded
+  sheet (GO/Jail corner tiles and the token stack covered the Players list and
+  Trade button). The fix is a `zIndex: 0` wrapper around the board plus a higher
+  `zIndex`/`elevation` on the sheet (`containerStyle`/`style`); keep that
+  wrapper and don't strip the board's internal `zIndex`es. Verified on iPhone 17
+  (Expo Go) with 2 and 6 players; Android `elevation` is untested.
