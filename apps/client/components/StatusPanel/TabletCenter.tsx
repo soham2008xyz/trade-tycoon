@@ -34,7 +34,9 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
   );
   const selfId = myPlayerId;
 
-  if (!currentPlayer) return null;
+  // A finished game with an unresolvable winner has no `currentPlayer` but must
+  // still render the game-over card (same fallback as Peek).
+  if (!currentPlayer && !isGameOver) return null;
 
   return (
     <View style={styles.root}>
@@ -61,7 +63,7 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
                 <Text
                   style={[
                     styles.playerText,
-                    currentPlayer.id === player.id && styles.activePlayerText,
+                    currentPlayer?.id === player.id && styles.activePlayerText,
                   ]}
                 >
                   {player.name} (${player.money}){state.winner === player.id ? ' 🏆' : ''}
@@ -82,7 +84,7 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
           ))}
         </View>
 
-        {isGameOver ? (
+        {isGameOver || !currentPlayer ? (
           <GameOverCard
             state={state}
             myPlayerId={myPlayerId}

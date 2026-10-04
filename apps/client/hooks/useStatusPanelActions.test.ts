@@ -226,6 +226,16 @@ describe('getStatusPanelActions', () => {
       expect(actions.buttons.buy.visible).toBe(false);
     });
 
+    it('is still game over (with no current player) when the winner id matches nobody', () => {
+      const state = won('ghost', { currentPlayerId: 'ghost', players: [player('alice', 1500)] });
+      const actions = getStatusPanelActions(state, 'alice');
+      expect(actions.isGameOver).toBe(true);
+      expect(actions.currentPlayer).toBeUndefined();
+      for (const [name, button] of Object.entries(actions.buttons)) {
+        expect(button.visible, name).toBe(false);
+      }
+    });
+
     it('hides Declare Bankruptcy for a winner with negative cash', () => {
       const state = won('alice', { players: [player('alice', -10)] });
       expect(getStatusPanelActions(state, 'alice').buttons.declareBankruptcy.visible).toBe(false);
