@@ -249,6 +249,29 @@ describe('RoomManager', () => {
       expect(result.gameState?.phase).toBe('roll');
     });
 
+    it('should keep the finished game when the winner leaves before a bankrupt player', async () => {
+      const { roomId, playerId: hostId, token: hostToken } = await roomManager.createRoom('Host');
+      const p2 = await join(roomId, 'P2');
+      await roomManager.startGame(roomId, hostToken);
+      await roomManager.handleGameAction(roomId, p2.token, {
+        type: 'DECLARE_BANKRUPTCY',
+        playerId: p2.playerId,
+      });
+
+      const result = await roomManager.leaveRoom(roomId, hostToken);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected ok');
+      expect(result.state.status).toBe('game');
+      expect(result.state.players.map((player) => player.id)).toEqual([p2.playerId]);
+      expect(result.state.players[0].isHost).toBe(true);
+      expect(result.gameState?.winner).toBe(hostId);
+      expect(result.gameState?.players.map((player) => player.id)).toEqual([hostId]);
+      // The leaver's session is gone, the remaining player's still works.
+      expect((await roomManager.reconnect(roomId, hostToken)).ok).toBe(false);
+      expect((await roomManager.reconnect(roomId, p2.token)).ok).toBe(true);
+    });
+
     it('should drop the leaving player from the sessions map', async () => {
       const { roomId, token: hostToken } = await roomManager.createRoom('Host');
       const p2 = await join(roomId, 'P2');

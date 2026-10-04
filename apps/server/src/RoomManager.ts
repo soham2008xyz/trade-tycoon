@@ -232,6 +232,19 @@ export class RoomManager {
         };
       }
 
+      // A finished game is a frozen snapshot. `removePlayerFromGame` skips the
+      // reducer's post-game guard, and bankrupt players are already gone from
+      // `gameState.players`, so the winner leaving would empty the roster and
+      // reset `winner` — dropping the game-over screen for everyone still
+      // connected. Keep the snapshot; only the lobby entry and session go.
+      if (current.gameState.winner) {
+        return {
+          ...current,
+          players: reassignedPlayers,
+          sessions: remainingSessions,
+        };
+      }
+
       const nextGameState = removePlayerFromGame(current.gameState, userId);
 
       if (nextGameState.players.length === 0) {

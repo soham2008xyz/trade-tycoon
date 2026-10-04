@@ -450,6 +450,100 @@ describe('REST: /api/rooms', () => {
       expect(lobbyUpdate.state.gameState?.toastMessage).toContain('Active trade cancelled.');
       expect(lobbyUpdate.state.gameState?.players).toHaveLength(2);
     });
+
+    describe('after a winner is declared', () => {
+      /**
+       * Alice + Bob, started, Bob declares bankruptcy -> Alice is the winner.
+       * Bankrupt players leave `gameState.players` but stay in the lobby, so
+       * Bob is still connected and should keep seeing the game-over state.
+       */
+      const setupFinishedGame = async () => {
+        const create = await request(app).post('/api/rooms').send({ playerName: 'Alice' });
+        const { roomId, playerId: aliceId, token: aliceToken } = create.body;
+        const join = await request(app)
+          .post(`/api/rooms/${roomId}/join`)
+          .send({ playerName: 'Bob' });
+        const { playerId: bobId, token: bobToken } = join.body;
+        await request(app).post(`/api/rooms/${roomId}/start`).send({ token: aliceToken });
+        const bankrupt = await request(app)
+          .post(`/api/rooms/${roomId}/actions`)
+          .send({ token: bobToken, action: { type: 'DECLARE_BANKRUPTCY', playerId: bobId } });
+        expect(bankrupt.status).toBe(200);
+        return { roomId, aliceId, aliceToken, bobId, bobToken };
+      };
+
+      it('keeps the finished game for remaining players when the winner leaves first', async () => {
+        const { roomId, aliceId, aliceToken, bobId, bobToken } = await setupFinishedGame();
+
+        const events: RoomEvent[] = [];
+        await eventBus.subscribe(roomId, (event) => events.push(event));
+
+        const res = await request(app)
+          .post(`/api/rooms/${roomId}/leave`)
+          .send({ token: aliceToken });
+
+        expect(res.status).toBe(200);
+        expect(events.map((event) => event.type)).toEqual(['lobby_update']);
+        const lobbyUpdate = events[0];
+        if (lobbyUpdate.type !== 'lobby_update') throw new Error('Expected lobby_update');
+        expect(lobbyUpdate.state.status).toBe('game');
+        expect(lobbyUpdate.state.players.map((player) => player.id)).toEqual([bobId]);
+        expect(lobbyUpdate.state.players[0].isHost).toBe(true);
+        expect(lobbyUpdate.state.gameState?.winner).toBe(aliceId);
+        expect(lobbyUpdate.state.gameState?.players.map((player) => player.id)).toEqual([aliceId]);
+        expect(lobbyUpdate.state).not.toHaveProperty('sessions');
+        expect(lobbyUpdate.state.gameState).not.toHaveProperty('errorMessage');
+
+        // Bob reconnecting still gets the finished game; Alice's token is dead.
+        const bobResume = await request(app)
+          .post(`/api/rooms/${roomId}/reconnect`)
+          .send({ token: bobToken });
+        expect(bobResume.status).toBe(200);
+        expect(bobResume.body.gameState.winner).toBe(aliceId);
+        const aliceResume = await request(app)
+          .post(`/api/rooms/${roomId}/reconnect`)
+          .send({ token: aliceToken });
+        expect(aliceResume.status).toBe(404);
+        expect(aliceResume.body.error).toBe('session_expired');
+      });
+
+      it('cleans the room up once the last player leaves a finished game', async () => {
+        const { roomId, aliceToken, bobToken } = await setupFinishedGame();
+        await request(app).post(`/api/rooms/${roomId}/leave`).send({ token: aliceToken });
+
+        const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ token: bobToken });
+
+        expect(res.status).toBe(200);
+        const room = await roomManager.getRoom(roomId);
+        expect(room?.players).toEqual([]);
+        expect(room?.status).toBe('lobby');
+        expect(room?.gameState).toBeUndefined();
+      });
+
+      it('lets a non-winner leave a finished game without touching the winner state', async () => {
+        const { roomId, aliceId, aliceToken, bobToken } = await setupFinishedGame();
+
+        const events: RoomEvent[] = [];
+        await eventBus.subscribe(roomId, (event) => events.push(event));
+
+        const res = await request(app).post(`/api/rooms/${roomId}/leave`).send({ token: bobToken });
+
+        expect(res.status).toBe(200);
+        expect(events.map((event) => event.type)).toEqual(['lobby_update']);
+        const lobbyUpdate = events[0];
+        if (lobbyUpdate.type !== 'lobby_update') throw new Error('Expected lobby_update');
+        expect(lobbyUpdate.state.status).toBe('game');
+        expect(lobbyUpdate.state.players.map((player) => player.id)).toEqual([aliceId]);
+        expect(lobbyUpdate.state.gameState?.winner).toBe(aliceId);
+
+        // The winner can still resume the finished game.
+        const aliceResume = await request(app)
+          .post(`/api/rooms/${roomId}/reconnect`)
+          .send({ token: aliceToken });
+        expect(aliceResume.status).toBe(200);
+        expect(aliceResume.body.gameState.winner).toBe(aliceId);
+      });
+    });
   });
 
   /**
