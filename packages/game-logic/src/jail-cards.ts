@@ -6,11 +6,25 @@ export const JAIL_CARD_DECKS: readonly JailCardDeck[] = ['chance', 'communityChe
 
 export const emptyJailCardHolders = (): JailCardHolders => ({ chance: null, communityChest: null });
 
+// Holders are read and written through these two helpers rather than
+// `holders[deck]`: a variable-key property access is flagged by the
+// generic-object-injection lint rule, and with only two decks the explicit
+// property names cost nothing.
+export const holderOf = (holders: JailCardHolders, deck: JailCardDeck): string | null =>
+  deck === 'chance' ? holders.chance : holders.communityChest;
+
+const withHolder = (
+  holders: JailCardHolders,
+  deck: JailCardDeck,
+  holder: string | null
+): JailCardHolders =>
+  deck === 'chance' ? { ...holders, chance: holder } : { ...holders, communityChest: holder };
+
 const isJailCard = (card: Card): boolean => card.action.type === 'GET_OUT_OF_JAIL';
 
 /** The decks whose jail card `playerId` holds, in deck order. */
 export const jailDecksHeldBy = (holders: JailCardHolders, playerId: string): JailCardDeck[] =>
-  JAIL_CARD_DECKS.filter((deck) => holders[deck] === playerId);
+  JAIL_CARD_DECKS.filter((deck) => holderOf(holders, deck) === playerId);
 
 /**
  * The current holders, reconciled with each player's `getOutOfJailCards` count.
@@ -27,26 +41,24 @@ export const resolveJailCardHolders = (
   players: readonly Player[],
   stored?: JailCardHolders
 ): JailCardHolders => {
-  const holders = emptyJailCardHolders();
-  const owned = new Map(players.map((p) => [p.id, p.getOutOfJailCards || 0]));
-  const used = new Map<string, number>();
-  const claim = (deck: JailCardDeck, playerId: string) => {
-    holders[deck] = playerId;
-    used.set(playerId, (used.get(playerId) ?? 0) + 1);
+  // Cards each player has that are not yet attributed to a deck.
+  const unassigned = new Map(players.map((p) => [p.id, p.getOutOfJailCards || 0]));
+  const claim = (playerId: string | null | undefined): playerId is string => {
+    const left = playerId ? (unassigned.get(playerId) ?? 0) : 0;
+    if (!playerId || left <= 0) return false;
+    unassigned.set(playerId, left - 1);
+    return true;
   };
 
-  for (const deck of JAIL_CARD_DECKS) {
-    const holder = stored?.[deck];
-    if (holder && (owned.get(holder) ?? 0) > (used.get(holder) ?? 0)) claim(deck, holder);
-  }
-  for (const player of players) {
-    for (const deck of JAIL_CARD_DECKS) {
-      if (holders[deck] === null && (owned.get(player.id) ?? 0) > (used.get(player.id) ?? 0)) {
-        claim(deck, player.id);
-      }
-    }
-  }
-  return holders;
+  // Stored holders first, so a player's real deck is not taken by an earlier player's guess.
+  const kept = JAIL_CARD_DECKS.map((deck) => {
+    const holder = stored ? holderOf(stored, deck) : null;
+    return claim(holder) ? holder : null;
+  });
+  const [chance, communityChest] = kept.map(
+    (holder) => holder ?? players.find((p) => claim(p.id))?.id ?? null
+  );
+  return { chance, communityChest };
 };
 
 /**
@@ -68,9 +80,9 @@ export const moveJailCards = (
   toId: string | null,
   count: number
 ): JailCardHolders => {
-  const next = { ...holders };
-  for (const deck of jailDecksHeldBy(holders, fromId).slice(0, count)) next[deck] = toId;
-  return next;
+  return jailDecksHeldBy(holders, fromId)
+    .slice(0, count)
+    .reduce((next, deck) => withHolder(next, deck, toId), holders);
 };
 
 /**
@@ -85,8 +97,8 @@ export const swapJailCards = (
   bId: string,
   bCount: number
 ): JailCardHolders => {
-  const next = { ...holders };
-  for (const deck of jailDecksHeldBy(holders, aId).slice(0, aCount)) next[deck] = bId;
-  for (const deck of jailDecksHeldBy(holders, bId).slice(0, bCount)) next[deck] = aId;
-  return next;
+  const fromA = jailDecksHeldBy(holders, aId).slice(0, aCount);
+  const fromB = jailDecksHeldBy(holders, bId).slice(0, bCount);
+  const toB = fromA.reduce((next, deck) => withHolder(next, deck, bId), holders);
+  return fromB.reduce((next, deck) => withHolder(next, deck, aId), toB);
 };

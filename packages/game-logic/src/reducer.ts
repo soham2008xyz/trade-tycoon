@@ -15,6 +15,7 @@ import { CHANCE_CARDS } from './chance-cards';
 import { COMMUNITY_CHEST_CARDS } from './community-chest-cards';
 import {
   drawableCards,
+  holderOf,
   jailDecksHeldBy,
   moveJailCards,
   resolveJailCardHolders,
@@ -488,7 +489,7 @@ const drawFromDeck = (
   rng: Rng
 ): { card: Card; holders: JailCardHolders } => {
   const holders = resolveJailCardHolders(players, stored);
-  const pool = drawableCards(cards, holders[deck] !== null);
+  const pool = drawableCards(cards, holderOf(holders, deck) !== null);
   return { card: pool[Math.floor(rng() * pool.length)], holders };
 };
 
