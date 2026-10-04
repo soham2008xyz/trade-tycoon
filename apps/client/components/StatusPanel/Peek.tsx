@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { IconButton } from '../ui/IconButton';
+import { GOOJBadge } from '../ui/GOOJBadge';
 import { Dice } from '../Dice';
 import { GameOverCard } from './GameOverCard';
 import { GROUP_COLORS } from '../../constants';
@@ -53,6 +54,7 @@ export const Peek: React.FC<StatusPanelProps> = ({
           <View style={[styles.dot, { backgroundColor: currentPlayer.color }]} />
           <Text style={styles.playerName}>{currentPlayer.name}</Text>
           <Text style={styles.money}>${currentPlayer.money}</Text>
+          <GOOJBadge count={currentPlayer.getOutOfJailCards} />
         </View>
         {state.phase === 'action' && (
           <Dice value1={state.dice[0]} value2={state.dice[1]} isRolling={isTokenMoving} />
@@ -125,8 +127,17 @@ export const Peek: React.FC<StatusPanelProps> = ({
 const styles = StyleSheet.create({
   root: { padding: 12, gap: 8 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  playerChip: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
+  // flexShrink + wrap: the chip shares a row with the dice, and large Dynamic
+  // Type must wrap the name/money/badge rather than push the dice off-screen.
+  playerChip: {
+    flexShrink: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: 6,
+    rowGap: 2,
+  },
+  dot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
   playerName: { fontWeight: '700', fontSize: 14 },
   money: { color: '#666', fontSize: 13 },
   positionRow: { flexDirection: 'row', alignItems: 'center' },

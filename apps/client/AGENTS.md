@@ -20,6 +20,7 @@ components/
   *.tsx                       UI components (React Native)
   multiplayer-gating.ts       Pure visibility predicates (NO React)
   multiplayer-gating.test.ts  vitest tests for the predicates
+  held-cards.ts               Pure formatter for the GOOJ-card badge (NO React)
   ui/                         Primitives (IconButton, Toast, …)
 hooks/                        Custom hooks
 constants/                    Color tables and the like
