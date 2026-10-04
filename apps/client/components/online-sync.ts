@@ -11,6 +11,9 @@ import { reconnectToRoom } from './online-api';
  * for the same reason.
  */
 
+/** `EventSource.CLOSED`: the browser has given up reconnecting. */
+const EVENT_SOURCE_CLOSED = 2;
+
 /** Poll floor while the room is active. */
 export const MIN_POLL_MS = 2000;
 /** Poll ceiling reached after an unchanged (version-identical) snapshot. */
@@ -22,6 +25,11 @@ interface SyncMessageEvent {
 
 /** Structural subset of the DOM EventSource, so tests can substitute a fake. */
 export interface EventSourceLike {
+  /**
+   * DOM values: 0 CONNECTING (the browser is retrying), 1 OPEN, 2 CLOSED (it
+   * gave up). Optional so a minimal fake needn't provide it.
+   */
+  readonly readyState?: number;
   addEventListener(_type: string, listener: (event: SyncMessageEvent) => void): void;
   close(): void;
 }
@@ -79,6 +87,8 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
   } = options;
 
   if (transport === 'sse') {
+    let stopped = false;
+    let verifying = false;
     // EventSource cannot set headers, so the token travels in the query
     // string (the server accepts this tradeoff for the events route only).
     const url = `${serverUrl}/api/rooms/${encodeURIComponent(
@@ -101,6 +111,23 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
       }
     });
 
+    // A network blip leaves the stream CONNECTING and the browser retries on its
+    // own. But a non-200 reconnect — e.g. 401 because the host removed this
+    // player while they were offline — closes the stream for good with no
+    // event we could act on, so the player would sit on a stale screen. Once
+    // it is CLOSED, ask `/reconnect` (whose 404 means the session is gone).
+    source.addEventListener('error', () => {
+      if (source.readyState !== EVENT_SOURCE_CLOSED || verifying || stopped) return;
+      verifying = true;
+      void fetchSnapshot(serverUrl, roomId, token)
+        .then((result) => {
+          if (!stopped && !result.ok && result.status === 404) onSessionExpired();
+        })
+        .finally(() => {
+          verifying = false;
+        });
+    });
+
     source.addEventListener('presence', (event) => {
       try {
         const body = JSON.parse(event.data) as { disconnectedPlayerIds?: unknown };
@@ -113,6 +140,7 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
 
     return {
       stop: () => {
+        stopped = true;
         source.close();
       },
     };

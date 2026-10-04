@@ -163,6 +163,12 @@ state in a `useEffect` keyed on `[roomId, token]`.
   own badge and Remove button and confirms **inline** — not via
   `CustomAlert`, which is a second `Modal` and can fail to present on iOS
   while the auction `Modal` is up.
+- A closed SSE stream needs a session check. A network blip leaves
+  `EventSource` CONNECTING and it retries on its own, but a non-200
+  reconnect (401 after the host removed an offline player) closes it for
+  good with no event to act on. `startRoomSync` therefore asks
+  `/reconnect` once `readyState` is CLOSED and calls `onSessionExpired` on
+  a 404.
 - Being removed is judged by `wasRemovedFromRoom` on the **lobby** roster,
   never `gameState.players`: a bankrupt player leaves the game roster but
   is still in the room.

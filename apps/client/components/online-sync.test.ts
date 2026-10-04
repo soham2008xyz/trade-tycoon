@@ -11,6 +11,8 @@ import {
 
 class FakeEventSource implements EventSourceLike {
   closed = false;
+  /** 0 CONNECTING (browser is retrying), 2 CLOSED (browser gave up). */
+  readyState = 1;
   private listeners = new Map<string, ((event: { data: string }) => void)[]>();
 
   constructor(public readonly url: string) {}
@@ -109,6 +111,72 @@ describe('startRoomSync (sse)', () => {
 
     expect(onLobbyState).not.toHaveBeenCalled();
     errorSpy.mockRestore();
+  });
+
+  describe('when the stream errors', () => {
+    const expiredSnapshot = { ok: false as const, status: 404, error: 'session_expired' };
+
+    it('verifies the session once the browser has given up, and reports an expired one', async () => {
+      // A removed player's reconnect gets a non-200 (401), which makes the
+      // browser close the stream for good — nothing else would tell them.
+      const fetchSnapshot = vi.fn().mockResolvedValue(expiredSnapshot);
+      const { source, onSessionExpired } = startSse({ fetchSnapshot });
+
+      source.readyState = 2;
+      source.emit('error', {});
+      await vi.waitFor(() => expect(onSessionExpired).toHaveBeenCalledTimes(1));
+
+      expect(fetchSnapshot).toHaveBeenCalledWith('https://server.test', 'ROOM1234', 'secret token');
+    });
+
+    it('does nothing while the browser is still retrying on its own', async () => {
+      const fetchSnapshot = vi.fn().mockResolvedValue(expiredSnapshot);
+      const { source, onSessionExpired } = startSse({ fetchSnapshot });
+
+      source.readyState = 0;
+      source.emit('error', {});
+      await Promise.resolve();
+
+      expect(fetchSnapshot).not.toHaveBeenCalled();
+      expect(onSessionExpired).not.toHaveBeenCalled();
+    });
+
+    it('keeps the session when it is still valid or the check itself failed', async () => {
+      const fetchSnapshot = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true as const, data: { lobby: lobby(1), gameState: null } })
+        .mockResolvedValueOnce({ ok: false as const, status: 0, error: 'network down' });
+      const { source, onSessionExpired } = startSse({ fetchSnapshot });
+
+      source.readyState = 2;
+      source.emit('error', {});
+      await vi.waitFor(() => expect(fetchSnapshot).toHaveBeenCalledTimes(1));
+      // Let the first check fully settle (clearing its in-flight guard).
+      await new Promise((r) => setTimeout(r, 0));
+      source.emit('error', {});
+      await vi.waitFor(() => expect(fetchSnapshot).toHaveBeenCalledTimes(2));
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(onSessionExpired).not.toHaveBeenCalled();
+    });
+
+    it('runs one check at a time and stays quiet after stop()', async () => {
+      let resolveCheck: (value: unknown) => void = () => {};
+      const fetchSnapshot = vi.fn().mockReturnValue(new Promise((r) => (resolveCheck = r)));
+      const { source, handle, onSessionExpired } = startSse({ fetchSnapshot });
+
+      source.readyState = 2;
+      source.emit('error', {});
+      source.emit('error', {});
+      expect(fetchSnapshot).toHaveBeenCalledTimes(1);
+
+      handle.stop();
+      resolveCheck(expiredSnapshot);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(onSessionExpired).not.toHaveBeenCalled();
+    });
   });
 
   it('stop() closes the event source', () => {
