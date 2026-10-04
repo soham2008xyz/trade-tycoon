@@ -133,6 +133,23 @@ describe('RoomManager', () => {
       expect(updatedPlayer?.color).toBe('#000000');
     });
 
+    it('should trim and cap renamed names, and ignore blank ones', async () => {
+      const { roomId, token } = await roomManager.createRoom('Host');
+
+      const capped = await roomManager.updatePlayer(
+        roomId,
+        token,
+        '  Maximilian Alexander Bartholomew  ',
+        '#000000'
+      );
+      if (!capped.ok) throw new Error('expected ok');
+      expect(capped.state.players[0].name).toBe('Maximilian Alex');
+
+      const blank = await roomManager.updatePlayer(roomId, token, '   ', '#000000');
+      if (!blank.ok) throw new Error('expected ok');
+      expect(blank.state.players[0].name).toBe('Maximilian Alex');
+    });
+
     it('should report not_found when updating player in non-existent room', async () => {
       const result = await roomManager.updatePlayer('INVALID', 'someToken', 'Name', '#000');
       expect(result).toEqual({ ok: false, reason: 'not_found', message: expect.any(String) });

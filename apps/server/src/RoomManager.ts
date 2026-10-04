@@ -11,6 +11,7 @@ import {
   mulberry32,
   PLAYER_COLORS,
   isColorTakenByOthers,
+  normalizePlayerName,
 } from '@trade-tycoon/game-logic';
 import { randomBytes, randomInt } from 'crypto';
 import type { RoomStore } from './store/RoomStore';
@@ -18,7 +19,6 @@ import { toPublicGameState, toPublicLobbyState } from './serialize';
 
 const MAX_ROOM_ID_RETRIES = 10;
 const MAX_PLAYERS_PER_ROOM = 8;
-const MAX_PLAYER_NAME_LENGTH = 15;
 
 export interface CreateRoomResult {
   roomId: string;
@@ -91,7 +91,7 @@ export class RoomManager {
     const token = this.generateToken();
     const hostPlayer: LobbyPlayer = {
       id: hostId,
-      name: hostName.trim().slice(0, MAX_PLAYER_NAME_LENGTH),
+      name: normalizePlayerName(hostName),
       color: this.getRandomColor(),
       isHost: true,
       isReady: true,
@@ -141,7 +141,7 @@ export class RoomManager {
       }
       const newPlayer: LobbyPlayer = {
         id: userId,
-        name: playerName.trim().slice(0, MAX_PLAYER_NAME_LENGTH),
+        name: normalizePlayerName(playerName),
         color: this.getRandomColor(current.players.map((p) => p.color)),
         isHost: current.players.length === 0,
         isReady: true,
@@ -340,7 +340,8 @@ export class RoomManager {
         p.id === userId
           ? {
               ...p,
-              name: name.substring(0, MAX_PLAYER_NAME_LENGTH),
+              // Same rule as create/join; a blank rename keeps the current name.
+              name: normalizePlayerName(name) || p.name,
               color: isColorTaken ? p.color : color,
             }
           : p

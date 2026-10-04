@@ -3,6 +3,7 @@ export * from './board-data';
 export * from './reducer';
 export * from './game-setup';
 export * from './player-colors';
+export * from './player-names';
 export * from './chance-cards';
 export * from './community-chest-cards';
 export * from './helpers';

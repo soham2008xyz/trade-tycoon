@@ -3,10 +3,11 @@ import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 
 import { IconButton } from './ui/IconButton';
 import {
   PLAYER_COLORS,
-  hasDuplicateColors,
   isColorTakenByOthers,
+  limitPlayerNameInput,
   pickUnusedColor,
 } from '@trade-tycoon/game-logic';
+import { validateSetupPlayers } from './game-setup-validation';
 
 interface PlayerConfig {
   name: string;
@@ -48,15 +49,13 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
   };
 
   const handleSubmit = () => {
-    // The swatches already disable taken colors; this guards against any path
-    // that still lets two players share one (tokens and ownership dots would
-    // be indistinguishable on the board).
-    if (hasDuplicateColors(players)) {
-      setError('Each player needs a different color.');
+    const result = validateSetupPlayers(players);
+    if (!result.ok) {
+      setError(result.error);
       return;
     }
     setError(null);
-    onStartGame(players);
+    onStartGame(result.players);
   };
 
   return (
@@ -95,7 +94,10 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
                 nativeID={`player-name-${index + 1}`}
                 accessibilityLabel={`Player ${index + 1} name`}
                 value={player.name}
-                onChangeText={(text) => updatePlayer(index, 'name', text)}
+                onChangeText={(text) => {
+                  updatePlayer(index, 'name', limitPlayerNameInput(text));
+                  setError(null);
+                }}
                 placeholder="Name"
               />
               <View style={styles.colorPicker}>

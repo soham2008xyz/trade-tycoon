@@ -6,6 +6,8 @@
  * describe the form's current field values, so the component clears them as
  * soon as a field is edited and never renders them outside the form screen.
  */
+import { isValidPlayerName } from '@trade-tycoon/game-logic';
+
 export type ConnectFormMode = 'create' | 'join';
 
 /** Returns a user-facing message for the first problem found, or null if valid. */
@@ -15,7 +17,9 @@ export function validateConnectForm(
   roomCode: string
 ): string | null {
   if (mode === 'create') {
-    return playerName.trim() ? null : 'Please enter your name';
+    return isValidPlayerName(playerName) ? null : 'Please enter your name';
   }
-  return playerName.trim() && roomCode.trim() ? null : 'Please enter name and room code';
+  return isValidPlayerName(playerName) && roomCode.trim()
+    ? null
+    : 'Please enter name and room code';
 }
