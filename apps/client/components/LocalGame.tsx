@@ -29,7 +29,9 @@ export const LocalGame: React.FC<LocalGameProps> = ({ onBack }) => {
   // Back to player setup; GameUI unmounts, and the next start dispatches
   // RESET_GAME, which clears the winner. Stable so it doesn't churn GameUI's
   // memoized layout props.
-  const handleNewGame = useCallback(() => setIsSetup(true), []);
+  const handleNewGame = useCallback(() => {
+    setIsSetup(true);
+  }, []);
 
   if (isSetup) {
     return <GameSetup onStartGame={handleStartGame} onBack={onBack} />;
