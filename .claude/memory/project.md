@@ -174,3 +174,14 @@
   `getUnmortgageCost` (`helpers.ts`, value + `Math.ceil(value / 10)`) from both
   the reducer and `PropertyManager`; `helpers.test.ts` checks it against every
   `mortgageValue` in `BOARD`. Same trap applies to any future "+N%" rule.
+- `END_TURN` on an unowned, buyable tile in the `'action'` phase is treated
+  as a decline and starts the auction (shared `startAuction` helper with
+  `DECLINE_BUY`; turn holder and `doublesCount` are kept). Gotcha: an
+  auction nobody wins (everyone concedes) returns to `'action'` with the
+  lander still standing on the unowned tile, so without a guard End Turn
+  would auction it forever. `GameState.auctionedPropertyId` records the tile
+  an auction was already held for; it is cleared by `ROLL_DICE`, `END_TURN`
+  and `RESET_GAME`. The `phase === 'action'` guard also stops a player who
+  starts a turn on last turn's unsold tile from triggering an auction when
+  they end the turn before rolling. `DECLINE_BUY` (the Auction button) can
+  still re-auction a tile after a no-sale auction — pre-existing, left alone.

@@ -34,7 +34,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 ## 4. Property Management
 
 - [x] **Buying**: Buy unowned properties at listed price.
-- [x] **Auctions**: Auction unowned properties if declined by landing player.
+- [x] **Auctions**: Auction unowned properties if declined by landing player (choosing Auction, or ending the turn without buying).
 - [x] **Rent**:
   - [x] Pay rent to owner upon landing.
   - [x] Double rent for complete color sets (unimproved).
