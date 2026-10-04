@@ -104,6 +104,22 @@ ACTION_REJECTED`.
   earlier in `RoomManager.handleGameAction`, and an invalid token is a
   separate 401.
 
+## Jail cards
+
+Each deck has exactly one Get Out of Jail Free card, so a held one must not
+be drawn again. `Player.getOutOfJailCards` stays the per-player **count**
+(trades, the "Use Card" button); `GameState.jailCardHolders` records which
+**deck** each counted card came from. Two rules keep them in step:
+
+- Never read `jailCardHolders` raw. Go through `resolveJailCardHolders`: the
+  count is authoritative, and it rebuilds holders for rooms saved before the
+  field existed and for fixtures that just set a count.
+- Any code that moves a counted card between players (trades, bankruptcy,
+  leaving) must move the matching deck's holder too — use `swapJailCards` /
+  `moveJailCards`. Drawing excludes a held jail card from the pool but still
+  makes exactly **one** rng call, so server-side tests that script rng
+  sequences stay valid.
+
 ## Where things live
 
 ```text
@@ -114,6 +130,8 @@ src/
   game-setup.ts               createInitialState, createPlayer
   board-data.ts               BOARD constant — every tile, in order
   cards.ts                    Chance + Community Chest deck logic
+  jail-cards.ts               Which deck each held Get Out of Jail Free card
+                              belongs to (see "Jail cards" below)
   chance-cards.ts             Chance card content
   community-chest-cards.ts    Community Chest card content
   socket-types.ts             LobbyPlayer, LobbyState (legacy filename;
