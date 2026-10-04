@@ -213,3 +213,9 @@
   `TextInput`s use `limitPlayerNameInput` in `onChangeText`, **not**
   `maxLength`: `maxLength` counts leading spaces toward the cap before the
   value is trimmed, silently eating visible characters.
+- Modals wrapped in `FullScreenModalShell` get the shell's own header (title +
+  ✕) only on the phone layout; on wide layouts the shell is a bare transparent
+  `Modal` and the children draw the backdrop/card. Children therefore branch on
+  `useGameLayout() === 'phone'` to drop their legacy title/✕/backdrop (see
+  `LogModal`, `TradeModal`); otherwise phone shows two headers and two close
+  buttons (#253). Detail lives in `apps/client/AGENTS.md`.

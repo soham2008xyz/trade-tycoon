@@ -110,6 +110,17 @@ When you add a new modal or interactive surface, the question is:
 _does this control apply to the outer-game active player?_ If yes,
 use Pattern 1. If no, use Pattern 2.
 
+## Modals on `FullScreenModalShell`
+
+On the phone layout the shell draws the only header (title + ✕) and fills
+the screen; on wide layouts it is a bare transparent `Modal` and the
+children draw their own backdrop and card. So a modal's children must not
+render their own title, ✕ or backdrop/card when `useGameLayout() ===
+'phone'` — see `LogModal` and `TradeModal` for the pattern. Keep an extra
+button only where it means something different from "close" (e.g. cancelling
+an in-flight trade proposal). `AuctionModal` is `showClose={false}` and not
+covered by this rule.
+
 ## Game over
 
 `state.winner` is the single signal. `getStatusPanelActions` returns
