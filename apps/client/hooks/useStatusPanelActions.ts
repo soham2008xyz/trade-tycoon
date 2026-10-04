@@ -39,6 +39,12 @@ export interface StatusPanelButtons {
 }
 
 export interface StatusPanelActions {
+  /**
+   * `state.winner` is set: the reducer ignores every gameplay action from
+   * here on, so every button is hidden (including `waiting`) and the panels
+   * swap their turn UI for the game-over card.
+   */
+  isGameOver: boolean;
   isMyTurn: boolean;
   currentPlayer: Player | undefined;
   currentTile: Tile | null;
@@ -132,7 +138,7 @@ function buildButtons(ctx: ActionContext): StatusPanelButtons {
   };
 }
 
-/** All buttons hidden — used when the active player can't be resolved. */
+/** All buttons hidden — used when the game is over or the active player can't be resolved. */
 function emptyButtons(): StatusPanelButtons {
   const hidden: VisibleButton = { visible: false };
   return {
@@ -169,8 +175,24 @@ export function getStatusPanelActions(
   const tile = player ? BOARD[player.position] : null;
   const isMyTurn = state.currentPlayerId === myPlayerId;
 
+  // Checked before the turn logic: after a win `currentPlayerId` still points
+  // at the winner, which would otherwise render as an ordinary live turn with
+  // a Roll Dice button the reducer silently ignores.
+  if (state.winner) {
+    return {
+      isGameOver: true,
+      isMyTurn,
+      currentPlayer: player,
+      currentTile: tile,
+      canBuy: false,
+      canAuction: false,
+      buttons: emptyButtons(),
+    };
+  }
+
   if (!player || !tile) {
     return {
+      isGameOver: false,
       isMyTurn,
       currentPlayer: player,
       currentTile: tile,
@@ -193,6 +215,7 @@ export function getStatusPanelActions(
   };
 
   return {
+    isGameOver: false,
     isMyTurn,
     currentPlayer: player,
     currentTile: tile,

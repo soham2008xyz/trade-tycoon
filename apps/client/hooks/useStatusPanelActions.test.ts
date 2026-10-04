@@ -186,4 +186,59 @@ describe('getStatusPanelActions', () => {
       expect(buy.price).toBe(60);
     });
   });
+
+  describe('game over', () => {
+    // After a win the reducer leaves currentPlayerId on the winner, phase 'roll'.
+    const won = (winner: string, over: Partial<GameState> = {}) =>
+      baseState({
+        winner,
+        currentPlayerId: winner,
+        phase: 'roll',
+        players: [player(winner, 3641, 1)],
+        ...over,
+      });
+
+    it('flags the game as over only once a winner exists', () => {
+      expect(getStatusPanelActions(baseState(), 'alice').isGameOver).toBe(false);
+      expect(getStatusPanelActions(won('alice'), 'alice').isGameOver).toBe(true);
+    });
+
+    it('hides every button for the winner — Roll Dice would silently do nothing', () => {
+      const { buttons } = getStatusPanelActions(won('alice'), 'alice');
+      for (const [name, button] of Object.entries(buttons)) {
+        expect(button.visible, name).toBe(false);
+      }
+    });
+
+    it('hides every button for a bankrupt spectator, including the waiting placeholder', () => {
+      const { buttons } = getStatusPanelActions(won('alice'), 'bob');
+      for (const [name, button] of Object.entries(buttons)) {
+        expect(button.visible, name).toBe(false);
+      }
+    });
+
+    it('hides action-phase buttons even if the winning state was left mid-action', () => {
+      const state = won('alice', { phase: 'action', doublesCount: 1 });
+      const actions = getStatusPanelActions(state, 'alice');
+      expect(actions.canBuy).toBe(false);
+      expect(actions.canAuction).toBe(false);
+      expect(actions.buttons.endTurn.visible).toBe(false);
+      expect(actions.buttons.buy.visible).toBe(false);
+    });
+
+    it('is still game over (with no current player) when the winner id matches nobody', () => {
+      const state = won('ghost', { currentPlayerId: 'ghost', players: [player('alice', 1500)] });
+      const actions = getStatusPanelActions(state, 'alice');
+      expect(actions.isGameOver).toBe(true);
+      expect(actions.currentPlayer).toBeUndefined();
+      for (const [name, button] of Object.entries(actions.buttons)) {
+        expect(button.visible, name).toBe(false);
+      }
+    });
+
+    it('hides Declare Bankruptcy for a winner with negative cash', () => {
+      const state = won('alice', { players: [player('alice', -10)] });
+      expect(getStatusPanelActions(state, 'alice').buttons.declareBankruptcy.visible).toBe(false);
+    });
+  });
 });

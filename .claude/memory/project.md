@@ -141,3 +141,16 @@
   The phone wrapper also carries the `zIndex: 0` from #257. Insets are 0 on web.
   Verified on iPhone 17 and 17e (native dev build). Still open: `Toast` uses a
   hard-coded `top: 50`, and the Auction modal header (#260) ignores the inset.
+- Game-over UI (#269): bankrupt/departed players are removed from
+  `state.players`, so once `state.winner` is set the winner is the only player
+  left — there are no "final standings" to list, just the winner's cash and
+  property count. `RESET_GAME` is server-issued only, so "New Game" exists in
+  hotseat only (`LocalGame` → `setIsSetup(true)`); online can only leave.
+  Verified on iPhone 17 (Expo Go) and wide web with a temporary
+  `DECLARE_BANKRUPTCY p2` dispatch after `RESET_GAME` in `LocalGame` (the
+  Declare Bankruptcy button only appears when cash < 0). Not verified: the
+  online path with two simulators. Known follow-up, not fixed here:
+  `RoomManager.leaveRoom` → `removePlayerFromGame` bypasses the reducer's
+  winner guard, so when the winner taps Back to Menu first the server drops
+  the finished game (`players: []` → room back to lobby, `gameState`
+  cleared) and still-connected bankrupt players lose the game-over screen.

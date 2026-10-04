@@ -1,4 +1,4 @@
-import React, { useReducer, useState } from 'react';
+import React, { useCallback, useReducer, useState } from 'react';
 import { GameUI } from './GameUI';
 import { GameSetup } from './GameSetup';
 import { createInitialState, gameReducer, GameAction } from '@trade-tycoon/game-logic';
@@ -26,6 +26,13 @@ export const LocalGame: React.FC<LocalGameProps> = ({ onBack }) => {
     dispatch(action);
   };
 
+  // Back to player setup; GameUI unmounts, and the next start dispatches
+  // RESET_GAME, which clears the winner. Stable so it doesn't churn GameUI's
+  // memoized layout props.
+  const handleNewGame = useCallback(() => {
+    setIsSetup(true);
+  }, []);
+
   if (isSetup) {
     return <GameSetup onStartGame={handleStartGame} onBack={onBack} />;
   }
@@ -38,6 +45,7 @@ export const LocalGame: React.FC<LocalGameProps> = ({ onBack }) => {
       uiToastMessage={uiToastMessage}
       setUiToastMessage={setUiToastMessage}
       onLeaveGame={onBack}
+      onNewGame={handleNewGame}
     />
   );
 };

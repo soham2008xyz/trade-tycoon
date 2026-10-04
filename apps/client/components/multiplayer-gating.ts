@@ -65,3 +65,12 @@ export const canCancelTrade = (
   if (!trade) return false;
   return !isMultiplayer || trade.initiatorId === selfId;
 };
+
+/**
+ * Whether the game-over card offers "New Game". Hotseat shares one device,
+ * so the user can go straight back to player setup and dispatch `RESET_GAME`
+ * locally. Online, `RESET_GAME` is server-issued only (the server rejects it
+ * from clients) and a room can't be restarted from the finished game, so the
+ * only way out is "Back to Menu" — which leaves the room.
+ */
+export const canStartNewGame = (isMultiplayer: boolean): boolean => !isMultiplayer;

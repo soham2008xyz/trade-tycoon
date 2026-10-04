@@ -109,6 +109,19 @@ When you add a new modal or interactive surface, the question is:
 _does this control apply to the outer-game active player?_ If yes,
 use Pattern 1. If no, use Pattern 2.
 
+## Game over
+
+`state.winner` is the single signal. `getStatusPanelActions` returns
+`isGameOver` and hides **every** button (including `waiting`) once it is
+set, and `Peek` / `TabletCenter` swap their turn UI for `GameOverCard`
+(summary in `game-over.ts`; hotseat-only "New Game" rule is
+`canStartNewGame` in `multiplayer-gating.ts`). Trade buttons and the
+manage/trade modals aren't driven by `buttons`, so `Expanded`,
+`TabletCenter` and `GameUI` gate them on game over explicitly — gate any
+new post-win-inert surface the same way. The card is in-tree, not a
+`Modal`: the win usually follows a `CustomAlert` (a `Modal`) closing, and a
+second `Modal` presented mid-dismiss can fail to show on iOS.
+
 ## Room sync (SSE + native polling)
 
 Online state arrives via `GET /api/rooms/:id/events?token=...` on web
