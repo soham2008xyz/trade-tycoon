@@ -149,8 +149,11 @@
   Verified on iPhone 17 (Expo Go) and wide web with a temporary
   `DECLARE_BANKRUPTCY p2` dispatch after `RESET_GAME` in `LocalGame` (the
   Declare Bankruptcy button only appears when cash < 0). Not verified: the
-  online path with two simulators. Known follow-up, not fixed here:
-  `RoomManager.leaveRoom` → `removePlayerFromGame` bypasses the reducer's
-  winner guard, so when the winner taps Back to Menu first the server drops
-  the finished game (`players: []` → room back to lobby, `gameState`
-  cleared) and still-connected bankrupt players lose the game-over screen.
+  online path with two simulators. Follow-up fixed in #276:
+  `RoomManager.leaveRoom` used to call `removePlayerFromGame` (which bypasses
+  the reducer's winner guard), so the winner leaving first emptied
+  `gameState.players`, reset `winner` and dropped the room back to lobby —
+  still-connected bankrupt players lost the game-over screen. `leaveRoom` now
+  leaves `gameState` untouched when `winner` is set (the leaver's session and
+  lobby entry are still removed, host reassigned, status stays `'game'`); the
+  room is only reset once the last lobby player leaves.
