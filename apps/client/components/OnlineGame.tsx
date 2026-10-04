@@ -2,7 +2,12 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
 import { GameUI } from './GameUI';
 import { IconButton } from './ui/IconButton';
-import { LobbyState, GameState, GameAction } from '@trade-tycoon/game-logic';
+import {
+  LobbyState,
+  GameState,
+  GameAction,
+  MAX_PLAYER_NAME_LENGTH,
+} from '@trade-tycoon/game-logic';
 import { getOnlineServerUrl, supportsOnlineEventStream } from './online-platform';
 import { startRoomSync, type RoomSyncHandle } from './online-sync';
 import { readStoredSession, writeStoredSession, clearStoredSession } from './online-session';
@@ -345,6 +350,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
             nativeID="online-player-name"
             accessibilityLabel="Your name"
             placeholder="Your Name"
+            maxLength={MAX_PLAYER_NAME_LENGTH}
             value={playerName}
             onChangeText={(text) => {
               setPlayerName(text);

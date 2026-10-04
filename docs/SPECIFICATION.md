@@ -10,7 +10,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 
 ## 1. Game Setup
 
-- [x] **Player Registration**: Support for 2-8 players with custom names (via GameSetup modal).
+- [x] **Player Registration**: Support for 2-8 players with custom names (via GameSetup modal). Names are trimmed and capped at 15 characters (`MAX_PLAYER_NAME_LENGTH` in game-logic, shared by local setup, the online form and the server); local Start Game is blocked with an error when any name is blank.
 - [x] **Token Selection**: Players can select distinct colors/tokens.
 - [x] **Starting Balance**: Each player starts with $1500.
 - [ ] **Turn Order**: Sequential based on registration order (Randomization not implemented).
