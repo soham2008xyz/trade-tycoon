@@ -1,4 +1,4 @@
-import { GameState, Player, TradeOffer, TradeRequest } from './types';
+import { AuctionState, GameState, Player, TradeOffer, TradeRequest } from './types';
 import { BOARD, isTileBuyable } from './board-data';
 import { createPlayer } from './game-setup';
 import { processCardEffect } from './cards';
@@ -88,6 +88,23 @@ const chargePlayer = (p: Player, amount: number, creditorId?: string): Player =>
 };
 
 /**
+ * Applies a "collect from every player" card: each other player is charged
+ * `amount` (owing the collector if that sinks them) and the collector is owed
+ * the total. Returns a new array; the collector's own entry is left as is.
+ */
+const collectFromOthers = (
+  players: Player[],
+  collectorId: string,
+  amount: number
+): { players: Player[]; total: number } => {
+  const others = players.filter((p) => p.id !== collectorId).length;
+  return {
+    players: players.map((p) => (p.id === collectorId ? p : chargePlayer(p, amount, collectorId))),
+    total: amount * others,
+  };
+};
+
+/**
  * Drops `debtOwedTo` from players who are solvent again or whose creditor is
  * no longer in the game. Runs once on every reducer result (see
  * `reduceGameAction`) so every code path that changes money — selling,
@@ -150,6 +167,188 @@ const transferAssets = (
   };
 };
 
+/** Toast fragments and log lines produced by one step of a player's removal. */
+interface RemovalNotes {
+  toast: string[];
+  logs: string[];
+}
+
+/** Hands `player`'s assets to `inheritorId` when that player is still in `players`. */
+const giveAssetsToInheritor = (
+  player: Player,
+  players: Player[],
+  inheritorId?: string
+): { players: Player[]; assetsNote?: string; logs: string[] } => {
+  const inheritor = inheritorId ? players.find((p) => p.id === inheritorId) : undefined;
+  if (!inheritor) return { players, logs: [] };
+  const { creditor, buildingProceeds } = transferAssets(player, inheritor);
+  const sold =
+    buildingProceeds > 0
+      ? `; their buildings were sold to the bank for $${buildingProceeds}, paid to ${creditor.name}.`
+      : '.';
+  return {
+    players: players.map((p) => (p.id === creditor.id ? creditor : p)),
+    assetsNote: `${creditor.name} receives their assets.`,
+    logs: [`[Game] ${player.name}'s properties and cards went to ${creditor.name}${sold}`],
+  };
+};
+
+/**
+ * Settles an auction `playerId` is leaving. Cancels it when the leaver was the
+ * high bidder or nobody is left, awards it to the sole remaining bidder when
+ * that bidder already leads, and otherwise keeps it running with the bidder
+ * pointer re-aligned. `resetPhase` is true whenever the auction ended.
+ */
+const removeFromAuction = (
+  auction: AuctionState,
+  players: Player[],
+  player: Player
+): RemovalNotes & { auction: AuctionState | null; players: Player[]; resetPhase: boolean } => {
+  const propertyName = BOARD.find((tile) => tile.id === auction.propertyId)?.name ?? 'the property';
+  const cancelled = (log: string) => ({
+    auction: null,
+    players,
+    resetPhase: true,
+    toast: ['Auction cancelled.'],
+    logs: [log],
+  });
+
+  if (auction.highestBidderId === player.id) {
+    return cancelled(
+      `[Game] Cancelled auction for ${propertyName} because ${player.name} left as the high bidder.`
+    );
+  }
+
+  const participants = auction.participants.filter((id) => id !== player.id);
+  if (participants.length === 0) {
+    return cancelled(
+      `[Game] Auction for ${propertyName} was cancelled because no bidders remained.`
+    );
+  }
+
+  if (participants.length === 1 && auction.highestBidderId === participants[0]) {
+    const auctionWinner = players.find((p) => p.id === participants[0]);
+    if (!auctionWinner) return { auction: null, players, resetPhase: true, toast: [], logs: [] };
+    const updatedWinner: Player = {
+      ...auctionWinner,
+      money: auctionWinner.money - auction.currentBid,
+      properties: [...auctionWinner.properties, auction.propertyId],
+    };
+    return {
+      auction: null,
+      players: players.map((p) => (p.id === updatedWinner.id ? updatedWinner : p)),
+      resetPhase: true,
+      toast: [`${auctionWinner.name} won the auction for $${auction.currentBid}.`],
+      logs: [`[${auctionWinner.name}] Won auction for ${propertyName} at $${auction.currentBid}.`],
+    };
+  }
+
+  const removedBidderIndex = auction.participants.indexOf(player.id);
+  const shifted =
+    removedBidderIndex < auction.currentBidderIndex
+      ? auction.currentBidderIndex - 1
+      : auction.currentBidderIndex;
+  return {
+    auction: { ...auction, participants, currentBidderIndex: shifted % participants.length },
+    players,
+    resetPhase: false,
+    toast: [],
+    logs: [],
+  };
+};
+
+/** Whose turn it is once `leaverIndex` (of `state.players`) is gone and they were up. */
+const nextPlayerIdAfterRemoval = (
+  state: GameState,
+  players: Player[],
+  leaverIndex: number
+): string => {
+  const nextId = state.players[(leaverIndex + 1) % state.players.length].id;
+  return players.some((p) => p.id === nextId) ? nextId : players[0].id;
+};
+
+/** The pieces of a removal that change as its steps are applied in turn. */
+interface RemovalDraft {
+  players: Player[];
+  phase: GameState['phase'];
+  auction: AuctionState | null;
+  activeTrade: TradeRequest | null;
+  toast: string[];
+  logs: string[];
+}
+
+const cancelTradeInvolving = (draft: RemovalDraft, player: Player): RemovalDraft => {
+  const trade = draft.activeTrade;
+  if (trade?.initiatorId !== player.id && trade?.targetPlayerId !== player.id) return draft;
+  return {
+    ...draft,
+    activeTrade: null,
+    toast: [...draft.toast, 'Active trade cancelled.'],
+    logs: [...draft.logs, `[Game] Cancelled active trade because ${player.name} left.`],
+  };
+};
+
+const leaveAuction = (draft: RemovalDraft, player: Player): RemovalDraft => {
+  if (!draft.auction?.participants.includes(player.id)) return draft;
+  const removal = removeFromAuction(draft.auction, draft.players, player);
+  return {
+    ...draft,
+    auction: removal.auction,
+    players: removal.players,
+    phase: removal.resetPhase ? 'action' : draft.phase,
+    toast: [...draft.toast, ...removal.toast],
+    logs: [...draft.logs, ...removal.logs],
+  };
+};
+
+/** Picks the next turn holder and winner once the player has been removed. */
+const advanceAfterRemoval = (
+  state: GameState,
+  draft: RemovalDraft,
+  player: Player,
+  playerIndex: number,
+  headline: string[]
+): GameState => {
+  const { players } = draft;
+  let { phase, auction, activeTrade, toast, logs } = draft;
+  let currentPlayerId = state.currentPlayerId;
+  let doublesCount = state.doublesCount;
+  let winner = state.winner;
+
+  if (state.currentPlayerId === player.id) {
+    currentPlayerId = nextPlayerIdAfterRemoval(state, players, playerIndex);
+    phase = 'roll';
+    doublesCount = 0;
+  }
+
+  if (players.length === 1) {
+    winner = players[0].id;
+    currentPlayerId = winner;
+    phase = 'roll';
+    doublesCount = 0;
+    auction = null;
+    activeTrade = null;
+    toast = [...headline, `${players[0].name} wins!`];
+    logs = [...logs, `[Game] ${players[0].name} wins!`];
+  } else if (winner && !players.some((p) => p.id === winner)) {
+    winner = null;
+  }
+
+  return {
+    ...state,
+    players,
+    currentPlayerId,
+    doublesCount,
+    phase,
+    winner,
+    auction,
+    activeTrade,
+    errorMessage: undefined,
+    toastMessage: toast.join(' '),
+    logs,
+  };
+};
+
 /**
  * Shared cleanup for permanently removing a player mid-game: cancels any
  * trade or auction they're involved in (re-seating the auction winner if
@@ -172,157 +371,40 @@ const removePlayerAndCleanup = (
   if (playerIndex === -1) return state;
 
   const player = state.players[playerIndex];
-  let players = state.players
+  const remaining = state.players
     .filter((p) => p.id !== playerId)
     // Debts owed to the departing player die with them.
     .map((p) => (p.debtOwedTo === playerId ? withoutDebt(p) : p));
-  let currentPlayerId = state.currentPlayerId;
-  let phase = state.phase;
-  let doublesCount = state.doublesCount;
-  let winner = state.winner;
-  let auction = state.auction;
-  let activeTrade = state.activeTrade;
-  const toastParts = [`${player.name} ${reason}.`];
-  const logs = [...state.logs, `[${player.name}] ${reason}.`];
-  let assetsNote: string | undefined;
+  const inherited = giveAssetsToInheritor(player, remaining, inheritorId);
+  const headline = [
+    `${player.name} ${reason}.`,
+    ...(inherited.assetsNote ? [inherited.assetsNote] : []),
+  ];
 
-  const inheritor = inheritorId ? players.find((p) => p.id === inheritorId) : undefined;
-  if (inheritor) {
-    const { creditor, buildingProceeds } = transferAssets(player, inheritor);
-    players = players.map((p) => (p.id === creditor.id ? creditor : p));
-    assetsNote = `${creditor.name} receives their assets.`;
-    toastParts.push(assetsNote);
-    logs.push(
-      `[Game] ${player.name}'s properties and cards went to ${creditor.name}` +
-        (buildingProceeds > 0
-          ? `; their buildings were sold to the bank for $${buildingProceeds}, paid to ${creditor.name}.`
-          : '.')
-    );
-  }
+  let draft: RemovalDraft = {
+    players: inherited.players,
+    phase: state.phase,
+    auction: state.auction,
+    activeTrade: state.activeTrade,
+    toast: headline,
+    logs: [...state.logs, `[${player.name}] ${reason}.`, ...inherited.logs],
+  };
+  draft = leaveAuction(cancelTradeInvolving(draft, player), player);
 
-  if (
-    activeTrade &&
-    (activeTrade.initiatorId === playerId || activeTrade.targetPlayerId === playerId)
-  ) {
-    activeTrade = null;
-    toastParts.push('Active trade cancelled.');
-    logs.push(`[Game] Cancelled active trade because ${player.name} left.`);
-  }
-
-  if (auction && auction.participants.includes(playerId)) {
-    const currentAuction = auction;
-    const propertyName =
-      BOARD.find((tile) => tile.id === currentAuction.propertyId)?.name ?? 'the property';
-
-    if (currentAuction.highestBidderId === playerId) {
-      auction = null;
-      phase = 'action';
-      toastParts.push('Auction cancelled.');
-      logs.push(
-        `[Game] Cancelled auction for ${propertyName} because ${player.name} left as the high bidder.`
-      );
-    } else {
-      const removedBidderIndex = currentAuction.participants.indexOf(playerId);
-      const participants = currentAuction.participants.filter((id) => id !== playerId);
-
-      if (participants.length === 0) {
-        auction = null;
-        phase = 'action';
-        toastParts.push('Auction cancelled.');
-        logs.push(`[Game] Auction for ${propertyName} was cancelled because no bidders remained.`);
-      } else if (participants.length === 1 && currentAuction.highestBidderId === participants[0]) {
-        const winningBidderId = participants[0];
-        const winnerIndex = players.findIndex((p) => p.id === winningBidderId);
-        const auctionWinner = winnerIndex === -1 ? null : players[winnerIndex];
-
-        if (auctionWinner) {
-          const updatedWinner: Player = {
-            ...auctionWinner,
-            money: auctionWinner.money - currentAuction.currentBid,
-            properties: [...auctionWinner.properties, currentAuction.propertyId],
-          };
-          players = [...players];
-          players[winnerIndex] = updatedWinner;
-          toastParts.push(
-            `${auctionWinner.name} won the auction for $${currentAuction.currentBid}.`
-          );
-          logs.push(
-            `[${auctionWinner.name}] Won auction for ${propertyName} at $${currentAuction.currentBid}.`
-          );
-        }
-
-        auction = null;
-        phase = 'action';
-      } else {
-        let currentBidderIndex = currentAuction.currentBidderIndex;
-        if (removedBidderIndex < currentBidderIndex) {
-          currentBidderIndex -= 1;
-        }
-        currentBidderIndex %= participants.length;
-
-        auction = {
-          ...currentAuction,
-          participants,
-          currentBidderIndex,
-        };
-      }
-    }
-  }
-
-  if (players.length === 0) {
-    return {
-      ...state,
-      players: [],
-      currentPlayerId: '',
-      doublesCount: 0,
-      phase: 'roll',
-      winner: null,
-      auction: null,
-      activeTrade: null,
-      errorMessage: undefined,
-      toastMessage: toastParts.join(' '),
-      logs,
-    };
-  }
-
-  if (state.currentPlayerId === playerId) {
-    const nextIndex = (playerIndex + 1) % state.players.length;
-    currentPlayerId = state.players[nextIndex].id;
-    if (!players.some((p) => p.id === currentPlayerId)) {
-      currentPlayerId = players[0].id;
-    }
-    phase = 'roll';
-    doublesCount = 0;
-  }
-
-  if (players.length === 1) {
-    winner = players[0].id;
-    currentPlayerId = players[0].id;
-    phase = 'roll';
-    doublesCount = 0;
-    auction = null;
-    activeTrade = null;
-    toastParts.length = 0;
-    toastParts.push(`${player.name} ${reason}.`);
-    if (assetsNote) toastParts.push(assetsNote);
-    toastParts.push(`${players[0].name} wins!`);
-    logs.push(`[Game] ${players[0].name} wins!`);
-  } else if (winner === playerId || (winner && !players.some((p) => p.id === winner))) {
-    winner = null;
-  }
-
+  if (draft.players.length > 0)
+    return advanceAfterRemoval(state, draft, player, playerIndex, headline);
   return {
     ...state,
-    players,
-    currentPlayerId,
-    doublesCount,
-    phase,
-    winner,
-    auction,
-    activeTrade,
+    players: [],
+    currentPlayerId: '',
+    doublesCount: 0,
+    phase: 'roll',
+    winner: null,
+    auction: null,
+    activeTrade: null,
     errorMessage: undefined,
-    toastMessage: toastParts.join(' '),
-    logs,
+    toastMessage: draft.toast.join(' '),
+    logs: draft.logs,
   };
 };
 
@@ -550,7 +632,7 @@ const reduceGameActionUnbounded = (
       }
 
       let newPlayer = { ...player, position: newPosition, money };
-      const newPlayers = [...state.players];
+      let newPlayers = [...state.players];
       // Update immediately so Chance logic works on current state
       newPlayers[playerIndex] = newPlayer;
 
@@ -566,15 +648,9 @@ const reduceGameActionUnbounded = (
         newPlayer = updatedPlayer;
 
         if (card.action.type === 'COLLECT_FROM_ALL') {
-          const amount = card.action.amount;
-          let totalCollected = 0;
-          newPlayers.forEach((p, i) => {
-            if (p.id !== newPlayer.id) {
-              newPlayers[i] = chargePlayer(p, amount, newPlayer.id);
-              totalCollected += amount;
-            }
-          });
-          newPlayer.money += totalCollected;
+          const collected = collectFromOthers(newPlayers, newPlayer.id, card.action.amount);
+          newPlayers = collected.players;
+          newPlayer.money += collected.total;
         }
 
         const effectMsg = `Chance: ${card.text}`;
@@ -602,15 +678,9 @@ const reduceGameActionUnbounded = (
         newPlayer = updatedPlayer;
 
         if (card.action.type === 'COLLECT_FROM_ALL') {
-          const amount = card.action.amount;
-          let totalCollected = 0;
-          newPlayers.forEach((p, i) => {
-            if (p.id !== newPlayer.id) {
-              newPlayers[i] = chargePlayer(p, amount, newPlayer.id);
-              totalCollected += amount;
-            }
-          });
-          newPlayer.money += totalCollected;
+          const collected = collectFromOthers(newPlayers, newPlayer.id, card.action.amount);
+          newPlayers = collected.players;
+          newPlayer.money += collected.total;
         }
 
         const effectMsg = `Community Chest: ${card.text}`;
