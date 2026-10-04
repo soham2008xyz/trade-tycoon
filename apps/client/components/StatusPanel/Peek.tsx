@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { IconButton } from '../ui/IconButton';
 import { Dice } from '../Dice';
+import { GameOverCard } from './GameOverCard';
 import { GROUP_COLORS } from '../../constants';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
 import type { StatusPanelProps } from './types';
@@ -18,13 +19,30 @@ export const Peek: React.FC<StatusPanelProps> = ({
   onUseGOOJCard,
   onDeclareBankruptcy,
   onOpenPropertyManager,
+  isMultiplayer,
+  onNewGame,
+  onBackToMenu,
   isTokenMoving,
 }) => {
-  const { currentPlayer, currentTile, buttons } = useStatusPanelActions(
+  const { currentPlayer, currentTile, buttons, isGameOver } = useStatusPanelActions(
     state,
     myPlayerId,
     isTokenMoving
   );
+
+  if (isGameOver) {
+    return (
+      <View style={styles.root}>
+        <GameOverCard
+          state={state}
+          myPlayerId={myPlayerId}
+          isMultiplayer={isMultiplayer}
+          onNewGame={onNewGame}
+          onBackToMenu={onBackToMenu}
+        />
+      </View>
+    );
+  }
 
   if (!currentPlayer) return null;
 

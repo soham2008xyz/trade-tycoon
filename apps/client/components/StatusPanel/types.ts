@@ -15,6 +15,10 @@ export interface StatusPanelProps {
   onDeclareBankruptcy: () => void;
   onShowLog: () => void;
   onRestart: () => void;
+  /** Leave the finished game for the menu, with no confirm (nothing left to lose). */
+  onBackToMenu: () => void;
+  /** Hotseat only: go straight to player setup. Omitted online (see `canStartNewGame`). */
+  onNewGame?: () => void;
   onOpenPropertyManager: () => void;
   onOpenTrade: (_targetPlayerId: string) => void;
 

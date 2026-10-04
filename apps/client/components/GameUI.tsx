@@ -20,6 +20,8 @@ interface GameUIProps {
   uiToastMessage: string | null;
   setUiToastMessage: (msg: string | null) => void;
   onLeaveGame: () => void;
+  /** Hotseat only: return to player setup. Online has no equivalent. */
+  onNewGame?: () => void;
   isHost?: boolean;
   isMultiplayer?: boolean;
 }
@@ -31,6 +33,7 @@ export const GameUI: React.FC<GameUIProps> = ({
   uiToastMessage,
   setUiToastMessage,
   onLeaveGame,
+  onNewGame,
   isMultiplayer = false,
 }) => {
   const layout = useGameLayout();
@@ -54,6 +57,9 @@ export const GameUI: React.FC<GameUIProps> = ({
   const currentPlayer = state.players.find((p) => p.id === state.currentPlayerId);
   const myPlayer = state.players.find((p) => p.id === myPlayerId);
   const selfId = myPlayerId;
+  // The reducer ignores everything but RESET_GAME/DISMISS_* once a winner is
+  // set, so manage/trade surfaces left open (or opened) would do nothing.
+  const isGameOver = !!state.winner;
   const getOwner = (tileId: string) => state.players.find((p) => p.properties.includes(tileId));
 
   // Layout-facing handlers are memoized so `sharedProps` below keeps a stable
@@ -179,6 +185,8 @@ export const GameUI: React.FC<GameUIProps> = ({
       onDeclareBankruptcy: handleDeclareBankruptcy,
       onShowLog: openLog,
       onRestart: handleRestart,
+      onBackToMenu: onLeaveGame,
+      onNewGame,
       onOpenPropertyManager: openPropertyManager,
       onOpenTrade: openTrade,
       isTokenMoving,
@@ -199,6 +207,8 @@ export const GameUI: React.FC<GameUIProps> = ({
       handleDeclareBankruptcy,
       openLog,
       handleRestart,
+      onLeaveGame,
+      onNewGame,
       openPropertyManager,
       openTrade,
     ]
@@ -250,10 +260,11 @@ export const GameUI: React.FC<GameUIProps> = ({
       {currentPlayer && selfId && (
         <TradeModal
           visible={
-            !!tradeTargetId ||
-            (!!state.activeTrade &&
-              (state.activeTrade.initiatorId === selfId ||
-                state.activeTrade.targetPlayerId === selfId))
+            !isGameOver &&
+            (!!tradeTargetId ||
+              (!!state.activeTrade &&
+                (state.activeTrade.initiatorId === selfId ||
+                  state.activeTrade.targetPlayerId === selfId)))
           }
           players={state.players}
           currentPlayerId={selfId}
@@ -279,7 +290,7 @@ export const GameUI: React.FC<GameUIProps> = ({
           different player's assets if the turn changes while it's open. */}
       {myPlayer && (
         <PropertyManager
-          visible={showPropertyManager}
+          visible={showPropertyManager && !isGameOver}
           player={myPlayer}
           onClose={() => setShowPropertyManager(false)}
           onBuild={handleBuild}

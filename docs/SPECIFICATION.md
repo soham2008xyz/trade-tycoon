@@ -79,6 +79,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
   - [x] All assets (properties, buildings, cash) are forfeited to the bank. Any debt owed to another player transfers their properties to that player instead.
   - [x] Bankrupt player is removed from the game.
 - [x] **Winner Declaration**: Last player remaining wins.
+- [x] **Game-over screen**: Once a winner exists the status panel (phone peek / tablet board centre) shows a persistent winner card with the winner's name, colour, cash and property count. All turn actions and Trade buttons are hidden. Hotseat offers **New Game** (back to player setup) and **Back to Menu**; online offers **Back to Menu** (leaves the room).
 
 ## 7. Game Log
 

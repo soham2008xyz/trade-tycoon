@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { canAcceptTrade, canCancelTrade, shouldShowAuctionControls } from './multiplayer-gating';
+import {
+  canAcceptTrade,
+  canCancelTrade,
+  canStartNewGame,
+  shouldShowAuctionControls,
+} from './multiplayer-gating';
 
 const trade = {
   id: 'trade-1',
@@ -98,6 +103,16 @@ describe('multiplayer-gating', () => {
       // Charlie (third party) sees neither.
       expect(canAcceptTrade('charlie', trade, true)).toBe(false);
       expect(canCancelTrade('charlie', trade, true)).toBe(false);
+    });
+  });
+
+  describe('canStartNewGame', () => {
+    it('hotseat: offers New Game (the device can go back to player setup)', () => {
+      expect(canStartNewGame(false)).toBe(true);
+    });
+
+    it('multiplayer: no New Game — RESET_GAME is server-only, so the player can only leave', () => {
+      expect(canStartNewGame(true)).toBe(false);
     });
   });
 });

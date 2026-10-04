@@ -11,7 +11,7 @@ export const Expanded: React.FC<StatusPanelProps> = ({
   onRestart,
   onOpenTrade,
 }) => {
-  const { currentPlayer } = useStatusPanelActions(state, myPlayerId);
+  const { currentPlayer, isGameOver } = useStatusPanelActions(state, myPlayerId);
 
   return (
     <ScrollView contentContainerStyle={styles.root}>
@@ -26,10 +26,11 @@ export const Expanded: React.FC<StatusPanelProps> = ({
                 currentPlayer?.id === player.id && styles.activePlayerText,
               ]}
             >
-              {player.name} (${player.money})
+              {player.name} (${player.money}){state.winner === player.id ? ' 🏆 Winner' : ''}
             </Text>
           </View>
-          {player.id !== myPlayerId && (
+          {/* The reducer ignores PROPOSE_TRADE after a win. */}
+          {!isGameOver && player.id !== myPlayerId && (
             <View style={{ marginLeft: 10 }}>
               <IconButton
                 title="Trade"
@@ -46,7 +47,16 @@ export const Expanded: React.FC<StatusPanelProps> = ({
 
       <View style={styles.footerRow}>
         <IconButton title="Log" icon="script-text" onPress={onShowLog} color="#666" size="small" />
-        <IconButton title="Restart" icon="restart" onPress={onRestart} color="#666" size="small" />
+        {/* Peek's game-over card already offers New Game / Back to Menu. */}
+        {!isGameOver && (
+          <IconButton
+            title="Restart"
+            icon="restart"
+            onPress={onRestart}
+            color="#666"
+            size="small"
+          />
+        )}
       </View>
     </ScrollView>
   );
