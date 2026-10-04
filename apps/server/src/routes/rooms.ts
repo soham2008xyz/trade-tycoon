@@ -116,6 +116,7 @@ export const createRoomsRouter = (deps: {
     res.status(200).json({
       lobby: result.state,
       gameState: result.gameState ?? null,
+      disconnectedPlayerIds: result.disconnectedPlayerIds,
     });
   });
 
@@ -129,6 +130,22 @@ export const createRoomsRouter = (deps: {
     if (!result.ok) return failWith(res, result);
 
     // Same reasoning as start: lobby_update already carries gameState.
+    await eventBus.publish(roomId, { type: 'lobby_update', state: result.state });
+    res.status(200).json({ ok: true });
+  });
+
+  // POST /api/rooms/:roomId/remove-player { token, targetPlayerId }
+  router.post('/api/rooms/:roomId/remove-player', async (req: Request, res: Response) => {
+    const token = parseNonEmptyString(req.body?.token);
+    if (!token) return res.status(400).json({ error: 'token is required' });
+    const targetPlayerId = parseNonEmptyString(req.body?.targetPlayerId);
+    if (!targetPlayerId) return res.status(400).json({ error: 'targetPlayerId is required' });
+
+    const roomId = String(req.params.roomId).trim().toUpperCase();
+    const result = await roomManager.removeDisconnectedPlayer(roomId, token, targetPlayerId);
+    if (!result.ok) return failWith(res, result);
+
+    // Same as leave: lobby_update already carries the new gameState.
     await eventBus.publish(roomId, { type: 'lobby_update', state: result.state });
     res.status(200).json({ ok: true });
   });

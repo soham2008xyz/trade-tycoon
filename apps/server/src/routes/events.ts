@@ -2,6 +2,8 @@ import { Router, type Request, type Response } from 'express';
 import type { RoomManager } from '../RoomManager';
 import type { EventBus, RoomEvent } from '../events/EventBus';
 
+const HEARTBEAT_MS = 15_000;
+
 /**
  * Server-Sent Events stream that replaces the Socket.IO push channel.
  *
@@ -20,8 +22,10 @@ import type { EventBus, RoomEvent } from '../events/EventBus';
 export const createEventsRouter = (deps: {
   roomManager: RoomManager;
   eventBus: EventBus;
+  /** Ping + presence cadence. Overridable so tests don't wait 15 s. */
+  heartbeatMs?: number;
 }): Router => {
-  const { roomManager, eventBus } = deps;
+  const { roomManager, eventBus, heartbeatMs = HEARTBEAT_MS } = deps;
   const router = Router();
 
   router.get('/api/rooms/:roomId/events', async (req: Request, res: Response) => {
@@ -109,16 +113,50 @@ export const createEventsRouter = (deps: {
       return;
     }
 
+    // Presence is a side channel, not room state: staleness is time-based, so
+    // no mutation event fires when someone goes quiet, and writing it into the
+    // room record would bump `version` and CAS-write on every tick. Each stream
+    // computes it itself and sends it only when it differs from what this
+    // stream last sent. It is deliberately not a `RoomEvent` — it is never
+    // published on the bus, so it can't be replayed or amplified across
+    // instances.
+    let lastPresence: string | null = null;
+    let presenceInFlight = false;
+    const sendPresence = async () => {
+      if (presenceInFlight || cleanedUp) return;
+      presenceInFlight = true;
+      try {
+        // This open stream is a heartbeat for the player (and must land before
+        // the read so they never see themselves as disconnected).
+        await roomManager.recordSeen(roomId, auth.playerId);
+        const disconnectedPlayerIds = await roomManager.getDisconnectedPlayerIds(roomId);
+        const payload = JSON.stringify({ disconnectedPlayerIds });
+        if (cleanedUp || payload === lastPresence) return;
+        lastPresence = payload;
+        // One write so a frame can never be split across a chunk boundary.
+        res.write(`event: presence\ndata: ${payload}\n\n`);
+      } catch (err) {
+        console.warn('[SSE] presence write failed, closing stream', err);
+        cleanup();
+      } finally {
+        presenceInFlight = false;
+      }
+    };
+    void sendPresence();
+
     // Heartbeat so intermediaries don't tear down idle connections, and so the
-    // client's `EventSource.readyState` reflects a live socket.
+    // client's `EventSource.readyState` reflects a live socket. The same tick
+    // refreshes presence.
     heartbeat = setInterval(() => {
       try {
         res.write(`: ping\n\n`);
       } catch (err) {
         console.warn('[SSE] heartbeat write failed, closing stream', err);
         cleanup();
+        return;
       }
-    }, 15_000);
+      void sendPresence();
+    }, heartbeatMs);
   });
 
   return router;
