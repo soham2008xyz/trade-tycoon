@@ -205,3 +205,11 @@
   with a tied `markdownlint-disable MD041` because MD041 wants an H1 first line
   and fires even behind a leading HTML comment; the reason is inline, per the
   no-unexplained-disables rule.
+- Player names follow one rule from `packages/game-logic/src/player-names.ts`:
+  trim, cap at `MAX_PLAYER_NAME_LENGTH` (15), and reject names with no visible
+  character (`isValidPlayerName` also strips zero-width/format chars like
+  U+200B, which `String.trim()` keeps). Local setup, the online connect form
+  and `RoomManager` all use it — don't re-inline `.trim().slice(…)`. Name
+  `TextInput`s use `limitPlayerNameInput` in `onChangeText`, **not**
+  `maxLength`: `maxLength` counts leading spaces toward the cap before the
+  value is trimmed, silently eating visible characters.

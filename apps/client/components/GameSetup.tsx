@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { IconButton } from './ui/IconButton';
 import {
-  MAX_PLAYER_NAME_LENGTH,
   PLAYER_COLORS,
   isColorTakenByOthers,
+  limitPlayerNameInput,
   pickUnusedColor,
 } from '@trade-tycoon/game-logic';
 import { validateSetupPlayers } from './game-setup-validation';
@@ -95,10 +95,9 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
                 accessibilityLabel={`Player ${index + 1} name`}
                 value={player.name}
                 onChangeText={(text) => {
-                  updatePlayer(index, 'name', text);
+                  updatePlayer(index, 'name', limitPlayerNameInput(text));
                   setError(null);
                 }}
-                maxLength={MAX_PLAYER_NAME_LENGTH}
                 placeholder="Name"
               />
               <View style={styles.colorPicker}>

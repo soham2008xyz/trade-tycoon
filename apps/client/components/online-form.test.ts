@@ -5,6 +5,7 @@ describe('validateConnectForm', () => {
   it('rejects an empty or whitespace-only name when creating', () => {
     expect(validateConnectForm('create', '', '')).toBe('Please enter your name');
     expect(validateConnectForm('create', '   ', '')).toBe('Please enter your name');
+    expect(validateConnectForm('create', '\u200B', '')).toBe('Please enter your name');
   });
 
   it('accepts a name when creating, ignoring the room code', () => {
