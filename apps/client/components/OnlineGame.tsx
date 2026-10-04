@@ -6,6 +6,7 @@ import { LobbyState, GameState, GameAction } from '@trade-tycoon/game-logic';
 import { getOnlineServerUrl, supportsOnlineEventStream } from './online-platform';
 import { startRoomSync, type RoomSyncHandle } from './online-sync';
 import { readStoredSession, writeStoredSession, clearStoredSession } from './online-session';
+import { validateConnectForm } from './online-form';
 import {
   createRoom as apiCreateRoom,
   joinRoom as apiJoinRoom,
@@ -46,6 +47,10 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   );
   const [uiToastMessage, setUiToastMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Form-validation message, kept apart from `error` (server/lobby errors,
+  // which auto-expire): it's cleared on edit and only rendered on the connect
+  // screen, so it can't linger or leak into the lobby (#252).
+  const [formError, setFormError] = useState<string | null>(null);
   const syncHandleRef = useRef<RoomSyncHandle | null>(null);
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Guards create/join/start/action requests against double-submission (a
@@ -177,10 +182,9 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
 
   const handleCreate = async () => {
     if (SERVER_URL === null) return;
-    if (!playerName.trim()) {
-      setError('Please enter your name');
-      return;
-    }
+    const validationError = validateConnectForm('create', playerName, inputRoomId);
+    setFormError(validationError);
+    if (validationError) return;
     if (requestInFlightRef.current) return;
     requestInFlightRef.current = true;
     setBusy(true);
@@ -199,10 +203,9 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
 
   const handleJoin = async () => {
     if (SERVER_URL === null) return;
-    if (!playerName.trim() || !inputRoomId.trim()) {
-      setError('Please enter name and room code');
-      return;
-    }
+    const validationError = validateConnectForm('join', playerName, inputRoomId);
+    setFormError(validationError);
+    if (validationError) return;
     if (requestInFlightRef.current) return;
     requestInFlightRef.current = true;
     setBusy(true);
@@ -343,7 +346,10 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
             accessibilityLabel="Your name"
             placeholder="Your Name"
             value={playerName}
-            onChangeText={setPlayerName}
+            onChangeText={(text) => {
+              setPlayerName(text);
+              setFormError(null);
+            }}
           />
 
           {initialMode === 'join' && (
@@ -353,12 +359,15 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
               accessibilityLabel="Room code"
               placeholder="Room Code (e.g. ABCD123)"
               value={inputRoomId}
-              onChangeText={(text) => setInputRoomId(text.toUpperCase())}
+              onChangeText={(text) => {
+                setInputRoomId(text.toUpperCase());
+                setFormError(null);
+              }}
               autoCapitalize="characters"
             />
           )}
 
-          {error && <Text style={styles.error}>{error}</Text>}
+          {(formError ?? error) && <Text style={styles.error}>{formError ?? error}</Text>}
 
           <View style={styles.buttonContainer}>
             <IconButton
