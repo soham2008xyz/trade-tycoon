@@ -158,3 +158,14 @@
   leaves `gameState` untouched when `winner` is set (the leaver's session and
   lobby entry are still removed, host reassigned, status stays `'game'`); the
   room is only reset once the last lobby player leaves.
+- Bankruptcy creditor (#270): `Player.debtOwedTo?: string` is set by
+  `chargePlayer` (reducer.ts) only for player-to-player charges that leave
+  money < 0 (rent, COLLECT_FROM_ALL cards) and is cleared centrally by
+  `clearSettledDebts` on every `reduceGameAction` result, so new money-moving
+  actions need no debt code. Bankruptcy hands assets to the creditor only when
+  `money < 0` and the creditor is still in the game; leaving a room
+  (`removePlayerFromGame`) never transfers. `delete` the key rather than
+  setting `undefined` so states stay JSON-identical across Redis round-trips.
+  The unpaid shortfall is deliberately written off (rent already credits the
+  owner in full), and buildings are sold to the bank at half price with the
+  cash going to the creditor.

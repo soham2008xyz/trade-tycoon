@@ -47,6 +47,14 @@ export interface Player {
   houses: Record<string, number>; // propertyId -> number of houses (5 = hotel)
   mortgaged: string[]; // List of Tile IDs
   getOutOfJailCards: number;
+  /**
+   * Id of the player this player's negative balance is owed to. Set when a
+   * player-to-player payment (rent, a "collect from every player" card) leaves
+   * the balance below $0; absent for bank debts (tax, fines, repairs) and
+   * whenever `money >= 0`. Read only by `DECLARE_BANKRUPTCY`, which hands the
+   * bankrupt player's assets to this player instead of the bank.
+   */
+  debtOwedTo?: string;
 }
 
 export interface TradeOffer {

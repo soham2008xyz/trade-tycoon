@@ -56,21 +56,104 @@ export const gameReducer = (state: GameState, action: Action): GameState => {
 /** Returns a number in [0, 1), same contract as `Math.random`. */
 export type Rng = () => number;
 
+const withoutDebt = (p: Player): Player => {
+  const copy = { ...p };
+  delete copy.debtOwedTo;
+  return copy;
+};
+
+/**
+ * Charges `p` `amount` and, when that leaves them below $0, records who they
+ * now owe. `creditorId` is the receiving player for player-to-player payments
+ * and `undefined` for the bank. A bank charge never overwrites an existing
+ * creditor: a player who already owes someone keeps owing them even if a tax
+ * deepens the hole. A later player-to-player payment replaces it (the most
+ * recent player creditor inherits).
+ */
+const chargePlayer = (p: Player, amount: number, creditorId?: string): Player => {
+  const money = p.money - amount;
+  const charged = { ...p, money };
+  if (money < 0 && creditorId) charged.debtOwedTo = creditorId;
+  return charged;
+};
+
+/**
+ * Drops `debtOwedTo` from players who are solvent again or whose creditor is
+ * no longer in the game. Runs once on every reducer result (see
+ * `reduceGameAction`) so every code path that changes money — selling,
+ * mortgaging, trades, auctions — restores the invariant "debtOwedTo is set
+ * only while money < 0" without each one knowing about debts. Returns the
+ * input untouched (reference-equal) when nothing needs clearing so the
+ * "unchanged state means rejected" contract still holds.
+ */
+const clearSettledDebts = (state: GameState): GameState => {
+  const stale = (p: Player) =>
+    p.debtOwedTo !== undefined &&
+    (p.money >= 0 || !state.players.some((other) => other.id === p.debtOwedTo));
+  if (!state.players.some(stale)) return state;
+  return { ...state, players: state.players.map((p) => (stale(p) ? withoutDebt(p) : p)) };
+};
+
+/**
+ * Moves everything a bankrupt player owns to `creditor`, per standard rules:
+ * - properties transfer with their mortgage flag intact (no 10% transfer fee —
+ *   the new owner just inherits the mortgage);
+ * - buildings are sold back to the bank at half price and the proceeds go to
+ *   the creditor, so properties arrive bare;
+ * - any Get Out of Jail Free cards transfer;
+ * - positive cash (never the case for a genuine debtor) transfers too, but a
+ *   negative balance is NOT charged to the creditor: the unpaid shortfall is
+ *   written off. The creditor was already credited the full payment when the
+ *   debt arose (rent is credited in full even if the payer is short), so
+ *   clawing it back would be a surprising second penalty.
+ * Returns the updated creditor and the building proceeds for logging.
+ */
+const transferAssets = (
+  debtor: Player,
+  creditor: Player
+): { creditor: Player; buildingProceeds: number } => {
+  const buildingProceeds = Object.entries(debtor.houses).reduce((sum, [propertyId, count]) => {
+    const houseCost = BOARD.find((t) => t.id === propertyId)?.houseCost ?? 0;
+    return sum + count * (houseCost / 2);
+  }, 0);
+  return {
+    buildingProceeds,
+    creditor: {
+      ...creditor,
+      money: creditor.money + Math.max(0, debtor.money) + buildingProceeds,
+      properties: [...creditor.properties, ...debtor.properties],
+      mortgaged: [...creditor.mortgaged, ...debtor.mortgaged],
+      getOutOfJailCards: creditor.getOutOfJailCards + debtor.getOutOfJailCards,
+    },
+  };
+};
+
 /**
  * Shared cleanup for permanently removing a player mid-game: cancels any
  * trade or auction they're involved in (re-seating the auction winner if
  * they were the sole remaining bidder), advances the turn/win state, and
- * drops their tiles back to the unowned pool. `reason` only affects the
- * toast/log wording — the structural cleanup is identical whether the
- * player left the room or went bankrupt, so both paths share it (bankruptcy
- * used to skip this and leave a dangling activeTrade/auction reference).
+ * either hands their assets to `inheritorId` or — when there is none — drops
+ * their tiles back to the unowned pool. `reason` only affects the toast/log
+ * wording — the structural cleanup is identical whether the player left the
+ * room or went bankrupt, so both paths share it (bankruptcy used to skip
+ * this and leave a dangling activeTrade/auction reference). Only bankruptcy
+ * to a player passes an `inheritorId`; leaving a room must never enrich
+ * anyone.
  */
-const removePlayerAndCleanup = (state: GameState, playerId: string, reason: string): GameState => {
+const removePlayerAndCleanup = (
+  state: GameState,
+  playerId: string,
+  reason: string,
+  inheritorId?: string
+): GameState => {
   const playerIndex = state.players.findIndex((p) => p.id === playerId);
   if (playerIndex === -1) return state;
 
   const player = state.players[playerIndex];
-  let players = state.players.filter((p) => p.id !== playerId);
+  let players = state.players
+    .filter((p) => p.id !== playerId)
+    // Debts owed to the departing player die with them.
+    .map((p) => (p.debtOwedTo === playerId ? withoutDebt(p) : p));
   let currentPlayerId = state.currentPlayerId;
   let phase = state.phase;
   let doublesCount = state.doublesCount;
@@ -79,6 +162,22 @@ const removePlayerAndCleanup = (state: GameState, playerId: string, reason: stri
   let activeTrade = state.activeTrade;
   const toastParts = [`${player.name} ${reason}.`];
   const logs = [...state.logs, `[${player.name}] ${reason}.`];
+  let assetsNote: string | undefined;
+
+  const inheritorIndex = inheritorId ? players.findIndex((p) => p.id === inheritorId) : -1;
+  if (inheritorIndex !== -1) {
+    const { creditor, buildingProceeds } = transferAssets(player, players[inheritorIndex]);
+    players = [...players];
+    players[inheritorIndex] = creditor;
+    assetsNote = `${creditor.name} receives their assets.`;
+    toastParts.push(assetsNote);
+    logs.push(
+      `[Game] ${player.name}'s properties and cards went to ${creditor.name}` +
+        (buildingProceeds > 0
+          ? `; their buildings were sold to the bank for $${buildingProceeds}, paid to ${creditor.name}.`
+          : '.')
+    );
+  }
 
   if (
     activeTrade &&
@@ -183,7 +282,9 @@ const removePlayerAndCleanup = (state: GameState, playerId: string, reason: stri
     auction = null;
     activeTrade = null;
     toastParts.length = 0;
-    toastParts.push(`${player.name} ${reason}. ${players[0].name} wins!`);
+    toastParts.push(`${player.name} ${reason}.`);
+    if (assetsNote) toastParts.push(assetsNote);
+    toastParts.push(`${players[0].name} wins!`);
     logs.push(`[Game] ${players[0].name} wins!`);
   } else if (winner === playerId || (winner && !players.some((p) => p.id === winner))) {
     winner = null;
@@ -445,8 +546,7 @@ const reduceGameActionUnbounded = (
           let totalCollected = 0;
           newPlayers.forEach((p, i) => {
             if (p.id !== newPlayer.id) {
-              const newMoney = p.money - amount;
-              newPlayers[i] = { ...p, money: newMoney };
+              newPlayers[i] = chargePlayer(p, amount, newPlayer.id);
               totalCollected += amount;
             }
           });
@@ -479,8 +579,7 @@ const reduceGameActionUnbounded = (
           let totalCollected = 0;
           newPlayers.forEach((p, i) => {
             if (p.id !== newPlayer.id) {
-              const newMoney = p.money - amount;
-              newPlayers[i] = { ...p, money: newMoney };
+              newPlayers[i] = chargePlayer(p, amount, newPlayer.id);
               totalCollected += amount;
             }
           });
@@ -568,8 +667,10 @@ const reduceGameActionUnbounded = (
             rent = 0;
           }
 
-          // Deduct from current player
-          newPlayer.money -= rent;
+          // Deduct from current player. Rent is charged (and the owner credited)
+          // in full even if the payer is short; the payer then owes the owner,
+          // who inherits their assets if they go bankrupt (see transferAssets).
+          newPlayer = chargePlayer(newPlayer, rent, owner.id);
           // Update current player in array again (since we modified local var)
           newPlayers[playerIndex] = newPlayer;
 
@@ -1247,11 +1348,24 @@ const reduceGameActionUnbounded = (
 
     case 'DECLARE_BANKRUPTCY': {
       if (!state.players.some((p) => p.id === action.playerId)) return state;
+      const debtor = state.players.find((p) => p.id === action.playerId);
+      // Assets go to the player the debt is owed to — but only for a genuine
+      // outstanding debt. Declaring while solvent, or with a bank debt (tax,
+      // fine, repairs), forfeits everything to the bank, as does a creditor
+      // who has since left the game.
+      const creditorId =
+        debtor &&
+        debtor.money < 0 &&
+        debtor.debtOwedTo !== undefined &&
+        debtor.debtOwedTo !== debtor.id &&
+        state.players.some((p) => p.id === debtor.debtOwedTo)
+          ? debtor.debtOwedTo
+          : undefined;
       // Delegate to the same removal cleanup `removePlayerFromGame` uses so
       // bankruptcy also cancels any trade/auction the player was part of
       // instead of leaving a dangling reference to a player who no longer
       // exists in state.players.
-      return removePlayerAndCleanup(state, action.playerId, 'went bankrupt');
+      return removePlayerAndCleanup(state, action.playerId, 'went bankrupt', creditorId);
     }
 
     case 'END_TURN': {
@@ -1286,9 +1400,9 @@ const reduceGameActionUnbounded = (
 };
 
 /**
- * Public entry point. Delegates to the unbounded reducer above, then caps
- * `logs` at `MAX_LOGS` — a single choke point instead of touching every one
- * of the reducer's ~25 individual log-append sites.
+ * Public entry point. Delegates to the unbounded reducer above, then settles
+ * stale debts and caps `logs` at `MAX_LOGS` — single choke points instead of
+ * touching every one of the reducer's ~25 money/log sites.
  */
 export const reduceGameAction = (
   state: GameState,
@@ -1297,5 +1411,5 @@ export const reduceGameAction = (
 ): GameReducerResult => {
   const result = reduceGameActionUnbounded(state, action, rng);
   if (result === ACTION_REJECTED) return result;
-  return capLogs(result);
+  return capLogs(clearSettledDebts(result));
 };
