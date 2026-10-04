@@ -5,6 +5,20 @@ export interface StatusPanelProps {
   myPlayerId: string;
   isMultiplayer: boolean;
 
+  /**
+   * Players the server reports as unheard-from (online only; always empty in
+   * hotseat, which has no presence).
+   */
+  disconnectedPlayerIds: readonly string[];
+  /**
+   * The subset of `disconnectedPlayerIds` the local user may remove — already
+   * resolved through `canRemovePlayer`, so panels render a button for exactly
+   * these ids and never re-implement the rule.
+   */
+  removablePlayerIds: readonly string[];
+  /** Ask to remove a disconnected player (the game UI confirms first). */
+  onRemovePlayer: (_targetPlayerId: string) => void;
+
   onRoll: () => void;
   onBuy: () => void;
   onDeclineBuy: () => void;

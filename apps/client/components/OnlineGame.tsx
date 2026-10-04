@@ -7,6 +7,7 @@ import { getOnlineServerUrl, supportsOnlineEventStream } from './online-platform
 import { startRoomSync, type RoomSyncHandle } from './online-sync';
 import { readStoredSession, writeStoredSession, clearStoredSession } from './online-session';
 import { validateConnectForm } from './online-form';
+import { wasRemovedFromRoom } from './multiplayer-gating';
 import {
   createRoom as apiCreateRoom,
   joinRoom as apiJoinRoom,
@@ -14,6 +15,7 @@ import {
   sendGameAction,
   reconnectToRoom,
   leaveRoom as apiLeaveRoom,
+  removePlayer as apiRemovePlayer,
   type JoinedRoomResponse,
 } from './online-api';
 
@@ -39,6 +41,15 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   // request — it must never be rendered or logged.
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  // Mirrors `playerId` for the room-sync callbacks, which live in an effect
+  // keyed on [roomId, token] and would otherwise read a stale id.
+  const playerIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    playerIdRef.current = playerId;
+  }, [playerId]);
+  // Players the server reports as unheard-from. Arrives out-of-band from room
+  // state (its own SSE event / poll field), so it is kept in its own state.
+  const [disconnectedPlayerIds, setDisconnectedPlayerIds] = useState<string[]>([]);
   const [roomId, setRoomId] = useState<string>('');
   const [playerName, setPlayerName] = useState('');
   const [inputRoomId, setInputRoomId] = useState('');
@@ -155,6 +166,15 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       token,
       transport,
       onLobbyState: (state) => {
+        // Removed while away (the host dropped us after we went quiet): the
+        // session is gone, so leave rather than sit on a dead screen. Judged on
+        // the lobby roster only — bankrupt players stay in it (see the helper).
+        if (wasRemovedFromRoom(state, playerIdRef.current)) {
+          clearStoredSession(Platform.OS);
+          setTransientError('You were removed from the game');
+          onBack();
+          return;
+        }
         setLobbyState(state);
         if (state.status === 'game' && state.gameState) {
           setGameState(state.gameState);
@@ -167,6 +187,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         }
       },
       onGameState: setGameState,
+      onPresence: setDisconnectedPlayerIds,
       onSessionExpired: () => {
         setTransientError('Session expired');
         onBack();
@@ -257,6 +278,27 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         if (!result.ok) {
           setTransientError(result.error);
         }
+      } finally {
+        requestInFlightRef.current = false;
+        setBusy(false);
+      }
+    },
+    [roomId, token, setTransientError]
+  );
+
+  const handleRemovePlayer = useCallback(
+    async (targetPlayerId: string) => {
+      if (!token || !roomId || SERVER_URL === null) return;
+      if (requestInFlightRef.current) return;
+      requestInFlightRef.current = true;
+      setBusy(true);
+      try {
+        const result = await apiRemovePlayer(SERVER_URL, roomId, token, targetPlayerId);
+        if (!result.ok) {
+          // e.g. 409 "Player is still connected" if they came back meanwhile.
+          setTransientError(result.error);
+        }
+        // On success the resulting lobby_update arrives through the sync.
       } finally {
         requestInFlightRef.current = false;
         setBusy(false);
@@ -443,6 +485,9 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         setUiToastMessage={setUiToastMessage}
         onLeaveGame={handleLeave}
         isMultiplayer={true}
+        disconnectedPlayerIds={disconnectedPlayerIds}
+        hostId={lobbyState?.players.find((p) => p.isHost)?.id}
+        onRemovePlayer={handleRemovePlayer}
       />
     );
   }

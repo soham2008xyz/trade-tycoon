@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { GROUP_COLORS } from '../../constants';
 import { IconButton } from '../ui/IconButton';
 import { GOOJBadge } from '../ui/GOOJBadge';
+import { DisconnectedBadge } from '../ui/DisconnectedBadge';
 import { Dice } from '../Dice';
 import { GameOverCard } from './GameOverCard';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
@@ -27,6 +28,9 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
   onNewGame,
   onBackToMenu,
   isTokenMoving,
+  disconnectedPlayerIds,
+  removablePlayerIds,
+  onRemovePlayer,
 }) => {
   const { currentPlayer, currentTile, buttons, isGameOver } = useStatusPanelActions(
     state,
@@ -71,8 +75,22 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
                     {player.name} (${player.money}){state.winner === player.id ? ' 🏆' : ''}
                   </Text>
                   <GOOJBadge count={player.getOutOfJailCards} />
+                  {disconnectedPlayerIds.includes(player.id) && (
+                    <DisconnectedBadge name={player.name} />
+                  )}
                 </View>
               </View>
+              {removablePlayerIds.includes(player.id) && (
+                <View style={{ marginLeft: 10 }}>
+                  <IconButton
+                    title="Remove"
+                    icon="account-remove"
+                    onPress={() => onRemovePlayer(player.id)}
+                    color="#d9534f"
+                    size="small"
+                  />
+                </View>
+              )}
               {/* The reducer ignores PROPOSE_TRADE after a win. */}
               {!isGameOver && player.id !== selfId && (
                 <View style={{ marginLeft: 10 }}>
@@ -121,7 +139,20 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
 
             <View style={styles.actions}>
               {buttons.waiting.visible && (
-                <Text style={styles.waitingText}>Waiting for {currentPlayer.name} to play…</Text>
+                <>
+                  <Text style={styles.waitingText}>
+                    Waiting for {currentPlayer.name} to play…
+                    {disconnectedPlayerIds.includes(currentPlayer.id) ? ' (disconnected)' : ''}
+                  </Text>
+                  {removablePlayerIds.includes(currentPlayer.id) && (
+                    <IconButton
+                      title={`Remove ${currentPlayer.name}`}
+                      icon="account-remove"
+                      onPress={() => onRemovePlayer(currentPlayer.id)}
+                      color="#d9534f"
+                    />
+                  )}
+                </>
               )}
               {buttons.roll.visible && (
                 <IconButton title="Roll Dice" icon="dice-5" onPress={onRoll} />

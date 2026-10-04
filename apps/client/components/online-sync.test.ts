@@ -43,6 +43,7 @@ const gameState = { currentPlayerId: 'p1' } as unknown as GameState;
 const callbacks = () => ({
   onLobbyState: vi.fn(),
   onGameState: vi.fn(),
+  onPresence: vi.fn(),
   onSessionExpired: vi.fn(),
 });
 
@@ -78,6 +79,26 @@ describe('startRoomSync (sse)', () => {
 
     expect(onLobbyState).toHaveBeenCalledWith(lobby(3));
     expect(onGameState).toHaveBeenCalledWith(gameState);
+  });
+
+  it('forwards the disconnected ids from a presence event', () => {
+    const { source, onPresence } = startSse();
+
+    source.emit('presence', { disconnectedPlayerIds: ['p2', 'p3'] });
+
+    expect(onPresence).toHaveBeenCalledWith(['p2', 'p3']);
+  });
+
+  it('ignores a malformed presence payload', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { source, onPresence } = startSse();
+
+    source.emit('presence', '{not json');
+    source.emit('presence', { disconnectedPlayerIds: 'nope' });
+    source.emit('presence', {});
+
+    expect(onPresence).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 
   it('swallows malformed payloads without invoking callbacks', () => {
@@ -120,9 +141,13 @@ describe('startRoomSync (poll)', () => {
     return { handle, ...cbs };
   };
 
-  const snapshot = (version: number, withGame = false) => ({
+  const snapshot = (version: number, withGame = false, disconnectedPlayerIds: string[] = []) => ({
     ok: true as const,
-    data: { lobby: lobby(version), gameState: withGame ? gameState : null },
+    data: {
+      lobby: lobby(version),
+      gameState: withGame ? gameState : null,
+      disconnectedPlayerIds,
+    },
   });
 
   it('applies the first snapshot, including a running game', async () => {
@@ -168,6 +193,77 @@ describe('startRoomSync (poll)', () => {
     await vi.advanceTimersByTimeAsync(MIN_POLL_MS); // v3 already due at MIN
     expect(fetchSnapshot).toHaveBeenCalledTimes(4);
     expect(onLobbyState).toHaveBeenCalledTimes(3);
+  });
+
+  it('forwards presence from the first snapshot, even when empty', async () => {
+    const fetchSnapshot = vi.fn().mockResolvedValue(snapshot(1, true, ['p2']));
+    const { onPresence } = startPoll(fetchSnapshot);
+
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(onPresence).toHaveBeenCalledTimes(1);
+    expect(onPresence).toHaveBeenCalledWith(['p2']);
+  });
+
+  it('does not re-report an unchanged presence set while backing off', async () => {
+    const fetchSnapshot = vi.fn().mockResolvedValue(snapshot(1, true, ['p2']));
+    const { onPresence } = startPoll(fetchSnapshot);
+
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(MIN_POLL_MS);
+    await vi.advanceTimersByTimeAsync(MAX_POLL_MS);
+
+    expect(fetchSnapshot).toHaveBeenCalledTimes(3);
+    expect(onPresence).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a presence-only change that the version shortcut would swallow', async () => {
+    // Same lobby version both times: nothing in the room record changed, only
+    // who is connected. The unchanged-version skip must not hide that.
+    const fetchSnapshot = vi
+      .fn()
+      .mockResolvedValueOnce(snapshot(1, true, []))
+      .mockResolvedValue(snapshot(1, true, ['p2']));
+    const { onPresence, onLobbyState, onGameState } = startPoll(fetchSnapshot);
+
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(MIN_POLL_MS);
+
+    expect(onPresence).toHaveBeenLastCalledWith(['p2']);
+    expect(onPresence).toHaveBeenCalledTimes(2);
+    // ...without re-applying the unchanged room.
+    expect(onLobbyState).toHaveBeenCalledTimes(1);
+    expect(onGameState).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the fast cadence right after a presence change, then backs off again', async () => {
+    const fetchSnapshot = vi
+      .fn()
+      .mockResolvedValueOnce(snapshot(1, true, []))
+      .mockResolvedValue(snapshot(1, true, ['p2']));
+    startPoll(fetchSnapshot);
+
+    await vi.advanceTimersByTimeAsync(0); // first
+    await vi.advanceTimersByTimeAsync(MIN_POLL_MS); // presence changed, version same
+    await vi.advanceTimersByTimeAsync(MIN_POLL_MS); // still fast: next poll is due at MIN
+    expect(fetchSnapshot).toHaveBeenCalledTimes(3);
+
+    // That poll was fully unchanged, so now it backs off to the slow cadence.
+    await vi.advanceTimersByTimeAsync(MAX_POLL_MS - 1);
+    expect(fetchSnapshot).toHaveBeenCalledTimes(3);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fetchSnapshot).toHaveBeenCalledTimes(4);
+  });
+
+  it('treats a server that omits disconnectedPlayerIds as nobody disconnected', async () => {
+    const fetchSnapshot = vi
+      .fn()
+      .mockResolvedValue({ ok: true as const, data: { lobby: lobby(1), gameState: null } });
+    const { onPresence } = startPoll(fetchSnapshot);
+
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(onPresence).toHaveBeenCalledWith([]);
   });
 
   it('reports an expired session once and stops polling', async () => {

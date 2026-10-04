@@ -10,6 +10,12 @@ export interface JoinedRoomResponse {
 export interface ReconnectResponse {
   lobby: LobbyState;
   gameState: GameState | null;
+  /**
+   * Players in a running game the server has not heard from recently. Optional
+   * on the type only so an older server (or a fixture) that omits it reads as
+   * "nobody disconnected"; current servers always send it.
+   */
+  disconnectedPlayerIds?: string[];
 }
 
 export type ApiResult<T> =
@@ -119,4 +125,16 @@ export const leaveRoom = (
     `${serverUrl}/api/rooms/${encodeURIComponent(roomId)}/leave`,
     { token },
     'Could not leave room'
+  );
+
+export const removePlayer = (
+  serverUrl: string,
+  roomId: string,
+  token: string,
+  targetPlayerId: string
+): Promise<ApiResult<{ ok: true }>> =>
+  postJson(
+    `${serverUrl}/api/rooms/${encodeURIComponent(roomId)}/remove-player`,
+    { token, targetPlayerId },
+    'Could not remove player'
   );

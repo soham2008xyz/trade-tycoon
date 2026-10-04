@@ -34,6 +34,13 @@ export interface RoomSyncOptions {
   transport: 'sse' | 'poll';
   onLobbyState: (_state: LobbyState) => void;
   onGameState: (_state: GameState) => void;
+  /**
+   * Ids of players in the running game the server hasn't heard from lately.
+   * Presence is a side channel, not room state: it arrives as its own SSE
+   * `presence` event, or alongside each poll snapshot, and never moves
+   * `version`.
+   */
+  onPresence: (_disconnectedPlayerIds: string[]) => void;
   /** Poll transport only: the server reported the session gone (404). */
   onSessionExpired: () => void;
   /** Test injectable; defaults to `new EventSource(url)`. */
@@ -65,6 +72,7 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
     transport,
     onLobbyState,
     onGameState,
+    onPresence,
     onSessionExpired,
     createEventSource = defaultCreateEventSource,
     fetchSnapshot = reconnectToRoom,
@@ -93,6 +101,16 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
       }
     });
 
+    source.addEventListener('presence', (event) => {
+      try {
+        const body = JSON.parse(event.data) as { disconnectedPlayerIds?: unknown };
+        if (!Array.isArray(body.disconnectedPlayerIds)) throw new Error('missing id list');
+        onPresence(body.disconnectedPlayerIds as string[]);
+      } catch (err) {
+        console.error('Bad presence payload', err);
+      }
+    });
+
     return {
       stop: () => {
         source.close();
@@ -108,6 +126,8 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
   let stopped = false;
   let syncInFlight = false;
   let lastSeenVersion: number | undefined;
+  // The server lists ids in lobby order, so a joined string is a stable key.
+  let lastPresenceKey: string | undefined;
   let pollHandle: ReturnType<typeof setTimeout> | undefined;
   let nextPollDelay = MIN_POLL_MS;
 
@@ -138,9 +158,23 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
 
       const body = result.data;
       const version = body.lobby.version;
+
+      // Presence moves independently of `version` (nothing is written to the
+      // room when someone goes quiet), so it is compared on its own: the
+      // version shortcut below must never swallow a presence-only change.
+      const disconnected = body.disconnectedPlayerIds ?? [];
+      const presenceKey = disconnected.join(',');
+      const presenceChanged = presenceKey !== lastPresenceKey;
+      if (presenceChanged) {
+        lastPresenceKey = presenceKey;
+        onPresence(disconnected);
+      }
+
       const unchanged = version !== undefined && version === lastSeenVersion;
       if (unchanged) {
-        nextPollDelay = MAX_POLL_MS;
+        // Stay on the fast cadence for one more poll after a presence change so
+        // a player coming back is noticed promptly; back off once it is stable.
+        nextPollDelay = presenceChanged ? MIN_POLL_MS : MAX_POLL_MS;
         return;
       }
 
