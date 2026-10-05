@@ -2,24 +2,27 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { IconButton } from '../ui/IconButton';
 import { GOOJBadge } from '../ui/GOOJBadge';
+import { JailStatus } from '../ui/JailStatus';
 import { DisconnectedBadge } from '../ui/DisconnectedBadge';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
 import type { StatusPanelProps } from './types';
 
-export const Expanded: React.FC<StatusPanelProps> = ({
-  state,
-  myPlayerId,
-  onShowLog,
-  onRestart,
-  onOpenTrade,
-  disconnectedPlayerIds,
-  removablePlayerIds,
-  onRemovePlayer,
-}) => {
+export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = (props) => {
+  const {
+    state,
+    myPlayerId,
+    onShowLog,
+    onRestart,
+    onOpenTrade,
+    disconnectedPlayerIds,
+    removablePlayerIds,
+    onRemovePlayer,
+    scrollable = true,
+  } = props;
   const { currentPlayer, isGameOver } = useStatusPanelActions(state, myPlayerId);
 
-  return (
-    <ScrollView contentContainerStyle={styles.root}>
+  const content = (
+    <>
       <Text style={styles.sectionTitle}>Players</Text>
       {state.players.map((player) => (
         <View key={player.id} style={styles.playerRow}>
@@ -35,6 +38,7 @@ export const Expanded: React.FC<StatusPanelProps> = ({
                 {player.name} (${player.money}){state.winner === player.id ? ' 🏆 Winner' : ''}
               </Text>
               <GOOJBadge count={player.getOutOfJailCards} />
+              <JailStatus player={player} />
               {disconnectedPlayerIds.includes(player.id) && (
                 <DisconnectedBadge name={player.name} />
               )}
@@ -80,7 +84,15 @@ export const Expanded: React.FC<StatusPanelProps> = ({
           />
         )}
       </View>
-    </ScrollView>
+    </>
+  );
+
+  // A sheet-integrated parent owns scrolling in the jail view. A nested
+  // ScrollView would intercept its gestures and constrain the player list.
+  return scrollable ? (
+    <ScrollView contentContainerStyle={styles.root}>{content}</ScrollView>
+  ) : (
+    <View style={styles.root}>{content}</View>
   );
 };
 

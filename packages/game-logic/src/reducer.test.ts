@@ -1031,6 +1031,28 @@ describe('Game Reducer', () => {
       expect(newState.phase).toBe('action');
     });
 
+    it.each([0, 1])('explains failed jail roll %i in toast and log', (failures) => {
+      jailState.players[0] = {
+        ...jailState.players[0],
+        isInJail: true,
+        position: 10,
+        jailTurns: failures,
+      };
+      const next = gameReducer(jailState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 2,
+      });
+      const message = `No doubles — still in Jail. Attempt ${failures + 1}/3 failed.${failures === 1 ? ' Next non-doubles roll: pay $50 and move.' : ''}`;
+      expect(next.toastMessage).toBe(message);
+      expect(next.logs.at(-1)).toBe(`[Player 1] ${message}`);
+      expect(next.players[0].money).toBe(1500);
+      expect(next.players[0].position).toBe(10);
+      expect(next.players[0].jailTurns).toBe(failures + 1);
+      expect(next.phase).toBe('action');
+    });
+
     it('should force out on 3rd attempt', () => {
       jailState.players[0].isInJail = true;
       jailState.players[0].position = 10;

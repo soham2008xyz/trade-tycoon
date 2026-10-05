@@ -231,3 +231,25 @@
   across chunks (write each frame in one call), and racing `reader.read()`
   against a timer leaves a queued read that swallows the next chunk — use one
   long-lived pump that fills a buffer and have the test sleep and inspect it.
+
+- Jail visibility (#274): `Player.jailTurns` counts completed failed rolls,
+  starting at 0 on entry; the third non-doubles roll pays $50 and releases
+  immediately, resetting the counter. Display failed rolls used, not an
+  upcoming attempt number (which would be wrong after rolling). Reducer
+  `toastMessage` already feeds the shared local/online toast surface; keep
+  failed-attempt feedback there so it also appears in the Game Log.
+  Jail guidance and the held-card action can exceed the phone sheet's 28%
+  collapsed height; its jail-only minimum measures Peek, including bottom
+  safe-area padding, plus the handle so the controls stay visible.
+
+- Oversized jail Peek (#295 review): measuring a minimum snap height is not
+  enough when it exceeds the sheet's 85% cap. Jail panels use one
+  `BottomSheetScrollView` for Peek and Expanded; Expanded renders a plain View
+  there to avoid nested scrolling. Gorhom enables integrated scrolling at
+  the highest snap point, so verify expanding first, then scrolling to the
+  final action on short screens and with large text.
+
+- Codacy's parameter-count check treats destructured React props as separate
+  parameters (Expanded exceeded the eight-parameter limit after adding
+  `scrollable`). Accept one typed props object and destructure inside the
+  component to keep its single-object interface explicit.
