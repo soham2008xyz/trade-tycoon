@@ -162,9 +162,9 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
   playerName: { fontWeight: '700', fontSize: 14 },
   money: { color: '#666', fontSize: 13 },
-  // flexWrap + shrinking text: a long tile name at large Dynamic Type must wrap
-  // rather than run off the right edge.
-  positionRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
+  // The text shrinks (rather than the row wrapping) so a long tile name at
+  // large Dynamic Type wraps in place instead of running off the right edge.
+  positionRow: { flexDirection: 'row', alignItems: 'center' },
   positionLabel: { fontSize: 12, color: '#666' },
   tileColor: { width: 10, height: 10, marginRight: 4, borderWidth: 1, borderColor: '#333' },
   positionText: { fontSize: 13, flexShrink: 1 },
