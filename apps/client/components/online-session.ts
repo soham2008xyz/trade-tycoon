@@ -16,9 +16,9 @@ export interface StoredSession {
  * discipline"; `online-platform.ts` injects `Platform.OS` the same way).
  */
 export interface SessionStorage {
-  getItem(key: string): string | null | Promise<string | null>;
-  setItem(key: string, value: string): void | Promise<void>;
-  removeItem(key: string): void | Promise<void>;
+  getItem(_key: string): string | null | Promise<string | null>;
+  setItem(_key: string, _value: string): void | Promise<void>;
+  removeItem(_key: string): void | Promise<void>;
 }
 
 const SESSION_STORAGE_KEY = 'trade_tycoon_session_v2';

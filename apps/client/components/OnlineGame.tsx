@@ -180,7 +180,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
           // menu doesn't offer to resume it (#258).
           syncHandleRef.current?.stop();
           syncHandleRef.current = null;
-          clearStoredSession(onlineSessionStorage).then(onBack);
+          void clearStoredSession(onlineSessionStorage).then(onBack);
           return;
         }
         setLobbyState(state);
@@ -203,7 +203,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         // only fail (#258).
         syncHandleRef.current?.stop();
         syncHandleRef.current = null;
-        clearStoredSession(onlineSessionStorage).then(onBack);
+        void clearStoredSession(onlineSessionStorage).then(onBack);
       },
     });
     syncHandleRef.current = handle;
@@ -348,7 +348,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     setPlayerId(body.playerId);
     setToken(body.token);
     setStep('lobby');
-    writeStoredSession(onlineSessionStorage, {
+    void writeStoredSession(onlineSessionStorage, {
       roomId: body.roomId,
       playerId: body.playerId,
       token: body.token,

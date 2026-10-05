@@ -308,3 +308,8 @@
   `pod update ExpoModulesCore ExpoModulesWorklets --no-repo-update` in
   `apps/client/ios`. A missing `apps/server/node_modules/ioredis` (v6) makes
   the API server fail to compile on `protocol: 2`; `npm install` fixes it.
+
+- Codacy (#306): it runs `@typescript-eslint/no-floating-promises`, which the
+  local Expo lint config does not. Mark a deliberately unawaited promise with
+  `void`; don't drop the operator. It also flags parameter names in interface
+  method signatures as unused, so prefix them with `_`.

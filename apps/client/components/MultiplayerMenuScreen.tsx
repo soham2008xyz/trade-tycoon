@@ -24,7 +24,7 @@ export const MultiplayerMenuScreen: React.FC<Props> = ({
   const [savedSession, setSavedSession] = useState<StoredSession | null>(null);
   useEffect(() => {
     let cancelled = false;
-    readStoredSession(onlineSessionStorage).then((session) => {
+    void readStoredSession(onlineSessionStorage).then((session) => {
       if (!cancelled) setSavedSession(session);
     });
     return () => {
