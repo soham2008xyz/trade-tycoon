@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { IconButton } from './ui/IconButton';
-import { readStoredSession, type StoredSession } from './online-session';
+import type { StoredSession } from './online-session';
+import { readStoredSession } from './session-storage';
 
 interface Props {
   onBack: () => void;
@@ -17,8 +18,19 @@ export const MultiplayerMenuScreen: React.FC<Props> = ({
   onResumeGame,
 }) => {
   // Session detection runs once on mount. If the user navigates away and
-  // comes back the menu remounts, so this stays fresh.
-  const [savedSession] = useState<StoredSession | null>(() => readStoredSession(Platform.OS));
+  // comes back the menu remounts, so this stays fresh. The read is async
+  // (native storage is the keychain/keystore), so the Resume button appears
+  // a moment after the menu does.
+  const [savedSession, setSavedSession] = useState<StoredSession | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void readStoredSession().then((session) => {
+      if (!cancelled) setSavedSession(session);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <View style={styles.modalContainer}>

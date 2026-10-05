@@ -293,3 +293,26 @@
   outer edge until then, and the old inline comments hid it. If you change the
   bar's side, change the token anchor and `anchorFraction` in
   `token-position.test.ts` together.
+
+- Native session resume (#258): the online session is stored on native via
+  `expo-secure-store`. The async read/write/clear live in
+  `session-storage.tsx`; `online-session.ts` keeps the pure parse/serialize.
+  SecureStore has no sync delete, so every `clearStoredSession` followed by
+  `onBack()` awaits the clear; otherwise the menu remounts and offers a stale
+  Resume button.
+
+- `expo run:ios` gotchas (#258): with Homebrew Ruby 4, `pod install` crashes
+  with `Unicode Normalization not appropriate for ASCII-8BIT` unless
+  `LANG=en_US.UTF-8` is set. After `npm install` moves `expo-modules-core`,
+  `pod install` refuses until you run
+  `pod update ExpoModulesCore ExpoModulesWorklets --no-repo-update` in
+  `apps/client/ios`. A missing `apps/server/node_modules/ioredis` (v6) makes
+  the API server fail to compile on `protocol: 2`; `npm install` fixes it.
+
+- Codacy (#306): it runs `@typescript-eslint/no-floating-promises`, which the
+  local Expo lint config does not. Mark a deliberately unawaited promise with
+  `void`; don't drop the operator. It also runs ESLint's core
+  `no-unused-vars`, which flags every named parameter in a type signature
+  (interface methods, function types), even with a `_` prefix. A new type with
+  function members fails the gate; restructure so the type isn't needed (the
+  first #306 attempt injected a storage interface and had to be undone).

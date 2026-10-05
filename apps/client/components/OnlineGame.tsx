@@ -6,7 +6,7 @@ import { KeyboardAwareScreen } from './ui/KeyboardAwareScreen';
 import { LobbyState, GameState, GameAction, limitPlayerNameInput } from '@trade-tycoon/game-logic';
 import { getOnlineServerUrl, supportsOnlineEventStream } from './online-platform';
 import { startRoomSync, type RoomSyncHandle } from './online-sync';
-import { readStoredSession, writeStoredSession, clearStoredSession } from './online-session';
+import { readStoredSession, writeStoredSession, clearStoredSession } from './session-storage';
 import { validateConnectForm } from './online-form';
 import { wasRemovedFromRoom } from './multiplayer-gating';
 import {
@@ -104,25 +104,27 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     // same-origin sentinel for an unconfigured production web build (see
     // online-platform.ts) and must be treated as configured.
     if (initialMode !== 'resume' || SERVER_URL === null) return;
-    const session = readStoredSession(Platform.OS);
-    if (!session) {
-      onBack();
-      return;
-    }
     let cancelled = false;
     (async () => {
+      const session = await readStoredSession();
+      if (cancelled) return;
+      if (!session) {
+        onBack();
+        return;
+      }
       const result = await reconnectToRoom(SERVER_URL, session.roomId, session.token);
       if (cancelled) return;
       if (!result.ok) {
         if (result.status === 0) {
           // Network error: we don't know if the session is still valid —
-          // leave localStorage alone and bounce so the user can retry.
+          // leave the stored session alone and bounce so the user can retry.
           console.error('Resume failed:', result.error);
           onBack();
           return;
         }
         // 404 session_expired, or any other failure — drop the session and exit.
-        clearStoredSession(Platform.OS);
+        // Awaited so the menu we return to doesn't read it back (#258).
+        await clearStoredSession();
         onBack();
         return;
       }
@@ -171,9 +173,13 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         // session is gone, so leave rather than sit on a dead screen. Judged on
         // the lobby roster only — bankrupt players stay in it (see the helper).
         if (wasRemovedFromRoom(state, playerIdRef.current)) {
-          clearStoredSession(Platform.OS);
           setTransientError('You were removed from the game');
-          onBack();
+          // Stop syncing so the next update can't run this again while the
+          // clear is pending, and leave only once the session is gone, so the
+          // menu doesn't offer to resume it (#258).
+          syncHandleRef.current?.stop();
+          syncHandleRef.current = null;
+          void clearStoredSession().then(onBack);
           return;
         }
         setLobbyState(state);
@@ -191,7 +197,12 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       onPresence: setDisconnectedPlayerIds,
       onSessionExpired: () => {
         setTransientError('Session expired');
-        onBack();
+        // The server answered 404 session_expired, so the stored session is
+        // dead: drop it before leaving, or the menu offers a Resume that can
+        // only fail (#258).
+        syncHandleRef.current?.stop();
+        syncHandleRef.current = null;
+        void clearStoredSession().then(onBack);
       },
     });
     syncHandleRef.current = handle;
@@ -216,7 +227,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         setTransientError(result.error);
         return;
       }
-      enterLobby(result.data);
+      await enterLobby(result.data);
     } finally {
       requestInFlightRef.current = false;
       setBusy(false);
@@ -240,7 +251,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       }
       // Server already normalized the room id, but make sure we use the
       // exact value it returned for SSE / future requests.
-      enterLobby({ ...result.data, roomId: result.data.roomId || targetRoomId });
+      await enterLobby({ ...result.data, roomId: result.data.roomId || targetRoomId });
     } finally {
       requestInFlightRef.current = false;
       setBusy(false);
@@ -321,26 +332,28 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       }
     }
 
-    clearStoredSession(Platform.OS);
+    await clearStoredSession();
     onBack();
   }, [roomId, token, onBack]);
 
   /**
-   * Bring the joined-room response from the REST call into local state and
-   * persist the session for future resume. This is the entry point that flips
-   * `step` to 'lobby', and also triggers the SSE useEffect via the new
-   * `roomId` / `token`.
+   * Persist the session for future resume, then bring the joined-room
+   * response into local state. This is the entry point that flips `step` to
+   * 'lobby', and also triggers the SSE useEffect via the new `roomId` /
+   * `token`. The write is awaited first: on native it is an async keychain /
+   * keystore call, and if the app is killed before it lands the server keeps
+   * the player while the device has nothing to resume from (#258).
    */
-  function enterLobby(body: JoinedRoomResponse) {
-    setRoomId(body.roomId);
-    setPlayerId(body.playerId);
-    setToken(body.token);
-    setStep('lobby');
-    writeStoredSession(Platform.OS, {
+  async function enterLobby(body: JoinedRoomResponse) {
+    await writeStoredSession({
       roomId: body.roomId,
       playerId: body.playerId,
       token: body.token,
     });
+    setRoomId(body.roomId);
+    setPlayerId(body.playerId);
+    setToken(body.token);
+    setStep('lobby');
   }
 
   // Render Logic
