@@ -325,6 +325,11 @@ and needs no `useMemo`.
   contrast tests in `constants/theme.test.ts` then cover it.
 - Verified in the web build with `prefers-color-scheme` dark and light
   (menus, setup, join form, board, trade and log modals, phone sheet).
+  Verified on the iPad Air 11-inch (M4) simulator (iOS 26.4) with the
+  simulator appearance set to dark and light: menu, setup, board with the
+  Players strip, Log modal, and the dark `keyboardAppearance` accessory bar.
+  `xcrun simctl ui <udid> appearance dark` switches a running app live. The
+  iPhone sheet and `pageSheet` modals were checked on web only.
 
 ## Test command
 
