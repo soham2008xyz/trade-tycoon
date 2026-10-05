@@ -7,17 +7,18 @@ import { DisconnectedBadge } from '../ui/DisconnectedBadge';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
 import type { StatusPanelProps } from './types';
 
-export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = ({
-  state,
-  myPlayerId,
-  onShowLog,
-  onRestart,
-  onOpenTrade,
-  disconnectedPlayerIds,
-  removablePlayerIds,
-  onRemovePlayer,
-  scrollable = true,
-}) => {
+export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = (props) => {
+  const {
+    state,
+    myPlayerId,
+    onShowLog,
+    onRestart,
+    onOpenTrade,
+    disconnectedPlayerIds,
+    removablePlayerIds,
+    onRemovePlayer,
+    scrollable = true,
+  } = props;
   const { currentPlayer, isGameOver } = useStatusPanelActions(state, myPlayerId);
 
   const content = (

@@ -248,3 +248,8 @@
   there to avoid nested scrolling. Gorhom enables integrated scrolling at
   the highest snap point, so verify expanding first, then scrolling to the
   final action on short screens and with large text.
+
+- Codacy's parameter-count check treats destructured React props as separate
+  parameters (Expanded exceeded the eight-parameter limit after adding
+  `scrollable`). Accept one typed props object and destructure inside the
+  component to keep its single-object interface explicit.
