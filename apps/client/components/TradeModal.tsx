@@ -167,9 +167,22 @@ export const TradeModal: React.FC<Props> = ({
           </View>
           <View style={styles.columns}>
             <View style={styles.column}>
-              <View style={styles.nameRow}>
-                <View style={[styles.playerColor, { backgroundColor: tradeTarget?.color }]} />
-                <Text style={styles.subtitle}>{tradeTarget?.name} Receives:</Text>
+              <View style={styles.columnHeadingRow}>
+                <View
+                  style={[
+                    styles.playerColor,
+                    styles.columnHeadingDot,
+                    { backgroundColor: tradeTarget?.color },
+                  ]}
+                />
+                <Text
+                  style={[styles.subtitle, styles.columnHeadingText]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
+                  {tradeTarget?.name} Receives:
+                </Text>
               </View>
               <Text>Money: ${effectiveActiveTrade.offer.money}</Text>
               <Text>GOOJ Cards: {effectiveActiveTrade.offer.getOutOfJailCards}</Text>
@@ -180,9 +193,22 @@ export const TradeModal: React.FC<Props> = ({
             </View>
 
             <View style={styles.column}>
-              <View style={styles.nameRow}>
-                <View style={[styles.playerColor, { backgroundColor: tradeTarget?.color }]} />
-                <Text style={styles.subtitle}>{tradeTarget?.name} Gives:</Text>
+              <View style={styles.columnHeadingRow}>
+                <View
+                  style={[
+                    styles.playerColor,
+                    styles.columnHeadingDot,
+                    { backgroundColor: tradeTarget?.color },
+                  ]}
+                />
+                <Text
+                  style={[styles.subtitle, styles.columnHeadingText]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
+                  {tradeTarget?.name} Gives:
+                </Text>
               </View>
               <Text>Money: ${effectiveActiveTrade.request.money}</Text>
               <Text>GOOJ Cards: {effectiveActiveTrade.request.getOutOfJailCards}</Text>
@@ -587,6 +613,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexWrap: 'wrap',
+  },
+  // Single-line heading so both proposal columns keep the same height; the
+  // shared `nameRow` wraps, which dropped the dot onto its own line.
+  columnHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  columnHeadingDot: {
+    marginHorizontal: 4,
+  },
+  columnHeadingText: {
+    flexShrink: 1,
+    marginBottom: 0,
   },
   sliderRow: {
     flexDirection: 'row',
