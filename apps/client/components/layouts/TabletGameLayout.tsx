@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutChangeEvent, ScrollView, StyleSheet, View } from 'react-native';
+import { LayoutChangeEvent, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Board } from '../Board';
 import { getBoardSize, getPlayerStripHeight } from '../board-size';
@@ -30,10 +30,13 @@ export const TabletGameLayout: React.FC<Props> = (props) => {
   };
 
   // A tall frame (iPad portrait) leaves a band under the square board. The
-  // Players list moves there, which also frees the board centre (#268). Unmeasured
-  // or wide frames keep the list in the centre.
-  const showStrip = frame !== null && getPlayerStripHeight(frame.width, frame.height) > 0;
-  const boardSize = frame ? getBoardSize(frame.width, frame.height) : 0;
+  // Players list moves there, which also frees the board centre (#268). Before
+  // the first layout pass the window minus the status-bar inset stands in for
+  // the frame, so the list does not jump from the centre to the strip.
+  const win = useWindowDimensions();
+  const sized = frame ?? { width: win.width, height: win.height - insets.top };
+  const showStrip = getPlayerStripHeight(sized.width, sized.height) > 0;
+  const boardSize = getBoardSize(sized.width, sized.height);
 
   return (
     // Outer wrapper carries the status-bar inset (iPad shows one too) so the inner
