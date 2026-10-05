@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, StyleSheet, View, Text } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useGameLayout } from '../../hooks/useGameLayout';
 import { CloseButton } from './CloseButton';
 
@@ -57,14 +57,21 @@ export const FullScreenModalShell: React.FC<Props> = ({
         onRequestClose={dismiss}
         onDismiss={dismiss}
       >
-        <SafeAreaView style={styles.phoneRoot} edges={['top', 'bottom', 'left', 'right']}>
-          <View style={styles.phoneHeader}>
-            {showClose ? <CloseButton onPress={onClose} /> : <View style={styles.headerSpacer} />}
-            {title ? <Text style={styles.phoneTitle}>{title}</Text> : null}
-            <View style={styles.headerSpacer} />
-          </View>
-          <View style={styles.phoneBody}>{children}</View>
-        </SafeAreaView>
+        {/* A Modal mounts its content in a separate native root, so the app's
+            SafeAreaProvider is not an ancestor. Without our own, SafeAreaView
+            finds no provider and applies 0 insets — invisible in a pageSheet
+            (it starts below the status bar) but it puts the header of a
+            fullScreen modal under the Dynamic Island (#260). */}
+        <SafeAreaProvider>
+          <SafeAreaView style={styles.phoneRoot} edges={['top', 'bottom', 'left', 'right']}>
+            <View style={styles.phoneHeader}>
+              {showClose ? <CloseButton onPress={onClose} /> : <View style={styles.headerSpacer} />}
+              {title ? <Text style={styles.phoneTitle}>{title}</Text> : null}
+              <View style={styles.headerSpacer} />
+            </View>
+            <View style={styles.phoneBody}>{children}</View>
+          </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
     );
   }

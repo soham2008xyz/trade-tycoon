@@ -143,8 +143,17 @@
   padding the measured view would size the board for space it doesn't have).
   The phone wrapper also carries the `zIndex: 0` from #257. Insets are 0 on web.
   Verified on iPhone 17 and 17e (native dev build). `Toast` also uses the inset
-  (`top: insets.top + 8`, inline; 8px on web). Still open: the Auction modal
-  header (#260) ignores the inset.
+  (`top: insets.top + 8`, inline; 8px on web).
+- Safe-area in modals (#260): a React Native `Modal` mounts its content in a
+  separate native root, so the app's `SafeAreaProvider` isn't an ancestor.
+  The native `SafeAreaView` looks up the nearest provider among its native
+  ancestors (`findNearestProvider`), finds none, and applies 0 insets. Page
+  sheets start below the status bar, which hides it; the `fullScreen` Auction
+  modal showed its header under the Dynamic Island. Fix: wrap the modal's
+  content in its own `<SafeAreaProvider>` (done in `FullScreenModalShell`).
+  A nested provider seeds its insets from the parent context, so children
+  don't blank for a frame. Verified on iPhone 17: Auction header clears the
+  island; Manage (pageSheet) header didn't shift.
 - Game-over UI (#269): bankrupt/departed players are removed from
   `state.players`, so once `state.winner` is set the winner is the only player
   left — there are no "final standings" to list, just the winner's cash and
