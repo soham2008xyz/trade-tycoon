@@ -133,7 +133,7 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
                     style={[styles.tileColor, { backgroundColor: GROUP_COLORS[currentTile.group] }]}
                   />
                 )}
-                <Text style={styles.statusText}>
+                <Text style={[styles.statusText, styles.positionText]}>
                   {isTokenMoving ? '...' : getPlayerPositionLabel(currentPlayer, currentTile?.name)}
                 </Text>
               </View>
@@ -261,13 +261,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     columnGap: 6,
   },
-  currentTileInfo: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  currentTileInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   statusText: { fontSize: 14 },
+  // Shrinks so a long tile name wraps in place at large Dynamic Type instead
+  // of overflowing the panel (same pattern as Peek).
+  positionText: { flexShrink: 1 },
   tileColor: { width: 12, height: 12, marginRight: 6, borderWidth: 1, borderColor: '#333' },
   actions: { gap: 8, width: '100%' },
   waitingText: {
