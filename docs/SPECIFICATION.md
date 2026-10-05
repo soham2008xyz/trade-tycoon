@@ -90,7 +90,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 
 ## 7. Game Log
 
-- [x] **Event Log**: All significant game events (purchases, rent payments, card draws, jail, trades, bankruptcies, etc.) are appended to a `logs` array on `GameState`, capped at the 200 most recent entries so a long game's payload and storage stay bounded.
+- [x] **Event Log**: All significant game events (dice rolls and the tile reached, turn ends, purchases, rent payments, card draws, jail, trades, bankruptcies, etc.) are appended to a `logs` array on `GameState`, capped at the 400 most recent entries so a long game's payload and storage stay bounded.
 - [x] **Log Viewer**: In-game modal (`LogModal`) displays the full chronological event history with per-player colour coding.
 
 ## 8. Online Multiplayer

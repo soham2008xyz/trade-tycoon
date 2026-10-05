@@ -458,8 +458,11 @@ const removePlayerAndCleanup = (
 export const removePlayerFromGame = (state: GameState, playerId: string): GameState =>
   capLogs(removePlayerAndCleanup(state, playerId, 'left the game'));
 
-/** Logs are UI history, not gameplay state — cap so a long game's payload/storage stays bounded. */
-const MAX_LOGS = 200;
+/**
+ * Logs are UI history, not gameplay state — cap so a long game's payload/storage stays bounded.
+ * Sized for roughly 25 rounds of four players now that every roll and turn end is logged.
+ */
+const MAX_LOGS = 400;
 
 const capLogs = (state: GameState): GameState => {
   if (state.logs.length <= MAX_LOGS) return state;
@@ -519,6 +522,10 @@ const startAuction = (state: GameState, tile: Tile): GameState => ({
   toastMessage: `Auction started for ${tile.name}!`,
   logs: [...state.logs, `[Game] Auction started for ${tile.name}.`],
 });
+
+/** Log text for a roll, e.g. `Rolled 4 + 4 (doubles)`. */
+const describeRoll = (die1: number, die2: number): string =>
+  `Rolled ${die1} + ${die2}${die1 === die2 ? ' (doubles)' : ''}`;
 
 const reduceGameActionUnbounded = (
   state: GameState,
@@ -680,7 +687,11 @@ const reduceGameActionUnbounded = (
           phase: 'action',
           errorMessage: undefined,
           toastMessage,
-          logs: [...state.logs, `[${player.name}] ${toastMessage}`],
+          logs: [
+            ...state.logs,
+            `[${player.name}] ${describeRoll(die1, die2)}.`,
+            `[${player.name}] ${toastMessage}`,
+          ],
         };
       }
 
@@ -709,7 +720,11 @@ const reduceGameActionUnbounded = (
               phase: 'action',
               errorMessage: undefined,
               toastMessage,
-              logs: [...state.logs, `[${player.name}] ${toastMessage}`],
+              logs: [
+                ...state.logs,
+                `[${player.name}] ${describeRoll(die1, die2)}.`,
+                `[${player.name}] ${toastMessage}`,
+              ],
             };
           }
         }
@@ -717,6 +732,8 @@ const reduceGameActionUnbounded = (
 
       // Standard Move Logic (or Post-Jail Move)
       let newPosition = (player.position + die1 + die2) % 40;
+      // Names the tile the dice reached, before any card moves the player on.
+      const rollLog = `[${player.name}] ${describeRoll(die1, die2)} and moved to ${BOARD[newPosition].name}.`;
 
       // Check if passed Go
       let money = player.money;
@@ -910,7 +927,9 @@ const reduceGameActionUnbounded = (
         auctionedPropertyId: undefined, // new landing, new auction chance
         errorMessage: undefined,
         toastMessage,
-        logs: toastMessage ? [...state.logs, `[${player.name}] ${toastMessage}`] : state.logs,
+        logs: toastMessage
+          ? [...state.logs, rollLog, `[${player.name}] ${toastMessage}`]
+          : [...state.logs, rollLog],
       };
     }
 
@@ -1615,6 +1634,7 @@ const reduceGameActionUnbounded = (
         auctionedPropertyId: undefined,
         errorMessage: undefined,
         toastMessage: undefined, // Clear any persisting messages
+        logs: [...state.logs, `[${player?.name ?? 'Player'}] Ended their turn.`],
       };
     }
 

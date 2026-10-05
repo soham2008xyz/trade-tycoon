@@ -256,3 +256,9 @@
   parameters (Expanded exceeded the eight-parameter limit after adding
   `scrollable`). Accept one typed props object and destructure inside the
   component to keep its single-object interface explicit.
+
+- Game Log completeness (#255): every `ROLL_DICE` path appends a
+  `Rolled X + Y[ (doubles)]` entry before its effect entry (toast text), and
+  `END_TURN` logs `Ended their turn.`. Tests that read `logs.at(-1)` still see
+  the effect entry, so keep the roll entry first. `MAX_LOGS` is 400 because
+  rolls and turn ends roughly doubled log volume.
