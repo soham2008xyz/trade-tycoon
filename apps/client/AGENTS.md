@@ -236,6 +236,20 @@ opt-in design is what's correct; the test in
   `keyboardShouldPersistTaps="handled"` so taps on its buttons still work
   while the keyboard is up. Verified on the iPhone 17 simulator (iOS 26.4).
 
+- **Dynamic Type: board text is capped, panel text scales** (#273). `Tile`
+  sets `maxFontSizeMultiplier={1}` because tiles have fixed pixel sizes; any
+  new text drawn on the board needs the same. Panel rows that share a line
+  with other content let the text shrink (`flexShrink: 1`) or wrap. Verified
+  on the iPhone 17 simulator (iOS 26.4) at `accessibility-extra-large` and on
+  the iPad (A16) simulator at `extra-extra-large` and
+  `accessibility-extra-large`, always from a fresh launch. On iPad the panel
+  still outgrows the board's center hole at accessibility sizes (text wraps
+  but nothing scrolls). Don't judge layout after changing the text size live with
+  `simctl ui content_size`: text nodes that don't re-render keep their old
+  measured height and look clipped. Relaunch the app after each change. The
+  menu screens don't scroll and are unreachable at
+  `accessibility-extra-extra-extra-large`.
+
 ## Test command
 
 ```sh
