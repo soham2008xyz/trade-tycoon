@@ -95,6 +95,9 @@
   atomicity and room TTL as one record instead of needing a second
   synchronized store. Documented as a deliberate scope exception in
   `packages/game-logic/AGENTS.md`, not an oversight.
+- Generated room IDs are eight characters from an alphabet that excludes
+  `0`, `1`, `I`, `L`, and `O` so players can read and relay codes reliably;
+  existing room IDs remain valid because lookup still uses their stored code.
 - Server room-lifecycle status-code convention: an invalid/unknown session
   token is `401` on `/actions` and `/events` (the routes that operate on an
   already-established session). `/reconnect` and `/leave` instead always

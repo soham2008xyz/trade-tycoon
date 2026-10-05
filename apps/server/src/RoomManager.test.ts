@@ -29,6 +29,13 @@ describe('RoomManager', () => {
       expect(room?.players[0].isHost).toBe(true);
     });
 
+    it('should generate room IDs without visually ambiguous characters', async () => {
+      for (let i = 0; i < 100; i++) {
+        const { roomId } = await roomManager.createRoom(`Host${i}`);
+        expect(roomId).toMatch(/^[A-HJ-KM-NP-Z2-9]{8}$/);
+      }
+    });
+
     it('should never leak session tokens from getRoom', async () => {
       const { roomId } = await roomManager.createRoom('HostPlayer');
       const room = await roomManager.getRoom(roomId);
