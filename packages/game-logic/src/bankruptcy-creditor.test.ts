@@ -3,6 +3,8 @@ import { createInitialState, createPlayer } from './index';
 import { gameReducer, reduceGameAction, removePlayerFromGame } from './reducer';
 import { CHANCE_CARDS } from './chance-cards';
 import { COMMUNITY_CHEST_CARDS } from './community-chest-cards';
+import { BOARD } from './board-data';
+import { getMortgageInterest } from './helpers';
 import type { GameState, Player } from './types';
 
 // Oriental Avenue rents: [6, 30, 90, 270, 400, 550]. From GO, dice 2+4 land on it
@@ -33,6 +35,9 @@ const issueState = (): GameState => ({
   currentPlayerId: 'p3',
   phase: 'roll',
 });
+
+const mortgageValueOf = (propertyId: string): number =>
+  BOARD.find((t) => t.id === propertyId)?.mortgageValue ?? 0;
 
 const byId = (state: GameState, id: string): Player => {
   const found = state.players.find((p) => p.id === id);
@@ -246,6 +251,53 @@ describe('DECLARE_BANKRUPTCY with a player creditor', () => {
     expect(byId(after, 'p2').mortgaged).toEqual(['st_james']);
   });
 
+  it('charges the creditor 10% interest per inherited mortgaged property', () => {
+    const owing = landOnOriental(issueState());
+    owing.players[2] = {
+      ...owing.players[2],
+      properties: ['tennessee', 'st_james', 'new_york'],
+      mortgaged: ['st_james', 'new_york'],
+    };
+    const creditorBefore = byId(owing, 'p2');
+
+    const after = gameReducer(owing, { type: 'DECLARE_BANKRUPTCY', playerId: 'p3' });
+
+    const interest =
+      getMortgageInterest(mortgageValueOf('st_james')) +
+      getMortgageInterest(mortgageValueOf('new_york'));
+    expect(interest).toBeGreaterThan(0);
+    expect(byId(after, 'p2').money).toBe(creditorBefore.money - interest);
+    expect(byId(after, 'p2').mortgaged).toEqual(['st_james', 'new_york']);
+    expect(after.toastMessage).toContain(`$${interest} mortgage interest`);
+    expect(after.logs.join('\n')).toContain(`$${interest} mortgage interest`);
+  });
+
+  it('charges nothing for inherited properties that are not mortgaged', () => {
+    const owing = landOnOriental(issueState());
+    const creditorBefore = byId(owing, 'p2');
+
+    const after = gameReducer(owing, { type: 'DECLARE_BANKRUPTCY', playerId: 'p3' });
+
+    expect(byId(after, 'p2').money).toBe(creditorBefore.money);
+    expect(after.toastMessage).not.toMatch(/interest/);
+  });
+
+  it('charges the interest even when it leaves the creditor below $0, without making them owe a player', () => {
+    const owing = landOnOriental(issueState());
+    owing.players[2] = {
+      ...owing.players[2],
+      properties: ['st_james'],
+      mortgaged: ['st_james'],
+    };
+    owing.players[1] = { ...owing.players[1], money: 0 };
+    const interest = getMortgageInterest(mortgageValueOf('st_james'));
+
+    const after = gameReducer(owing, { type: 'DECLARE_BANKRUPTCY', playerId: 'p3' });
+
+    expect(byId(after, 'p2').money).toBe(-interest);
+    expect(byId(after, 'p2').debtOwedTo).toBeUndefined();
+  });
+
   it("sells the debtor's buildings back to the bank and gives the creditor the proceeds", () => {
     const owing = landOnOriental(issueState());
     // Orange set: 3 + 2 + 5 (hotel) buildings. Houses cost $100 each -> $50 refund each.
@@ -298,6 +350,19 @@ describe('DECLARE_BANKRUPTCY with a player creditor', () => {
     expect(after.winner).toBe('p2');
     expect(after.players).toHaveLength(1);
     expect(byId(after, 'p2').properties).toContain('tennessee');
+    expect(after.toastMessage).toMatch(/Player 2 wins/);
+  });
+
+  it('still names the creditor as the winner when interest applies', () => {
+    const state = issueState();
+    state.players = [state.players[1], state.players[2]];
+    const owing = landOnOriental(state);
+    owing.players[1] = { ...owing.players[1], mortgaged: ['tennessee'], properties: ['tennessee'] };
+
+    const after = gameReducer(owing, { type: 'DECLARE_BANKRUPTCY', playerId: 'p3' });
+
+    expect(after.winner).toBe('p2');
+    expect(after.toastMessage).toMatch(/mortgage interest/);
     expect(after.toastMessage).toMatch(/Player 2 wins/);
   });
 

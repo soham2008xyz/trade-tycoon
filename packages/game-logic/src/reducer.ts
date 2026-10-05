@@ -23,6 +23,7 @@ import {
   swapJailCards,
 } from './jail-cards';
 import {
+  getMortgageInterest,
   getUnmortgageCost,
   ownsCompleteGroup,
   validateEvenBuild,
@@ -158,8 +159,11 @@ const bankruptcyCreditorId = (state: GameState, debtor: Player): string | undefi
 
 /**
  * Moves everything a bankrupt player owns to `creditor`, per standard rules:
- * - properties transfer with their mortgage flag intact (no 10% transfer fee —
- *   the new owner just inherits the mortgage);
+ * - properties transfer with their mortgage flag intact, and the creditor
+ *   pays the standard 10% interest on each mortgaged one straight away. The
+ *   property stays mortgaged (the creditor can lift it later with UNMORTGAGE_PROPERTY).
+ *   Interest is charged even if it pushes the creditor below $0, like rent;
+ *   it is owed to the bank, so it sets no `debtOwedTo`;
  * - buildings are sold back to the bank at half price and the proceeds go to
  *   the creditor, so properties arrive bare;
  * - any Get Out of Jail Free cards transfer;
@@ -168,21 +172,28 @@ const bankruptcyCreditorId = (state: GameState, debtor: Player): string | undefi
  *   written off. The creditor was already credited the full payment when the
  *   debt arose (rent is credited in full even if the payer is short), so
  *   clawing it back would be a surprising second penalty.
- * Returns the updated creditor and the building proceeds for logging.
+ * Returns the updated creditor plus the building proceeds and mortgage
+ * interest for logging.
  */
 const transferAssets = (
   debtor: Player,
   creditor: Player
-): { creditor: Player; buildingProceeds: number } => {
+): { creditor: Player; buildingProceeds: number; mortgageInterest: number } => {
   const buildingProceeds = Object.entries(debtor.houses).reduce((sum, [propertyId, count]) => {
     const houseCost = BOARD.find((t) => t.id === propertyId)?.houseCost ?? 0;
     return sum + count * (houseCost / 2);
   }, 0);
+  const mortgageInterest = debtor.mortgaged.reduce(
+    (sum, propertyId) =>
+      sum + getMortgageInterest(BOARD.find((t) => t.id === propertyId)?.mortgageValue ?? 0),
+    0
+  );
   return {
     buildingProceeds,
+    mortgageInterest,
     creditor: {
       ...creditor,
-      money: creditor.money + Math.max(0, debtor.money) + buildingProceeds,
+      money: creditor.money + Math.max(0, debtor.money) + buildingProceeds - mortgageInterest,
       properties: [...creditor.properties, ...debtor.properties],
       mortgaged: [...creditor.mortgaged, ...debtor.mortgaged],
       getOutOfJailCards: creditor.getOutOfJailCards + debtor.getOutOfJailCards,
@@ -204,15 +215,24 @@ const giveAssetsToInheritor = (
 ): { players: Player[]; assetsNote?: string; logs: string[] } => {
   const inheritor = inheritorId ? players.find((p) => p.id === inheritorId) : undefined;
   if (!inheritor) return { players, logs: [] };
-  const { creditor, buildingProceeds } = transferAssets(player, inheritor);
+  const { creditor, buildingProceeds, mortgageInterest } = transferAssets(player, inheritor);
   const sold =
     buildingProceeds > 0
-      ? `; their buildings were sold to the bank for $${buildingProceeds}, paid to ${creditor.name}.`
-      : '.';
+      ? `their buildings were sold to the bank for $${buildingProceeds}, paid to ${creditor.name}`
+      : '';
+  const interest =
+    mortgageInterest > 0
+      ? `${creditor.name} paid $${mortgageInterest} mortgage interest to the bank`
+      : '';
+  const details = [sold, interest].filter(Boolean).join('; ');
+  const interestNote =
+    mortgageInterest > 0 ? ` ${creditor.name} pays $${mortgageInterest} mortgage interest.` : '';
   return {
     players: players.map((p) => (p.id === creditor.id ? creditor : p)),
-    assetsNote: `${creditor.name} receives their assets.`,
-    logs: [`[Game] ${player.name}'s properties and cards went to ${creditor.name}${sold}`],
+    assetsNote: `${creditor.name} receives their assets.${interestNote}`,
+    logs: [
+      `[Game] ${player.name}'s properties and cards went to ${creditor.name}${details ? `; ${details}` : ''}.`,
+    ],
   };
 };
 
