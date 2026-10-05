@@ -7,6 +7,7 @@ import { canStartNewGame } from '../multiplayer-gating';
 import type { StatusPanelProps } from './types';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
+import { formatMoney } from '../format-money';
 
 type Props = Pick<
   StatusPanelProps,
@@ -44,7 +45,7 @@ export const GameOverCard: React.FC<Props> = ({
         <Text style={styles.title}>{getGameOverTitle(summary, myPlayerId, isMultiplayer)}</Text>
       </View>
       <Text style={styles.stats}>
-        Game over · ${summary.cash} cash · {summary.propertyCount} {propertyLabel}
+        Game over · {formatMoney(summary.cash)} cash · {summary.propertyCount} {propertyLabel}
       </Text>
       <View style={styles.actions}>
         {showNewGame && <IconButton title="New Game" icon="restart" onPress={onNewGame} />}

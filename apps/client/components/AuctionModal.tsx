@@ -7,6 +7,7 @@ import { DisconnectedBadge } from './ui/DisconnectedBadge';
 import { shouldShowAuctionControls } from './multiplayer-gating';
 import { useTheme } from '../hooks/useTheme';
 import type { Theme } from '../constants/theme';
+import { formatMoney } from './format-money';
 
 export { shouldShowAuctionControls };
 
@@ -105,7 +106,7 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
       <View style={[styles.playerInfo, !isTurn && styles.inactiveDim]}>
         <View style={[styles.playerColor, { backgroundColor: player.color }]} />
         <Text style={[styles.playerName, isTurn && styles.activePlayerName]}>
-          {player.name} (${player.money}) {isTurn && ' (Bidding)'}
+          {player.name} ({formatMoney(player.money)}) {isTurn && ' (Bidding)'}
         </Text>
         {isDisconnected && (
           <View style={styles.badgeWrapper}>

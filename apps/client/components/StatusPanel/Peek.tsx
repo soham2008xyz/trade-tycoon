@@ -11,6 +11,7 @@ import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
 import type { StatusPanelProps } from './types';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
+import { formatMoney } from '../format-money';
 
 export const Peek: React.FC<StatusPanelProps> = ({
   state,
@@ -62,7 +63,7 @@ export const Peek: React.FC<StatusPanelProps> = ({
         <View style={styles.playerChip}>
           <View style={[styles.dot, { backgroundColor: currentPlayer.color }]} />
           <Text style={styles.playerName}>{currentPlayer.name}</Text>
-          <Text style={styles.money}>${currentPlayer.money}</Text>
+          <Text style={styles.money}>{formatMoney(currentPlayer.money)}</Text>
           <GOOJBadge count={currentPlayer.getOutOfJailCards} />
         </View>
         {state.phase === 'action' && (

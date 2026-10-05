@@ -16,6 +16,8 @@ import { useGameLayout } from '../hooks/useGameLayout';
 import { GROUP_COLORS, GROUP_DISPLAY_NAMES } from '../constants';
 import { useTheme } from '../hooks/useTheme';
 import type { Theme } from '../constants/theme';
+import { buildLabel, sellLabel } from './building-labels';
+import { formatMoney } from './format-money';
 
 // Both `GROUP_COLORS` and `GROUP_DISPLAY_NAMES` are imported as `Record<string, string>`.
 // Wrapping them in `Map`s once at module load lets us read with `.get()` instead of
@@ -57,14 +59,14 @@ const HouseControls: React.FC<{
   return (
     <>
       <IconButton
-        title={`Build House ($${houseCost})`}
+        title={buildLabel(houses, houseCost)}
         icon="home-plus"
         onPress={() => onBuild(tile.id)}
         disabled={player.money < houseCost || houses >= 5 || !hasCompleteGroup}
         size="small"
       />
       <IconButton
-        title={`Sell House ($${houseCost / 2})`}
+        title={sellLabel(houses, houseCost / 2)}
         icon="home-minus"
         onPress={() => onSell(tile.id)}
         color={theme.warning}
@@ -307,7 +309,7 @@ export const PropertyManager: React.FC<Props> = ({
               </View>
             </View>
           )}
-          <Text style={styles.balance}>Cash: ${player.money}</Text>
+          <Text style={styles.balance}>Cash: {formatMoney(player.money)}</Text>
 
           <ScrollView style={styles.scroll}>
             {sortedEntries.length === 0 ? (
