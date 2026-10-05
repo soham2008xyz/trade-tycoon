@@ -295,7 +295,8 @@ Colours for the UI chrome come from the tokens in `constants/theme.ts`
 them with `useTheme()` (`hooks/useTheme.ts`, a thin wrapper over
 `useColorScheme`), build styles with a `createStyles(theme)` factory
 instead of a module-level `StyleSheet.create`, and never write a colour
-literal. The React Compiler memoises the factory, so there is no `useMemo`.
+literal. `pickTheme` returns one of two stable objects, so the factory is cheap
+and needs no `useMemo`.
 
 - **Map by role, not by value.** `#fff` was both a surface and a button label
   (`onAccent`); `#666` was both secondary text and a neutral button fill

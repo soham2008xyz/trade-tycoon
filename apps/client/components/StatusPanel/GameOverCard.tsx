@@ -38,7 +38,8 @@ export const GameOverCard: React.FC<Props> = ({
   return (
     <View style={styles.root} accessibilityRole="summary">
       <View style={styles.headline}>
-        <MaterialCommunityIcons name="trophy" size={26} color={theme.warning} />
+        {/* Gold in both schemes: a trophy is not UI chrome. */}
+        <MaterialCommunityIcons name="trophy" size={26} color="#f59e0b" />
         <View style={[styles.dot, { backgroundColor: summary.color }]} />
         <Text style={styles.title}>{getGameOverTitle(summary, myPlayerId, isMultiplayer)}</Text>
       </View>
