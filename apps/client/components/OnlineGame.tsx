@@ -227,7 +227,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         setTransientError(result.error);
         return;
       }
-      enterLobby(result.data);
+      await enterLobby(result.data);
     } finally {
       requestInFlightRef.current = false;
       setBusy(false);
@@ -251,7 +251,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       }
       // Server already normalized the room id, but make sure we use the
       // exact value it returned for SSE / future requests.
-      enterLobby({ ...result.data, roomId: result.data.roomId || targetRoomId });
+      await enterLobby({ ...result.data, roomId: result.data.roomId || targetRoomId });
     } finally {
       requestInFlightRef.current = false;
       setBusy(false);
@@ -337,21 +337,23 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   }, [roomId, token, onBack]);
 
   /**
-   * Bring the joined-room response from the REST call into local state and
-   * persist the session for future resume. This is the entry point that flips
-   * `step` to 'lobby', and also triggers the SSE useEffect via the new
-   * `roomId` / `token`.
+   * Persist the session for future resume, then bring the joined-room
+   * response into local state. This is the entry point that flips `step` to
+   * 'lobby', and also triggers the SSE useEffect via the new `roomId` /
+   * `token`. The write is awaited first: on native it is an async keychain /
+   * keystore call, and if the app is killed before it lands the server keeps
+   * the player while the device has nothing to resume from (#258).
    */
-  function enterLobby(body: JoinedRoomResponse) {
-    setRoomId(body.roomId);
-    setPlayerId(body.playerId);
-    setToken(body.token);
-    setStep('lobby');
-    void writeStoredSession({
+  async function enterLobby(body: JoinedRoomResponse) {
+    await writeStoredSession({
       roomId: body.roomId,
       playerId: body.playerId,
       token: body.token,
     });
+    setRoomId(body.roomId);
+    setPlayerId(body.playerId);
+    setToken(body.token);
+    setStep('lobby');
   }
 
   // Render Logic
