@@ -229,6 +229,13 @@ opt-in design is what's correct; the test in
   `top: insets.top + 8` inline (not a hard-coded offset) so it clears the
   Dynamic Island / notch and sits 8px from the top on web.
 
+- **Screens with text inputs go in `ui/KeyboardAwareScreen`** (#262). It
+  adds iOS keyboard avoidance and tap-outside-to-dismiss (native only; on web
+  a press handler around inputs would blur a field right after focus). A
+  `ScrollView` inside such a screen needs
+  `keyboardShouldPersistTaps="handled"` so taps on its buttons still work
+  while the keyboard is up. Not verified on a simulator in #262.
+
 ## Test command
 
 ```sh

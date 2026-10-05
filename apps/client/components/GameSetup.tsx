@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { IconButton } from './ui/IconButton';
+import { KeyboardAwareScreen } from './ui/KeyboardAwareScreen';
 import {
   PLAYER_COLORS,
   isColorTakenByOthers,
@@ -59,7 +60,7 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
   };
 
   return (
-    <View style={styles.modalContainer}>
+    <KeyboardAwareScreen style={styles.modalContainer}>
       <View style={styles.content}>
         <Text style={styles.title}>Game Setup</Text>
 
@@ -85,7 +86,13 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
           </View>
         </View>
 
-        <ScrollView style={styles.playersList}>
+        {/* "handled" lets taps on colour swatches work while the keyboard is up
+            instead of being swallowed by a dismiss; dragging dismisses it. */}
+        <ScrollView
+          style={styles.playersList}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           {players.map((player, index) => (
             <View key={index} style={styles.playerRow}>
               <Text style={styles.playerLabel}>Player {index + 1}</Text>
@@ -141,7 +148,7 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
           <IconButton title="Start Game" icon="play" onPress={handleSubmit} style={{ flex: 2 }} />
         </View>
       </View>
-    </View>
+    </KeyboardAwareScreen>
   );
 };
 
