@@ -295,9 +295,9 @@ export const TradeModal: React.FC<Props> = ({
                     maximumValue={moneySliderMax(initiator.money)}
                     step={1}
                     value={sliderFromMoney(offerMoney, initiator.money)}
-                    onValueChange={(position) =>
-                      setOfferMoney(moneyFromSlider(position, initiator.money))
-                    }
+                    onValueChange={(position) => {
+                      setOfferMoney(moneyFromSlider(position, initiator.money));
+                    }}
                     minimumTrackTintColor="#4CAF50"
                     maximumTrackTintColor="#ccc"
                     thumbTintColor="#4CAF50"
@@ -383,9 +383,9 @@ export const TradeModal: React.FC<Props> = ({
                     maximumValue={moneySliderMax(target.money)}
                     step={1}
                     value={sliderFromMoney(reqMoney, target.money)}
-                    onValueChange={(position) =>
-                      setReqMoney(moneyFromSlider(position, target.money))
-                    }
+                    onValueChange={(position) => {
+                      setReqMoney(moneyFromSlider(position, target.money));
+                    }}
                     minimumTrackTintColor="#F44336"
                     maximumTrackTintColor="#ccc"
                     thumbTintColor="#F44336"
