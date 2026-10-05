@@ -10,6 +10,8 @@ import { GROUP_COLORS } from '../constants';
 import { canAcceptTrade, canCancelTrade } from './multiplayer-gating';
 import { useGameLayout } from '../hooks/useGameLayout';
 import { moneyFromSlider, moneySliderMax, sliderFromMoney } from './trade-money';
+import { useTheme } from '../hooks/useTheme';
+import type { Theme } from '../constants/theme';
 
 export { canAcceptTrade, canCancelTrade };
 
@@ -19,12 +21,13 @@ export { canAcceptTrade, canCancelTrade };
  * stop pumping cyclomatic complexity into the parent.
  */
 const TradePropertyLine: React.FC<{ tileId: string }> = ({ tileId }) => {
+  const styles = createStyles(useTheme());
   const tile = BOARD.find((t) => t.id === tileId);
   const groupColor = tile?.group ? GROUP_COLORS[tile.group] : null;
   return (
     <View style={[styles.propItem, styles.nameRow, { justifyContent: 'flex-start' }]}>
       {groupColor && <View style={[styles.propertyColor, { backgroundColor: groupColor }]} />}
-      <Text>• {tile?.name}</Text>
+      <Text style={styles.text}>• {tile?.name}</Text>
     </View>
   );
 };
@@ -68,6 +71,8 @@ export const TradeModal: React.FC<Props> = ({
   onClose,
   isMultiplayer = false,
 }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   // On phone the shell already draws the "Trade" title + close button and
   // fills the screen, so the card-on-grey-backdrop chrome (own ✕, redundant
   // Cancel, "Trade Proposal" heading) would duplicate it. Wide layouts get a
@@ -161,10 +166,10 @@ export const TradeModal: React.FC<Props> = ({
           {!isPhone && <Text style={styles.title}>Trade Proposal</Text>}
           <View style={[styles.headerSubtitle, styles.nameRow, { flexWrap: 'wrap' }]}>
             <View style={[styles.playerColor, { backgroundColor: tradeInitiator?.color }]} />
-            <Text>{tradeInitiator?.name}</Text>
-            <Text> offers to </Text>
+            <Text style={styles.text}>{tradeInitiator?.name}</Text>
+            <Text style={styles.text}> offers to </Text>
             <View style={[styles.playerColor, { backgroundColor: tradeTarget?.color }]} />
-            <Text>{tradeTarget?.name}:</Text>
+            <Text style={styles.text}>{tradeTarget?.name}:</Text>
           </View>
           <View style={styles.columns}>
             <View style={styles.column}>
@@ -185,8 +190,10 @@ export const TradeModal: React.FC<Props> = ({
                   {tradeTarget?.name} Receives:
                 </Text>
               </View>
-              <Text>Money: ${effectiveActiveTrade.offer.money}</Text>
-              <Text>GOOJ Cards: {effectiveActiveTrade.offer.getOutOfJailCards}</Text>
+              <Text style={styles.text}>Money: ${effectiveActiveTrade.offer.money}</Text>
+              <Text style={styles.text}>
+                GOOJ Cards: {effectiveActiveTrade.offer.getOutOfJailCards}
+              </Text>
               <Text style={styles.propHeader}>Properties:</Text>
               {effectiveActiveTrade.offer.properties.map((id) => (
                 <TradePropertyLine key={id} tileId={id} />
@@ -211,8 +218,10 @@ export const TradeModal: React.FC<Props> = ({
                   {tradeTarget?.name} Gives:
                 </Text>
               </View>
-              <Text>Money: ${effectiveActiveTrade.request.money}</Text>
-              <Text>GOOJ Cards: {effectiveActiveTrade.request.getOutOfJailCards}</Text>
+              <Text style={styles.text}>Money: ${effectiveActiveTrade.request.money}</Text>
+              <Text style={styles.text}>
+                GOOJ Cards: {effectiveActiveTrade.request.getOutOfJailCards}
+              </Text>
               <Text style={styles.propHeader}>Properties:</Text>
               {effectiveActiveTrade.request.properties.map((id) => (
                 <TradePropertyLine key={id} tileId={id} />
@@ -225,13 +234,13 @@ export const TradeModal: React.FC<Props> = ({
                 title="Accept"
                 icon="check"
                 onPress={() => onAccept(effectiveActiveTrade.id)}
-                color="green"
+                color={theme.success}
               />
               <IconButton
                 title="Reject"
                 icon="close"
                 onPress={() => onReject(effectiveActiveTrade.id)}
-                color="red"
+                color={theme.danger}
               />
             </View>
           )}
@@ -241,7 +250,7 @@ export const TradeModal: React.FC<Props> = ({
                 title={`Cancel (by ${tradeInitiator?.name})`}
                 icon="close-circle"
                 onPress={() => onCancel(effectiveActiveTrade.id)}
-                color="#666"
+                color={theme.neutralButton}
                 size="small"
               />
             </View>
@@ -286,7 +295,7 @@ export const TradeModal: React.FC<Props> = ({
                   <Text style={styles.subtitle}>You Offer</Text>
                 </View>
 
-                <Text>Money (Max: ${initiator.money})</Text>
+                <Text style={styles.text}>Money (Max: ${initiator.money})</Text>
                 <View style={styles.sliderRow}>
                   <Text style={styles.moneyText}>${offerMoney}</Text>
                   <Slider
@@ -298,15 +307,15 @@ export const TradeModal: React.FC<Props> = ({
                     onValueChange={(position) => {
                       setOfferMoney(moneyFromSlider(position, initiator.money));
                     }}
-                    minimumTrackTintColor="#4CAF50"
-                    maximumTrackTintColor="#ccc"
-                    thumbTintColor="#4CAF50"
+                    minimumTrackTintColor={theme.success}
+                    maximumTrackTintColor={theme.borderStrong}
+                    thumbTintColor={theme.success}
                   />
                 </View>
 
                 {initiator.getOutOfJailCards > 0 && (
                   <View style={styles.row}>
-                    <Text>
+                    <Text style={styles.text}>
                       GOOJ Cards ({offerCards}/{initiator.getOutOfJailCards})
                     </Text>
                     <View style={styles.stepper}>
@@ -316,8 +325,8 @@ export const TradeModal: React.FC<Props> = ({
                         onPress={() => setOfferCards(Math.max(0, offerCards - 1))}
                         size="small"
                         style={styles.stepperBtn}
-                        color="#eee"
-                        textColor="#333"
+                        color={theme.border}
+                        textColor={theme.textPrimary}
                       />
                       <IconButton
                         title=""
@@ -327,8 +336,8 @@ export const TradeModal: React.FC<Props> = ({
                         }
                         size="small"
                         style={styles.stepperBtn}
-                        color="#eee"
-                        textColor="#333"
+                        color={theme.border}
+                        textColor={theme.textPrimary}
                       />
                     </View>
                   </View>
@@ -348,7 +357,7 @@ export const TradeModal: React.FC<Props> = ({
                       <MaterialCommunityIcons
                         name={isChecked ? 'checkbox-marked' : 'checkbox-blank-outline'}
                         size={24}
-                        color={isChecked ? '#4CAF50' : '#666'}
+                        color={isChecked ? theme.success : theme.textSecondary}
                       />
                       {tile?.group && GROUP_COLORS[tile.group] && (
                         <View
@@ -374,7 +383,7 @@ export const TradeModal: React.FC<Props> = ({
                   <Text style={styles.subtitle}>You Request</Text>
                 </View>
 
-                <Text>Money (Max: ${target.money})</Text>
+                <Text style={styles.text}>Money (Max: ${target.money})</Text>
                 <View style={styles.sliderRow}>
                   <Text style={styles.moneyText}>${reqMoney}</Text>
                   <Slider
@@ -386,15 +395,15 @@ export const TradeModal: React.FC<Props> = ({
                     onValueChange={(position) => {
                       setReqMoney(moneyFromSlider(position, target.money));
                     }}
-                    minimumTrackTintColor="#F44336"
-                    maximumTrackTintColor="#ccc"
-                    thumbTintColor="#F44336"
+                    minimumTrackTintColor={theme.danger}
+                    maximumTrackTintColor={theme.borderStrong}
+                    thumbTintColor={theme.danger}
                   />
                 </View>
 
                 {target.getOutOfJailCards > 0 && (
                   <View style={styles.row}>
-                    <Text>
+                    <Text style={styles.text}>
                       GOOJ Cards ({reqCards}/{target.getOutOfJailCards})
                     </Text>
                     <View style={styles.stepper}>
@@ -404,8 +413,8 @@ export const TradeModal: React.FC<Props> = ({
                         onPress={() => setReqCards(Math.max(0, reqCards - 1))}
                         size="small"
                         style={styles.stepperBtn}
-                        color="#eee"
-                        textColor="#333"
+                        color={theme.border}
+                        textColor={theme.textPrimary}
                       />
                       <IconButton
                         title=""
@@ -415,8 +424,8 @@ export const TradeModal: React.FC<Props> = ({
                         }
                         size="small"
                         style={styles.stepperBtn}
-                        color="#eee"
-                        textColor="#333"
+                        color={theme.border}
+                        textColor={theme.textPrimary}
                       />
                     </View>
                   </View>
@@ -436,7 +445,7 @@ export const TradeModal: React.FC<Props> = ({
                       <MaterialCommunityIcons
                         name={isChecked ? 'checkbox-marked' : 'checkbox-blank-outline'}
                         size={24}
-                        color={isChecked ? '#4CAF50' : '#666'}
+                        color={isChecked ? theme.success : theme.textSecondary}
                       />
                       {tile?.group && GROUP_COLORS[tile.group] && (
                         <View
@@ -458,7 +467,12 @@ export const TradeModal: React.FC<Props> = ({
             {!isPhone && (
               <>
                 <View style={{ width: 10 }} />
-                <IconButton title="Cancel" icon="close" onPress={onClose} color="#666" />
+                <IconButton
+                  title="Cancel"
+                  icon="close"
+                  onPress={onClose}
+                  color={theme.neutralButton}
+                />
               </>
             )}
           </View>
@@ -476,178 +490,186 @@ export const TradeModal: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  phoneOverlay: { flex: 1, backgroundColor: 'white' },
-  phoneContent: { flex: 1, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
-  // flex:1 (not flexGrow:0) so the Propose button row pins to the bottom.
-  phoneScrollArea: { flex: 1, marginBottom: 12 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '95%',
-    maxHeight: '90%',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
-    elevation: 5,
-  },
-  headerRow: {
-    marginBottom: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    minHeight: 30,
-  },
-  closeButtonContainer: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 10,
-    fontStyle: 'italic',
-  },
-  scrollArea: {
-    flexGrow: 0,
-    marginBottom: 20,
-  },
-  columns: {
-    flexDirection: 'row',
-  },
-  column: {
-    flex: 1,
-    paddingHorizontal: 5,
-  },
-  divider: {
-    width: 1,
-    backgroundColor: '#ccc',
-    marginHorizontal: 5,
-  },
-  subtitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-    textDecorationLine: 'underline',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 5,
-    marginBottom: 10,
-    marginTop: 5,
-  },
-  row: {
-    marginBottom: 10,
-  },
-  stepper: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: 90,
-    marginTop: 5,
-  },
-  stepperBtn: {
-    width: 40,
-    height: 30,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-  },
-  propHeader: {
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  emptyText: {
-    fontStyle: 'italic',
-    color: '#888',
-  },
-  propItem: {
-    marginBottom: 2,
-  },
-  checkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  propText: {
-    marginLeft: 8,
-    flexShrink: 1,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  playerColor: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginHorizontal: 8,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  propertyColor: {
-    width: 16,
-    height: 16,
-    marginHorizontal: 8,
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: '#999',
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-  },
-  // Single-line heading so both proposal columns keep the same height; the
-  // shared `nameRow` wraps, which dropped the dot onto its own line.
-  columnHeadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  columnHeadingDot: {
-    marginHorizontal: 4,
-  },
-  columnHeadingText: {
-    flexShrink: 1,
-    marginBottom: 0,
-  },
-  sliderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  slider: {
-    flex: 1,
-    height: 40,
-  },
-  moneyText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginRight: 10,
-    width: 50, // Fixed width to prevent jumping
-    textAlign: 'right',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    phoneOverlay: { flex: 1, backgroundColor: theme.surface },
+    phoneContent: { flex: 1, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
+    // flex:1 (not flexGrow:0) so the Propose button row pins to the bottom.
+    phoneScrollArea: { flex: 1, marginBottom: 12 },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.scrim,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      width: '95%',
+      maxHeight: '90%',
+      backgroundColor: theme.surface,
+      borderRadius: 12,
+      padding: 20,
+      boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
+      elevation: 5,
+    },
+    headerRow: {
+      marginBottom: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+      position: 'relative',
+      minHeight: 30,
+    },
+    closeButtonContainer: {
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      bottom: 0,
+      justifyContent: 'center',
+    },
+    text: { color: theme.textPrimary },
+    title: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      color: theme.textPrimary,
+    },
+    headerSubtitle: {
+      fontSize: 16,
+      textAlign: 'center',
+      marginBottom: 10,
+      fontStyle: 'italic',
+      color: theme.textPrimary,
+    },
+    scrollArea: {
+      flexGrow: 0,
+      marginBottom: 20,
+    },
+    columns: {
+      flexDirection: 'row',
+    },
+    column: {
+      flex: 1,
+      paddingHorizontal: 5,
+    },
+    divider: {
+      width: 1,
+      backgroundColor: theme.borderStrong,
+      marginHorizontal: 5,
+    },
+    subtitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 10,
+      textAlign: 'center',
+      textDecorationLine: 'underline',
+      color: theme.textPrimary,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.borderStrong,
+      borderRadius: 5,
+      padding: 5,
+      marginBottom: 10,
+      marginTop: 5,
+    },
+    row: {
+      marginBottom: 10,
+    },
+    stepper: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      width: 90,
+      marginTop: 5,
+    },
+    stepperBtn: {
+      width: 40,
+      height: 30,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+    },
+    propHeader: {
+      color: theme.textPrimary,
+      fontWeight: 'bold',
+      marginTop: 10,
+      marginBottom: 5,
+    },
+    emptyText: {
+      fontStyle: 'italic',
+      color: theme.textMuted,
+    },
+    propItem: {
+      marginBottom: 2,
+    },
+    checkRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    propText: {
+      color: theme.textPrimary,
+      marginLeft: 8,
+      flexShrink: 1,
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginTop: 10,
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+    },
+    playerColor: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      marginHorizontal: 8,
+      borderWidth: 1,
+      borderColor: theme.borderStrong,
+    },
+    propertyColor: {
+      width: 16,
+      height: 16,
+      marginHorizontal: 8,
+      borderRadius: 3,
+      borderWidth: 1,
+      borderColor: theme.textMuted,
+    },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+    },
+    // Single-line heading so both proposal columns keep the same height; the
+    // shared `nameRow` wraps, which dropped the dot onto its own line.
+    columnHeadingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 10,
+    },
+    columnHeadingDot: {
+      marginHorizontal: 4,
+    },
+    columnHeadingText: {
+      flexShrink: 1,
+      marginBottom: 0,
+    },
+    sliderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    slider: {
+      flex: 1,
+      height: 40,
+    },
+    moneyText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginRight: 10,
+      color: theme.textPrimary,
+      width: 50, // Fixed width to prevent jumping
+      textAlign: 'right',
+    },
+  });

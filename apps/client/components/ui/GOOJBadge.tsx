@@ -2,9 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getHeldCardsBadge } from '../held-cards';
-
-// Same icon + colour as the "Use Card" button, so the badge reads as the same card.
-const CARD_COLOR = '#5bc0de';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '../../constants/theme';
 
 /**
  * Small "card ×N" chip for a player's held Get Out of Jail Free cards.
@@ -13,6 +12,8 @@ const CARD_COLOR = '#5bc0de';
  * `getHeldCardsBadge`.
  */
 export const GOOJBadge: React.FC<{ count: number | undefined }> = ({ count }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const badge = getHeldCardsBadge(count);
   if (!badge) return null;
   return (
@@ -28,24 +29,26 @@ export const GOOJBadge: React.FC<{ count: number | undefined }> = ({ count }) =>
       accessibilityLabel={badge.accessibilityLabel}
       style={styles.badge}
     >
-      <MaterialCommunityIcons name="card-account-details" size={14} color={CARD_COLOR} />
+      <MaterialCommunityIcons name="card-account-details" size={14} color={theme.info} />
       <Text style={styles.text}>{badge.text}</Text>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  // flexShrink 0: under large Dynamic Type the sibling name text wraps, never the chip.
-  badge: {
-    flexShrink: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: CARD_COLOR,
-  },
-  text: { fontSize: 12, fontWeight: '700', color: '#2a7f9c' },
-});
+// `theme.info` is the "Use Card" button colour, so the badge reads as the same card.
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    // flexShrink 0: under large Dynamic Type the sibling name text wraps, never the chip.
+    badge: {
+      flexShrink: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.info,
+    },
+    text: { fontSize: 12, fontWeight: '700', color: theme.goojText },
+  });

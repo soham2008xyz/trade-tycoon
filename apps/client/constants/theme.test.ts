@@ -45,6 +45,10 @@ describe.each([lightTheme, darkTheme])('$scheme theme contrast', (theme: Theme) 
     expect(contrast(theme.successText, theme.surface)).toBeGreaterThanOrEqual(4.5);
   });
 
+  it('keeps the highlight text readable on the selected surface', () => {
+    expect(contrast(theme.highlight, theme.surfaceSelected)).toBeGreaterThanOrEqual(4.5);
+  });
+
   it('keeps the jail chip text readable on its background', () => {
     expect(contrast(theme.jailText, theme.jailBg)).toBeGreaterThanOrEqual(4.5);
   });

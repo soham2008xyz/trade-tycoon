@@ -1,6 +1,8 @@
 import React, { useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '../../constants/theme';
 
 interface ToastProps {
   message: string;
@@ -17,6 +19,8 @@ export const Toast: React.FC<ToastProps> = ({ message, onDismiss, duration = 300
   // value either overlaps the island or leaves a dead gap. Applied inline so the
   // StyleSheet below stays static.
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [fadeAnim] = React.useState(() => new Animated.Value(0));
 
   // Callers typically pass an inline `() => ...` closure, which gets a new
@@ -66,25 +70,26 @@ export const Toast: React.FC<ToastProps> = ({ message, onDismiss, duration = 300
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  content: {
-    backgroundColor: 'rgba(50, 50, 50, 0.9)',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    boxShadow: '0px 2px 3.84px rgba(0,0,0,0.25)',
-    elevation: 5,
-  },
-  text: {
-    color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      position: 'absolute',
+      left: 20,
+      right: 20,
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    content: {
+      backgroundColor: theme.toastBg,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 25,
+      boxShadow: '0px 2px 3.84px rgba(0,0,0,0.25)',
+      elevation: 5,
+    },
+    text: {
+      color: theme.toastText,
+      fontSize: 16,
+      textAlign: 'center',
+    },
+  });

@@ -46,6 +46,8 @@ export interface Theme {
 
   // Buttons and accents (fills carry `onAccent` labels in both schemes)
   primary: string;
+  /** Selected-state accent: border and text on `surfaceSelected`. */
+  highlight: string;
   danger: string;
   success: string;
   info: string;
@@ -89,6 +91,7 @@ export const lightTheme: Theme = {
   toastText: '#ffffff',
 
   primary: '#2196F3',
+  highlight: '#0062cc',
   danger: '#d9534f',
   success: '#4CAF50',
   info: '#5bc0de',
@@ -131,6 +134,7 @@ export const darkTheme: Theme = {
   toastText: '#ffffff',
 
   primary: '#2196F3',
+  highlight: '#5aaeff',
   danger: '#d9534f',
   success: '#4CAF50',
   info: '#5bc0de',
@@ -149,9 +153,9 @@ export const darkTheme: Theme = {
 
 /**
  * Pure scheme → theme selector, exported separately so it's testable without
- * mocking react-native hooks. `null`/`undefined` (scheme unknown, e.g. some
- * web contexts) falls back to light, the pre-dark-mode look.
+ * mocking react-native hooks. Anything but "dark" (`null`, `undefined`, or
+ * react-native's "unspecified") falls back to light, the pre-dark-mode look.
  */
-export function pickTheme(scheme: ColorScheme | null | undefined): Theme {
+export function pickTheme(scheme: string | null | undefined): Theme {
   return scheme === 'dark' ? darkTheme : lightTheme;
 }
