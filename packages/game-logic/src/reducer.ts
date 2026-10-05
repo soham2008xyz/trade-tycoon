@@ -732,8 +732,9 @@ const reduceGameActionUnbounded = (
 
       // Standard Move Logic (or Post-Jail Move)
       let newPosition = (player.position + die1 + die2) % 40;
+      let targetTile = BOARD[newPosition];
       // Names the tile the dice reached, before any card moves the player on.
-      const rollLog = `[${player.name}] ${describeRoll(die1, die2)} and moved to ${BOARD[newPosition].name}.`;
+      const rollLog = `[${player.name}] ${describeRoll(die1, die2)} and moved to ${targetTile.name}.`;
 
       // Check if passed Go
       let money = player.money;
@@ -750,7 +751,6 @@ const reduceGameActionUnbounded = (
       newPlayers[playerIndex] = newPlayer;
 
       // Chance Logic
-      let targetTile = BOARD[newPosition];
       // Only changes when a Get Out of Jail Free card is drawn; a Chance card can
       // move the player onto Community Chest, so the second draw must see the first.
       let jailCardHolders = state.jailCardHolders;
