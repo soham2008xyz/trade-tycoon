@@ -3,8 +3,10 @@ import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { BOARD, Player } from '@trade-tycoon/game-logic';
 import { Tile } from './Tile';
 import { PlayerToken } from './PlayerToken';
+import { getBoardSize } from './board-size';
 
 const CORNER_SIZE_PCT = 14;
+const BOARD_BORDER = 2;
 const COMPACT_TILE_THRESHOLD = 500;
 
 interface Props {
@@ -30,7 +32,7 @@ const BoardComponent: React.FC<Props> = ({
   const { width, height } = useWindowDimensions();
   const boardWidth = availableWidth ?? width;
   const boardHeight = availableHeight ?? height;
-  const size = Math.max(320, Math.min(boardWidth, boardHeight) - 20);
+  const size = getBoardSize(boardWidth, boardHeight);
   const compact = size < COMPACT_TILE_THRESHOLD;
 
   // Stable references so `React.memo` on PlayerToken can actually skip
@@ -77,7 +79,9 @@ const BoardComponent: React.FC<Props> = ({
         <PlayerToken
           key={player.id}
           player={player}
-          boardSize={size}
+          // Tiles are laid out in percentages of the box inside the border, so
+          // tokens must use that inner size or they drift past the outer tiles.
+          boardSize={size - 2 * BOARD_BORDER}
           index={index}
           onAnimationStart={handleAnimationStart}
           onAnimationComplete={handleAnimationComplete}
@@ -158,7 +162,7 @@ const styles = StyleSheet.create({
   boardContainer: {
     backgroundColor: '#CDE6D0',
     position: 'relative',
-    borderWidth: 2,
+    borderWidth: BOARD_BORDER,
     borderColor: '#000',
   },
   center: {

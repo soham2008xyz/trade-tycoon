@@ -271,3 +271,18 @@
   `END_TURN` logs `Ended their turn.`. Tests that read `logs.at(-1)` still see
   the effect entry, so keep the roll entry first. `MAX_LOGS` is 400 because
   rolls and turn ends roughly doubled log volume.
+
+- Tablet layout (#268): the turn buttons only render when
+  `inAction` (not while a token moves), so the centre panel's height changes
+  at every step; anchoring to the top is not enough, each control needs a
+  reserved slot (min height) in `TabletCenter`. `useWindowDimensions`-style
+  sizing hides that `pickLayout` returns "tablet" for landscape desktop web
+  too, so decide placement from the measured frame (`board-size.ts`), not
+  from the layout name. The in-app browser pane crops an emulated 820x1180
+  viewport; measure positions with `getBoundingClientRect` via
+  `javascript_tool` instead of reading screenshots.
+
+- Worklets (#268): a plain helper called from a Reanimated worklet must carry
+  `'worklet'` itself. Web preview and vitest both pass without it; only the
+  iOS simulator shows the error, so always run a token move on native after
+  touching `token-position.ts`.
