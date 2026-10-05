@@ -12,6 +12,7 @@
     "test": "vitest run",
     "build": "npm run build:web",
     "build:web": "expo export --platform web",
+    "generate:og": "node ./scripts/generate-og-image.js",
     "generate:pwa": "node ./scripts/generate-pwa-assets.js && node ./scripts/generate-sw.js",
     "vercel-build": "npm run build:web && npm run generate:pwa",
     "serve:dist": "npm run build && serve ./dist"

@@ -321,5 +321,7 @@
   else's app, so never use it as a fallback host. Put head tags only in the
   `<Head>` in `apps/client/app/_layout.tsx`. React 19 also hoists bare `<meta>`
   tags from screens, and mixing the two ships duplicate `description` tags.
-  `generate-pwa-assets.js` rewrites every PNG in `public/`, not just the one you
-  changed, so restore the ones you didn't mean to touch before committing.
+  `generate-pwa-assets.js` (run again by `vercel-build`) rewrites every PNG in
+  `public/`, not just the one you changed, so restore the ones you didn't mean
+  to touch before committing. The og image has its own `generate:og` script
+  for that reason.
