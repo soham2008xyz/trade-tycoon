@@ -249,12 +249,26 @@ opt-in design is what's correct; the test in
   on the iPhone 17 simulator (iOS 26.4) at `accessibility-extra-large` and on
   the iPad (A16) simulator at `extra-extra-large` and
   `accessibility-extra-large`, always from a fresh launch. On iPad the panel
-  still outgrows the board's center hole at accessibility sizes (text wraps
-  but nothing scrolls). Don't judge layout after changing the text size live with
+  can still outgrow the board's center hole at accessibility sizes; since
+  #268 `TabletCenter` is a `ScrollView`, so it scrolls instead of spilling
+  over the tiles. Don't judge layout after changing the text size live with
   `simctl ui content_size`: text nodes that don't re-render keep their old
   measured height and look clipped. Relaunch the app after each change. The
   menu screens don't scroll and are unreachable at
   `accessibility-extra-extra-extra-large`.
+
+- **Tablet layout keeps controls put and tokens off the text** (#268).
+  `TabletCenter` is top-aligned and gives each control a fixed slot (dice;
+  decision zone for buy/auction, jail options and "waiting"; Manage; one
+  roll / roll again / end turn button), so nothing shifts between turn steps.
+  Keep a new button inside one of those slots rather than adding a row. On a
+  tall frame (iPad portrait) the Players list moves from the board centre to a
+  strip under the board; `board-size.ts` (`getPlayerStripHeight`) decides, and
+  landscape web keeps it in the centre. Player tokens sit at the outer edge of
+  their tile (`token-position.ts`, scaled with the board) because the tile
+  centre holds the name and price; the colour bar side is taken by houses.
+  Trade money sliders count steps of `MONEY_STEP` with the last step at the
+  exact balance (`trade-money.ts`).
 
 ## Test command
 

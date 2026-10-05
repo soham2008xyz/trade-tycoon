@@ -62,6 +62,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 - [x] **Community Chest**: Implement standard deck effects.
 - [x] **One Get Out of Jail Free card per deck**: Chance and Community Chest each contain a single jail card. While a player holds it, that deck never deals it again (`GameState.jailCardHolders` records the holder per deck, so at most two cards are in play). Using it returns it to its deck; trading it keeps it held by the new owner; bankruptcy gives it to the creditor, or back to the deck when the bank inherits or the holder leaves the room.
 - [x] **Held cards are visible**: any player holding Get Out of Jail Free cards shows a small card badge (`×N`, with an accessibility label such as "Holds 2 Get Out of Jail Free cards") next to their name in the Players list and in the current-player status (phone and tablet, hotseat and online), so opponents can see counts when weighing trades. Nothing is shown at zero.
+- [x] **Tablet layout** (#268): the centre panel is top-aligned with fixed slots so Manage Properties and the turn button stay in one place from roll to end of turn. On a tall screen (iPad portrait) the Players list sits in the band under the board; landscape web keeps it in the centre. Player tokens sit at the outer edge of a tile and shrink with the board, so the tile's name and price stay readable (phone and tablet). Trade money sliders move in $10 steps and the last step is the exact balance.
 - [x] **Taxes**:
   - [x] Income Tax (Flat price).
   - [x] Luxury Tax (Flat price).
