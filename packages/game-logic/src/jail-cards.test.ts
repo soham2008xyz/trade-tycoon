@@ -63,8 +63,8 @@ const jail = (state: GameState, id: string): GameState => ({
   ...state,
   currentPlayerId: id,
   phase: 'roll',
-  players: state.players.map(
-    (p): Player => (p.id === id ? { ...p, isInJail: true, position: 10 } : p)
+  players: state.players.map((p): Player =>
+    p.id === id ? { ...p, isInJail: true, position: 10 } : p
   ),
 });
 

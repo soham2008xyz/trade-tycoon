@@ -316,3 +316,12 @@
   (interface methods, function types), even with a `_` prefix. A new type with
   function members fails the gate; restructure so the type isn't needed (the
   first #306 attempt injected a storage interface and had to be undone).
+- Web link previews (#286): the client lives at
+  `https://trade-tycoon.sohambanerjee.me`; `trade-tycoon.vercel.app` is someone
+  else's app, so never use it as a fallback host. Put head tags only in the
+  `<Head>` in `apps/client/app/_layout.tsx`. React 19 also hoists bare `<meta>`
+  tags from screens, and mixing the two ships duplicate `description` tags.
+  `generate-pwa-assets.js` (run again by `vercel-build`) rewrites every PNG in
+  `public/`, not just the one you changed, so restore the ones you didn't mean
+  to touch before committing. The og image has its own `generate:og` script
+  for that reason.

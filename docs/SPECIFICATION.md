@@ -126,3 +126,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 ### 8.4 Platform Gating
 
 - [x] **Platform Detection**: Online multiplayer is gated by a runtime check (`supportsOnlineEventStream`) that verifies SSE availability on the current platform before surfacing the online option to the user.
+
+## 9. Web
+
+- [x] **Link previews** (#286): The web export's index page carries a `description` tag plus Open Graph and Twitter card tags, so a shared link shows a title, blurb and a 1200x630 image (`public/og-image.png`, built by `npm run generate:og --workspace=apps/client` and committed). The tags use the absolute production host and render on web only. The not-found page carries no tags on purpose: nobody shares a 404 link, and tagging it would need a custom `+html.tsx` document.
