@@ -91,10 +91,7 @@ const PlayerTokenComponent: React.FC<Props> = ({
       borderRadius: tokenSize / 2,
       borderWidth: 2,
       borderColor: 'white',
-      transform: [
-        { translateX: point.x - tokenSize / 2 },
-        { translateY: point.y - tokenSize / 2 },
-      ],
+      transform: [{ translateX: point.x - tokenSize / 2 }, { translateY: point.y - tokenSize / 2 }],
       zIndex: 100 + index,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
