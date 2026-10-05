@@ -19,16 +19,15 @@ function tileRect(index: number, board: number) {
 }
 
 /**
- * Where tokens anchor: the edge away from the colour bar. The bar is on the
- * outer side of the top and bottom rows and the inner side of the columns, so
- * the anchor is the inner edge on rows and the outer edge on columns. Returns
+ * Where tokens anchor: the edge away from the colour bar. The bar faces the
+ * board centre on every edge, so the anchor is always the outer edge. Returns
  * the token's centre as a fraction of the tile depth from that edge.
  */
 function anchorFraction(index: number, p: { x: number; y: number }, board: number) {
   const r = tileRect(index, board);
-  if (index < 10) return (p.y - r.y) / r.h; // bottom row: inner edge is the top
+  if (index < 10) return (r.y + r.h - p.y) / r.h; // bottom row: outer edge is the bottom
   if (index < 20) return (p.x - r.x) / r.w; // left column: outer edge is the left
-  if (index < 30) return (r.y + r.h - p.y) / r.h; // top row: inner edge is the bottom
+  if (index < 30) return (p.y - r.y) / r.h; // top row: outer edge is the top
   return (r.x + r.w - p.x) / r.w; // right column: outer edge is the right
 }
 
@@ -107,8 +106,11 @@ describe('getTokenPoint', () => {
       if (tile % 10 === 0) continue;
       const r = tileRect(tile, board);
       const p = getTokenPoint(tile, board, size, 0);
-      // Tile draws the owner dot 2px in from the top-right corner, 8px across.
-      const dot = { l: r.x + r.w - 10, r: r.x + r.w - 2, t: r.y + 2, b: r.y + 10 };
+      // Tile draws the owner dot 2px in from the top-right corner of its content
+      // area, 8px across. On the bottom row the bar sits above the content, so
+      // the dot starts below the bar's 25% of the tile depth.
+      const top = r.y + (tile < 10 ? r.h * 0.25 : 0) + 2;
+      const dot = { l: r.x + r.w - 10, r: r.x + r.w - 2, t: top, b: top + 8 };
       const apart =
         p.x + size / 2 <= dot.l ||
         p.x - size / 2 >= dot.r ||

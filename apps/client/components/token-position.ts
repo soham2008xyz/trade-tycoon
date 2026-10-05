@@ -7,9 +7,8 @@
  * A tile's name and price sit in the middle of its content area, so a token
  * there hides them (#268). Tokens go to a free corner of the tile instead: on
  * the side away from the colour bar (where houses and hotels also draw) and at
- * one end of the tile. `Tile` puts that bar on the board-facing side of the left
- * and right columns but on the outer side of the top and bottom rows, so the
- * token sits at the outer edge on the columns and the inner edge on the rows.
+ * one end of the tile. `Tile` puts that bar on the board-facing side of all four
+ * edges, so the token always sits at the outer edge.
  */
 
 const CORNER_PCT = 0.14;
@@ -69,22 +68,18 @@ export function getTokenPoint(
   const reach = (TILE_PCT * boardSize) / 2 - near;
   const firstEnd = i > 30 ? 1 : -1;
   const along = (isSecond ? -firstEnd : firstEnd) * reach;
-  const corner = CORNER_PCT * boardSize;
 
   if (i < 10) {
-    // Bottom row, right to left; colour bar at the bottom, token at the top.
-    return {
-      x: (1 - alongEdge(i - 1)) * boardSize + along,
-      y: boardSize - corner + near + stack,
-    };
+    // Bottom row, right to left; colour bar at the top, token at the bottom.
+    return { x: (1 - alongEdge(i - 1)) * boardSize + along, y: far - stack };
   }
   if (i < 20) {
     // Left column, bottom to top; colour bar on the right, token at the left.
     return { x: near + stack, y: (1 - alongEdge(i - 11)) * boardSize + along };
   }
   if (i < 30) {
-    // Top row, left to right; colour bar at the top, token at the bottom.
-    return { x: alongEdge(i - 21) * boardSize + along, y: corner - near - stack };
+    // Top row, left to right; colour bar at the bottom, token at the top.
+    return { x: alongEdge(i - 21) * boardSize + along, y: near + stack };
   }
   // Right column, top to bottom; colour bar on the left, token at the right.
   return { x: far - stack, y: alongEdge(i - 31) * boardSize + along };

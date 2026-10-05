@@ -40,8 +40,9 @@ const FLEX_DIRECTION_BY_ORIENTATION = new Map<
   Props['orientation'],
   'column' | 'row' | 'column-reverse' | 'row-reverse'
 >([
-  ['bottom', 'column-reverse'], // Color on top
-  ['top', 'column'], // Color on bottom
+  // The colour bar always faces the board centre.
+  ['bottom', 'column'], // Color on top
+  ['top', 'column-reverse'], // Color on bottom
   ['left', 'row-reverse'], // Color on right
   ['right', 'row'], // Color on left
   ['corner', 'column'],
