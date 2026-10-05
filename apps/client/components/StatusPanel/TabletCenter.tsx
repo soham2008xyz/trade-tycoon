@@ -222,7 +222,9 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
 };
 
 const styles = StyleSheet.create({
-  root: { alignItems: 'center', padding: 20 },
+  // width: 100% because the board's center slot centres (and so shrink-wraps)
+  // its child; without it large Dynamic Type squeezes the player rows.
+  root: { width: '100%', alignItems: 'center', padding: 20 },
   topButtons: { flexDirection: 'row', gap: 10, marginBottom: 10, zIndex: 20 },
   statusPanel: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -251,7 +253,9 @@ const styles = StyleSheet.create({
     columnGap: 6,
   },
   playerColor: { width: 12, height: 12, marginRight: 6, borderRadius: 2, flexShrink: 0 },
-  playerText: { fontSize: 14 },
+  // flexShrink lets a long "Name ($money)" wrap inside the label instead of
+  // being clipped at large Dynamic Type.
+  playerText: { fontSize: 14, flexShrink: 1 },
   activePlayerText: { fontWeight: 'bold' },
   gameInfo: { marginBottom: 15, alignItems: 'center', gap: 4 },
   currentPlayerInfo: {
