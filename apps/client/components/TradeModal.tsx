@@ -9,6 +9,7 @@ import Slider from '@react-native-community/slider';
 import { GROUP_COLORS } from '../constants';
 import { canAcceptTrade, canCancelTrade } from './multiplayer-gating';
 import { useGameLayout } from '../hooks/useGameLayout';
+import { moneyFromSlider, moneySliderMax, sliderFromMoney } from './trade-money';
 
 export { canAcceptTrade, canCancelTrade };
 
@@ -291,10 +292,12 @@ export const TradeModal: React.FC<Props> = ({
                   <Slider
                     style={styles.slider}
                     minimumValue={0}
-                    maximumValue={initiator.money}
+                    maximumValue={moneySliderMax(initiator.money)}
                     step={1}
-                    value={offerMoney}
-                    onValueChange={setOfferMoney}
+                    value={sliderFromMoney(offerMoney, initiator.money)}
+                    onValueChange={(position) =>
+                      setOfferMoney(moneyFromSlider(position, initiator.money))
+                    }
                     minimumTrackTintColor="#4CAF50"
                     maximumTrackTintColor="#ccc"
                     thumbTintColor="#4CAF50"
@@ -377,10 +380,12 @@ export const TradeModal: React.FC<Props> = ({
                   <Slider
                     style={styles.slider}
                     minimumValue={0}
-                    maximumValue={target.money}
+                    maximumValue={moneySliderMax(target.money)}
                     step={1}
-                    value={reqMoney}
-                    onValueChange={setReqMoney}
+                    value={sliderFromMoney(reqMoney, target.money)}
+                    onValueChange={(position) =>
+                      setReqMoney(moneyFromSlider(position, target.money))
+                    }
                     minimumTrackTintColor="#F44336"
                     maximumTrackTintColor="#ccc"
                     thumbTintColor="#F44336"
