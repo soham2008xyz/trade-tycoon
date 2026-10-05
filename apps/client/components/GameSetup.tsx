@@ -242,6 +242,9 @@ const createStyles = (theme: Theme) =>
       width: 24,
       height: 24,
       borderRadius: 12,
+      // Keeps the darkest palette colours visible on a dark card.
+      borderWidth: 1,
+      borderColor: theme.borderStrong,
     },
     selectedColor: {
       borderWidth: 2,
