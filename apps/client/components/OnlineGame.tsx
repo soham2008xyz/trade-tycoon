@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
 import { GameUI } from './GameUI';
 import { IconButton } from './ui/IconButton';
+import { KeyboardAwareScreen } from './ui/KeyboardAwareScreen';
 import { LobbyState, GameState, GameAction, limitPlayerNameInput } from '@trade-tycoon/game-logic';
 import { getOnlineServerUrl, supportsOnlineEventStream } from './online-platform';
 import { startRoomSync, type RoomSyncHandle } from './online-sync';
@@ -378,7 +379,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
 
   if (step === 'connect') {
     return (
-      <View style={styles.container}>
+      <KeyboardAwareScreen style={styles.container}>
         <View style={styles.card}>
           <Text style={styles.title}>{initialMode === 'create' ? 'Create Room' : 'Join Room'}</Text>
 
@@ -427,7 +428,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
             />
           </View>
         </View>
-      </View>
+      </KeyboardAwareScreen>
     );
   }
 
