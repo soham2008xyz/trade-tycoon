@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
-import BottomSheet from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Board } from '../Board';
 import { Peek } from '../StatusPanel/Peek';
@@ -21,7 +21,7 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
     (player) => player.id === props.state.currentPlayerId && player.isInJail
   );
   // Jail guidance and a held-card action can add rows. Keep every action above
-  // the collapsed sheet's edge rather than clipping its non-scrolling Peek.
+  // the collapsed sheet's edge when they fit; oversized content can scroll.
   const snapPoints = useMemo(
     () =>
       isCurrentPlayerInJail && layoutHeight > 0 && peekHeight > 0
@@ -79,13 +79,27 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
         enableHandlePanningGesture={props.state.phase !== 'auction'}
         keyboardBehavior="interactive"
       >
-        <View
-          style={[styles.peek, isCurrentPlayerInJail && { paddingBottom: insets.bottom }]}
-          onLayout={({ nativeEvent }) => setPeekHeight(nativeEvent.layout.height)}
-        >
-          <Peek {...props} />
-        </View>
-        <Expanded {...props} />
+        {isCurrentPlayerInJail ? (
+          // The measured Peek can exceed the largest snap point with large text
+          // or a short viewport. Scroll the whole jailed panel rather than
+          // putting unreachable controls below a fixed, non-scrolling header.
+          <BottomSheetScrollView>
+            <View
+              style={[styles.peek, { paddingBottom: insets.bottom }]}
+              onLayout={({ nativeEvent }) => setPeekHeight(nativeEvent.layout.height)}
+            >
+              <Peek {...props} />
+            </View>
+            <Expanded {...props} scrollable={false} />
+          </BottomSheetScrollView>
+        ) : (
+          <>
+            <View style={styles.peek}>
+              <Peek {...props} />
+            </View>
+            <Expanded {...props} />
+          </>
+        )}
       </BottomSheet>
     </View>
   );

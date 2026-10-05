@@ -241,3 +241,10 @@
   Jail guidance and the held-card action can exceed the phone sheet's 28%
   collapsed height; its jail-only minimum measures Peek, including bottom
   safe-area padding, plus the handle so the controls stay visible.
+
+- Oversized jail Peek (#295 review): measuring a minimum snap height is not
+  enough when it exceeds the sheet's 85% cap. Jail panels use one
+  `BottomSheetScrollView` for Peek and Expanded; Expanded renders a plain View
+  there to avoid nested scrolling. Gorhom enables integrated scrolling at
+  the highest snap point, so verify expanding first, then scrolling to the
+  final action on short screens and with large text.

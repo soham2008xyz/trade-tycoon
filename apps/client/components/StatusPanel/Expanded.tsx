@@ -7,7 +7,7 @@ import { DisconnectedBadge } from '../ui/DisconnectedBadge';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
 import type { StatusPanelProps } from './types';
 
-export const Expanded: React.FC<StatusPanelProps> = ({
+export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = ({
   state,
   myPlayerId,
   onShowLog,
@@ -16,11 +16,12 @@ export const Expanded: React.FC<StatusPanelProps> = ({
   disconnectedPlayerIds,
   removablePlayerIds,
   onRemovePlayer,
+  scrollable = true,
 }) => {
   const { currentPlayer, isGameOver } = useStatusPanelActions(state, myPlayerId);
 
-  return (
-    <ScrollView contentContainerStyle={styles.root}>
+  const content = (
+    <>
       <Text style={styles.sectionTitle}>Players</Text>
       {state.players.map((player) => (
         <View key={player.id} style={styles.playerRow}>
@@ -82,7 +83,15 @@ export const Expanded: React.FC<StatusPanelProps> = ({
           />
         )}
       </View>
-    </ScrollView>
+    </>
+  );
+
+  // A sheet-integrated parent owns scrolling in the jail view. A nested
+  // ScrollView would intercept its gestures and constrain the player list.
+  return scrollable ? (
+    <ScrollView contentContainerStyle={styles.root}>{content}</ScrollView>
+  ) : (
+    <View style={styles.root}>{content}</View>
   );
 };
 

@@ -68,7 +68,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 - [x] **Free Parking**: No action (Standard rules).
 - [x] **Jail**:
   - [x] Go to Jail (Landing on space, Card, 3 Doubles).
-  - [x] Visible jail state: status panels and Players lists show failed rolls used out of three; board tokens carry a jail marker, while visitors are labelled separately. Jail hints explain the $50 fine on the third non-doubles roll, and failed-roll toasts/logs report the attempt count.
+  - [x] Visible jail state: status panels and Players lists show failed rolls used out of three; board tokens carry a jail marker, while visitors are labelled separately. Jail hints explain the $50 fine on the third non-doubles roll, and failed-roll toasts/logs report the attempt count. The phone jail panel scrolls when its content exceeds the maximum sheet height, keeping controls reachable on short screens and with large text.
   - [x] **Getting Out**:
     - [x] Roll doubles (3 attempts).
     - [x] Pay $50 fine.
