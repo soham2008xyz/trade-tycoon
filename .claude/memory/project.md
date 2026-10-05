@@ -281,3 +281,8 @@
   from the layout name. The in-app browser pane crops an emulated 820x1180
   viewport; measure positions with `getBoundingClientRect` via
   `javascript_tool` instead of reading screenshots.
+
+- Worklets (#268): a plain helper called from a Reanimated worklet must carry
+  `'worklet'` itself. Web preview and vitest both pass without it; only the
+  iOS simulator shows the error, so always run a token move on native after
+  touching `token-position.ts`.

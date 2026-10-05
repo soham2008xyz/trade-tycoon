@@ -29,7 +29,10 @@ export function getTokenSize(boardSize: number): number {
 }
 
 /** Distance along one edge (0 = first tile after the corner) → fraction of the board. */
-const alongEdge = (tileOnEdge: number) => CORNER_PCT + tileOnEdge * TILE_PCT + TILE_PCT / 2;
+const alongEdge = (tileOnEdge: number) => {
+  'worklet';
+  return CORNER_PCT + tileOnEdge * TILE_PCT + TILE_PCT / 2;
+};
 
 /**
  * Position of the token for a tile, in px from the board's top-left. `slot` is

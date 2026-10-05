@@ -270,7 +270,12 @@ opt-in design is what's correct; the test in
   the board-facing side of the left and right columns but on the outer side of
   the top and bottom rows, so tokens go to the outer edge on columns and the
   inner edge on rows, and `PlayerToken` must get the board's inner size
-  (minus its 2px border) or tokens drift 3px past the outer tiles.
+  (minus its 2px border) or tokens drift 3px past the outer tiles. Every
+  helper that `token-position.ts` calls from inside a worklet needs its own
+  `'worklet'` directive: the web build and vitest ignore a missing one, but
+  iOS throws "Tried to synchronously call a Remote Function" on the first
+  token move. Verified on the iPad Air 11-inch (M4) simulator (iOS 26.4),
+  including the panel scrolling at `accessibility-extra-large`.
   Trade money sliders count steps of `MONEY_STEP` with the last step at the
   exact balance (`trade-money.ts`).
 
