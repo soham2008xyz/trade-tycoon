@@ -199,7 +199,8 @@ SecureStore is: **await `clearStoredSession` before `onBack()`**, or
 the menu remounts, reads the not-yet-deleted session and offers a
 stale Resume button. Native needs a rebuild (`expo run:ios`) after
 adding a native module like this one; a JS reload alone fails with a
-missing `ExpoSecureStore` module.
+missing `ExpoSecureStore` module. Verified on the iPad Air 11-inch (M4)
+simulator (iOS 26.4): kill, relaunch, Resume, then Leave hides Resume.
 
 **Do not add silent auto-restore on Create/Join intent.** That was
 the impersonation bug — a 2nd browser tab with shared localStorage

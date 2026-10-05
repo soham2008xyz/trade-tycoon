@@ -300,3 +300,11 @@
   SecureStore has no sync delete, so every `clearStoredSession` followed by
   `onBack()` awaits the clear; otherwise the menu remounts and offers a stale
   Resume button.
+
+- `expo run:ios` gotchas (#258): with Homebrew Ruby 4, `pod install` crashes
+  with `Unicode Normalization not appropriate for ASCII-8BIT` unless
+  `LANG=en_US.UTF-8` is set. After `npm install` moves `expo-modules-core`,
+  `pod install` refuses until you run
+  `pod update ExpoModulesCore ExpoModulesWorklets --no-repo-update` in
+  `apps/client/ios`. A missing `apps/server/node_modules/ioredis` (v6) makes
+  the API server fail to compile on `protocol: 2`; `npm install` fixes it.
