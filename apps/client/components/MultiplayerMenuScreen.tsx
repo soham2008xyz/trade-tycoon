@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { IconButton } from './ui/IconButton';
-import { readStoredSession, type StoredSession } from './online-session';
-import { onlineSessionStorage } from './session-storage';
+import type { StoredSession } from './online-session';
+import { readStoredSession } from './session-storage';
 
 interface Props {
   onBack: () => void;
@@ -24,7 +24,7 @@ export const MultiplayerMenuScreen: React.FC<Props> = ({
   const [savedSession, setSavedSession] = useState<StoredSession | null>(null);
   useEffect(() => {
     let cancelled = false;
-    void readStoredSession(onlineSessionStorage).then((session) => {
+    void readStoredSession().then((session) => {
       if (!cancelled) setSavedSession(session);
     });
     return () => {

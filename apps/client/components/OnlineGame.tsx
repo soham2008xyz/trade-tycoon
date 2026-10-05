@@ -6,8 +6,7 @@ import { KeyboardAwareScreen } from './ui/KeyboardAwareScreen';
 import { LobbyState, GameState, GameAction, limitPlayerNameInput } from '@trade-tycoon/game-logic';
 import { getOnlineServerUrl, supportsOnlineEventStream } from './online-platform';
 import { startRoomSync, type RoomSyncHandle } from './online-sync';
-import { readStoredSession, writeStoredSession, clearStoredSession } from './online-session';
-import { onlineSessionStorage } from './session-storage';
+import { readStoredSession, writeStoredSession, clearStoredSession } from './session-storage';
 import { validateConnectForm } from './online-form';
 import { wasRemovedFromRoom } from './multiplayer-gating';
 import {
@@ -107,7 +106,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     if (initialMode !== 'resume' || SERVER_URL === null) return;
     let cancelled = false;
     (async () => {
-      const session = await readStoredSession(onlineSessionStorage);
+      const session = await readStoredSession();
       if (cancelled) return;
       if (!session) {
         onBack();
@@ -125,7 +124,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         }
         // 404 session_expired, or any other failure — drop the session and exit.
         // Awaited so the menu we return to doesn't read it back (#258).
-        await clearStoredSession(onlineSessionStorage);
+        await clearStoredSession();
         onBack();
         return;
       }
@@ -180,7 +179,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
           // menu doesn't offer to resume it (#258).
           syncHandleRef.current?.stop();
           syncHandleRef.current = null;
-          void clearStoredSession(onlineSessionStorage).then(onBack);
+          void clearStoredSession().then(onBack);
           return;
         }
         setLobbyState(state);
@@ -203,7 +202,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         // only fail (#258).
         syncHandleRef.current?.stop();
         syncHandleRef.current = null;
-        void clearStoredSession(onlineSessionStorage).then(onBack);
+        void clearStoredSession().then(onBack);
       },
     });
     syncHandleRef.current = handle;
@@ -333,7 +332,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       }
     }
 
-    await clearStoredSession(onlineSessionStorage);
+    await clearStoredSession();
     onBack();
   }, [roomId, token, onBack]);
 
@@ -348,7 +347,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     setPlayerId(body.playerId);
     setToken(body.token);
     setStep('lobby');
-    void writeStoredSession(onlineSessionStorage, {
+    void writeStoredSession({
       roomId: body.roomId,
       playerId: body.playerId,
       token: body.token,

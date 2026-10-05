@@ -188,13 +188,13 @@ in the component.
 stored session and calls `POST /api/rooms/:id/reconnect`; the
 multiplayer menu surfaces a "Resume Game" button when a session is
 stored under key `trade_tycoon_session_v2` (shape:
-`{ roomId, playerId, token }`, read/written via `online-session.ts`),
+`{ roomId, playerId, token }`, read/written via `session-storage.tsx`),
 and that's the only entry point. The session lives in `localStorage`
 on web and in the keychain/keystore (`expo-secure-store`) on native,
-so it survives the app being killed (#258). `online-session.ts` is a
-`.ts` module, so it takes the storage as an injected parameter;
-`session-storage.tsx` picks it by `Platform.OS` (see "File-extension
-discipline" above). The read/write/clear calls are async because
+so it survives the app being killed (#258). The storage calls need
+react-native and expo, so they live in `session-storage.tsx`; the pure
+encode/decode (and its tests) stays in `online-session.ts` (see
+"File-extension discipline" above). The read/write/clear calls are async because
 SecureStore is: **await `clearStoredSession` before `onBack()`**, or
 the menu remounts, reads the not-yet-deleted session and offers a
 stale Resume button. Native needs a rebuild (`expo run:ios`) after

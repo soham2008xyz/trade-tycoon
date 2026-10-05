@@ -5,36 +5,24 @@ export interface StoredSession {
 }
 
 /**
- * Key-value storage the session lives in. Web passes `localStorage` (sync);
- * native passes an `expo-secure-store` wrapper (async, keychain/keystore,
- * since the token is the credential). Methods may return a value or a
- * Promise — every call below is awaited, so both work.
- *
- * The storage is injected by `session-storage.tsx` instead of imported here —
- * `.ts` modules stay free of react-native / expo imports so the node test
- * environment can load them directly (see AGENTS.md "File-extension
- * discipline"; `online-platform.ts` injects `Platform.OS` the same way).
+ * Storage key for the online session. The storage calls themselves live in
+ * `session-storage.tsx` (localStorage on web, `expo-secure-store` on native),
+ * because they need react-native and expo imports; this `.ts` module keeps
+ * the pure encode/decode so the node test environment can load it (see
+ * AGENTS.md "File-extension discipline").
  */
-export interface SessionStorage {
-  getItem(_key: string): string | null | Promise<string | null>;
-  setItem(_key: string, _value: string): void | Promise<void>;
-  removeItem(_key: string): void | Promise<void>;
-}
-
-const SESSION_STORAGE_KEY = 'trade_tycoon_session_v2';
+export const SESSION_STORAGE_KEY = 'trade_tycoon_session_v2';
 
 /**
- * Read the saved session. Returns null without a session, if the stored value
- * is malformed, or if the storage throws (private browsing; on Android a
- * keystore that can't decrypt data restored from a backup). Sessions from the
- * pre-token wire format (key `trade_tycoon_session`) are intentionally not
- * migrated — they only carried a public id with no credential, so there is
- * nothing safe to resume from them; the user just re-joins.
+ * Decode a stored session. Returns null for a missing or malformed value.
+ * Sessions from the pre-token wire format (key `trade_tycoon_session`) are
+ * intentionally not migrated — they only carried a public id with no
+ * credential, so there is nothing safe to resume from them; the user just
+ * re-joins.
  */
-export const readStoredSession = async (storage: SessionStorage): Promise<StoredSession | null> => {
+export const parseStoredSession = (raw: string | null): StoredSession | null => {
+  if (!raw) return null;
   try {
-    const raw = await storage.getItem(SESSION_STORAGE_KEY);
-    if (!raw) return null;
     // Parsed as `unknown`, not cast straight to `Partial<StoredSession>`: a
     // cast would tell TypeScript the value is always an object, making the
     // `!parsed` guard below look like dead code — but `JSON.parse('null')`
@@ -57,24 +45,6 @@ export const readStoredSession = async (storage: SessionStorage): Promise<Stored
   }
 };
 
-export const writeStoredSession = async (
-  storage: SessionStorage,
-  session: StoredSession
-): Promise<void> => {
-  try {
-    await storage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-  } catch (err) {
-    // Private browsing / storage-disabled environments can throw here
-    // (SecurityError, QuotaExceededError). Losing resume is acceptable;
-    // crashing the app on write is not.
-    console.warn('Failed to save session:', err);
-  }
-};
-
-export const clearStoredSession = async (storage: SessionStorage): Promise<void> => {
-  try {
-    await storage.removeItem(SESSION_STORAGE_KEY);
-  } catch (err) {
-    console.warn('Failed to clear session:', err);
-  }
-};
+/** Encode a session for storage; only the three known fields are kept. */
+export const serializeStoredSession = (session: StoredSession): string =>
+  JSON.stringify({ roomId: session.roomId, playerId: session.playerId, token: session.token });

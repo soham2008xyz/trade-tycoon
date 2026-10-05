@@ -295,8 +295,8 @@
   `token-position.test.ts` together.
 
 - Native session resume (#258): the online session is stored on native via
-  `expo-secure-store`, so `online-session.ts` is async and takes an injected
-  `SessionStorage` (`session-storage.tsx` picks localStorage or SecureStore).
+  `expo-secure-store`. The async read/write/clear live in
+  `session-storage.tsx`; `online-session.ts` keeps the pure parse/serialize.
   SecureStore has no sync delete, so every `clearStoredSession` followed by
   `onBack()` awaits the clear; otherwise the menu remounts and offers a stale
   Resume button.
@@ -311,5 +311,8 @@
 
 - Codacy (#306): it runs `@typescript-eslint/no-floating-promises`, which the
   local Expo lint config does not. Mark a deliberately unawaited promise with
-  `void`; don't drop the operator. It also flags parameter names in interface
-  method signatures as unused, so prefix them with `_`.
+  `void`; don't drop the operator. It also runs ESLint's core
+  `no-unused-vars`, which flags every named parameter in a type signature
+  (interface methods, function types), even with a `_` prefix. A new type with
+  function members fails the gate; restructure so the type isn't needed (the
+  first #306 attempt injected a storage interface and had to be undone).
