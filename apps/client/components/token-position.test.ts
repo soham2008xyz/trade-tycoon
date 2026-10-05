@@ -18,12 +18,17 @@ function tileRect(index: number, board: number) {
   return { x: board - c, y: c + (index - 31) * t, w: c, h: t };
 }
 
-/** Which half of its tile the token lies in, as the distance from the outer edge (0–1 of depth). */
-function outerFraction(index: number, p: { x: number; y: number }, board: number) {
+/**
+ * Where tokens anchor: the edge away from the colour bar. The bar is on the
+ * outer side of the top and bottom rows and the inner side of the columns, so
+ * the anchor is the inner edge on rows and the outer edge on columns. Returns
+ * the token's centre as a fraction of the tile depth from that edge.
+ */
+function anchorFraction(index: number, p: { x: number; y: number }, board: number) {
   const r = tileRect(index, board);
-  if (index < 10) return (r.y + r.h - p.y) / r.h; // bottom row: outer edge is the bottom
+  if (index < 10) return (p.y - r.y) / r.h; // bottom row: inner edge is the top
   if (index < 20) return (p.x - r.x) / r.w; // left column: outer edge is the left
-  if (index < 30) return (p.y - r.y) / r.h; // top row: outer edge is the top
+  if (index < 30) return (r.y + r.h - p.y) / r.h; // top row: inner edge is the bottom
   return (r.x + r.w - p.x) / r.w; // right column: outer edge is the right
 }
 
@@ -31,48 +36,85 @@ const BOARDS = [360, 370, 770, 1000];
 
 describe('getTokenSize', () => {
   it('shrinks on small boards and caps on large ones', () => {
-    expect(getTokenSize(300)).toBe(13);
-    expect(getTokenSize(800)).toBe(22);
-    expect(getTokenSize(2000)).toBe(22);
+    expect(getTokenSize(300)).toBe(10);
+    expect(getTokenSize(800)).toBe(16);
+    expect(getTokenSize(2000)).toBe(16);
   });
 });
 
 describe('getTokenPoint', () => {
-  it.each(BOARDS)('keeps every tile and slot inside its tile at board size %i', (board) => {
-    const size = getTokenSize(board);
-    for (let tile = 0; tile < 40; tile++) {
-      const r = tileRect(tile, board);
-      for (const slot of [0, 1]) {
-        const p = getTokenPoint(tile, board, size, slot);
-        expect(p.x).toBeGreaterThanOrEqual(r.x);
-        expect(p.x).toBeLessThanOrEqual(r.x + r.w);
-        expect(p.y).toBeGreaterThanOrEqual(r.y);
-        expect(p.y).toBeLessThanOrEqual(r.y + r.h);
+  it.each(BOARDS)(
+    'keeps the whole token inside its tile for all 8 seats at board size %i',
+    (board) => {
+      const size = getTokenSize(board);
+      for (let tile = 0; tile < 40; tile++) {
+        const r = tileRect(tile, board);
+        for (let slot = 0; slot < 8; slot++) {
+          const p = getTokenPoint(tile, board, size, slot);
+          expect(p.x - size / 2).toBeGreaterThanOrEqual(r.x);
+          expect(p.x + size / 2).toBeLessThanOrEqual(r.x + r.w);
+          expect(p.y - size / 2).toBeGreaterThanOrEqual(r.y);
+          expect(p.y + size / 2).toBeLessThanOrEqual(r.y + r.h);
+        }
       }
     }
-  });
+  );
 
-  it.each(BOARDS)('puts a lone token in the outer half of edge tiles at board size %i', (board) => {
+  it.each(BOARDS)(
+    'puts a lone token in the half of edge tiles that is away from the colour bar at board size %i',
+    (board) => {
+      const size = getTokenSize(board);
+      for (let tile = 1; tile < 40; tile++) {
+        if (tile % 10 === 0) continue;
+        const p = getTokenPoint(tile, board, size, 0);
+        expect(anchorFraction(tile, p, board)).toBeLessThan(0.5);
+      }
+    }
+  );
+
+  it.each(BOARDS)('keeps a lone token off the middle of the tile at board size %i', (board) => {
     const size = getTokenSize(board);
     for (let tile = 1; tile < 40; tile++) {
       if (tile % 10 === 0) continue;
+      const r = tileRect(tile, board);
       const p = getTokenPoint(tile, board, size, 0);
-      expect(outerFraction(tile, p, board)).toBeLessThan(0.5);
+      // Name and price sit in the middle, so the token must sit at an end of the
+      // tile along its length: its centre is at least a quarter of the tile
+      // from the middle.
+      const rowTile = tile < 10 || (tile > 20 && tile < 30);
+      const offset = rowTile ? Math.abs(p.x - (r.x + r.w / 2)) : Math.abs(p.y - (r.y + r.h / 2));
+      const length = rowTile ? r.w : r.h;
+      expect(offset).toBeGreaterThanOrEqual(length * 0.25);
     }
   });
 
-  it.each(BOARDS)('keeps a lone token clear of the price at board size %i', (board) => {
+  it.each(BOARDS)('keeps a lone token off the colour bar at board size %i', (board) => {
     const size = getTokenSize(board);
     for (let tile = 1; tile < 40; tile++) {
       if (tile % 10 === 0) continue;
       const r = tileRect(tile, board);
       const p = getTokenPoint(tile, board, size, 0);
       const depth = tile < 10 || (tile > 20 && tile < 30) ? r.h : r.w;
-      // The price sits at the middle of the content area, 37.5% of the depth
-      // from the outer edge (past the 25% colour bar); its glyphs are about 8px
-      // tall, so the token's inner edge must stop 4px short of that.
-      const tokenInnerEdge = outerFraction(tile, p, board) * depth + size / 2;
-      expect(tokenInnerEdge).toBeLessThanOrEqual(depth * 0.375 - 4);
+      // The bar takes the 25% of the depth opposite the anchor edge.
+      const tokenFarEdge = anchorFraction(tile, p, board) * depth + size / 2;
+      expect(tokenFarEdge).toBeLessThanOrEqual(depth * 0.75);
+    }
+  });
+
+  it.each(BOARDS)('keeps a lone token off the owner dot at board size %i', (board) => {
+    const size = getTokenSize(board);
+    for (let tile = 1; tile < 40; tile++) {
+      if (tile % 10 === 0) continue;
+      const r = tileRect(tile, board);
+      const p = getTokenPoint(tile, board, size, 0);
+      // Tile draws the owner dot 2px in from the top-right corner, 8px across.
+      const dot = { l: r.x + r.w - 10, r: r.x + r.w - 2, t: r.y + 2, b: r.y + 10 };
+      const apart =
+        p.x + size / 2 <= dot.l ||
+        p.x - size / 2 >= dot.r ||
+        p.y + size / 2 <= dot.t ||
+        p.y - size / 2 >= dot.b;
+      expect(apart).toBe(true);
     }
   });
 

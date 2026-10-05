@@ -264,9 +264,13 @@ opt-in design is what's correct; the test in
   Keep a new button inside one of those slots rather than adding a row. On a
   tall frame (iPad portrait) the Players list moves from the board centre to a
   strip under the board; `board-size.ts` (`getPlayerStripHeight`) decides, and
-  landscape web keeps it in the centre. Player tokens sit at the outer edge of
+  landscape web keeps it in the centre. Player tokens sit in a free corner of
   their tile (`token-position.ts`, scaled with the board) because the tile
-  centre holds the name and price; the colour bar side is taken by houses.
+  centre holds the name and price. `Tile` puts the colour bar (and houses) on
+  the board-facing side of the left and right columns but on the outer side of
+  the top and bottom rows, so tokens go to the outer edge on columns and the
+  inner edge on rows, and `PlayerToken` must get the board's inner size
+  (minus its 2px border) or tokens drift 3px past the outer tiles.
   Trade money sliders count steps of `MONEY_STEP` with the last step at the
   exact balance (`trade-money.ts`).
 

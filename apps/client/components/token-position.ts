@@ -4,9 +4,12 @@
  * `PlayerToken` call them from a Reanimated `useAnimatedStyle`; they are plain
  * string literals everywhere else, including vitest.
  *
- * Tokens sit at the outer edge of a tile, not its centre: the centre holds the
- * name and price, which a token would hide (#268). The inner edge is no better
- * because houses and hotels draw on the colour bar there.
+ * A tile's name and price sit in the middle of its content area, so a token
+ * there hides them (#268). Tokens go to a free corner of the tile instead: on
+ * the side away from the colour bar (where houses and hotels also draw) and at
+ * one end of the tile. `Tile` puts that bar on the board-facing side of the left
+ * and right columns but on the outer side of the top and bottom rows, so the
+ * token sits at the outer edge on the columns and the inner edge on the rows.
  */
 
 const CORNER_PCT = 0.14;
@@ -22,7 +25,7 @@ export interface Point {
 /** Token diameter in px: scales with the board so phone tiles keep room for text. */
 export function getTokenSize(boardSize: number): number {
   'worklet';
-  return Math.min(22, Math.max(13, Math.round(boardSize * 0.035)));
+  return Math.min(16, Math.max(10, Math.round(boardSize * 0.027)));
 }
 
 /** Distance along one edge (0 = first tile after the corner) → fraction of the board. */
@@ -30,8 +33,9 @@ const alongEdge = (tileOnEdge: number) => CORNER_PCT + tileOnEdge * TILE_PCT + T
 
 /**
  * Position of the token for a tile, in px from the board's top-left. `slot` is
- * the player's index: players sharing a tile spread side by side along the
- * edge, then stack inward, so none sits on another's seat.
+ * the player's index: the first two players take the two ends of the tile, and
+ * any more stack away from the edge they are anchored to, so none sits on
+ * another's seat.
  */
 export function getTokenPoint(
   tileIndex: number,
@@ -41,34 +45,46 @@ export function getTokenPoint(
 ): Point {
   'worklet';
   const i = tileIndex % 40;
-  // Centre of the token when pressed against the outer edge.
-  const outer = tokenSize / 2 + EDGE_MARGIN;
-  const far = boardSize - outer;
-  const side = (slot % 2) * 2 - 1; // -1 or +1
-  const row = Math.floor(slot / 2);
-  const spread = side * tokenSize * 0.3;
-  const inward = row * tokenSize * 0.55;
+  // Distance from an edge to the token's centre when it touches that edge.
+  const near = tokenSize / 2 + EDGE_MARGIN;
+  const far = boardSize - near;
+  const stack = Math.floor(slot / 2) * tokenSize * 0.55;
+  const isSecond = slot % 2 === 1;
 
-  // Corners: tuck into the outer corner of the square.
-  if (i === 0) return { x: far - spread, y: far - inward };
-  if (i === 10) return { x: outer + spread, y: far - inward };
-  if (i === 20) return { x: outer + spread, y: outer + inward };
-  if (i === 30) return { x: far - spread, y: outer + inward };
+  // Corners: tuck into the outer corner of the square; the second seat moves
+  // inward so no token pokes out past the board.
+  const lateral = isSecond ? tokenSize * 0.6 : 0;
+  if (i === 0) return { x: far - lateral, y: far - stack };
+  if (i === 10) return { x: near + lateral, y: far - stack };
+  if (i === 20) return { x: near + lateral, y: near + stack };
+  if (i === 30) return { x: far - lateral, y: near + stack };
+
+  // Along the tile: seats at its two ends. `Tile` draws its owner dot in the
+  // top-right corner, so the first seat is the end away from it; only a second
+  // player on an owned tile can cover the dot. On the right column that corner
+  // is the top end, so its first seat is the bottom one.
+  const reach = (TILE_PCT * boardSize) / 2 - near;
+  const firstEnd = i > 30 ? 1 : -1;
+  const along = (isSecond ? -firstEnd : firstEnd) * reach;
+  const corner = CORNER_PCT * boardSize;
 
   if (i < 10) {
-    // Bottom row, right to left.
-    return { x: (1 - alongEdge(i - 1)) * boardSize + spread, y: far - inward };
+    // Bottom row, right to left; colour bar at the bottom, token at the top.
+    return {
+      x: (1 - alongEdge(i - 1)) * boardSize + along,
+      y: boardSize - corner + near + stack,
+    };
   }
   if (i < 20) {
-    // Left column, bottom to top.
-    return { x: outer + inward, y: (1 - alongEdge(i - 11)) * boardSize + spread };
+    // Left column, bottom to top; colour bar on the right, token at the left.
+    return { x: near + stack, y: (1 - alongEdge(i - 11)) * boardSize + along };
   }
   if (i < 30) {
-    // Top row, left to right.
-    return { x: alongEdge(i - 21) * boardSize + spread, y: outer + inward };
+    // Top row, left to right; colour bar at the top, token at the bottom.
+    return { x: alongEdge(i - 21) * boardSize + along, y: corner - near - stack };
   }
-  // Right column, top to bottom.
-  return { x: far - inward, y: alongEdge(i - 31) * boardSize + spread };
+  // Right column, top to bottom; colour bar on the left, token at the right.
+  return { x: far - stack, y: alongEdge(i - 31) * boardSize + along };
 }
 
 /** Point for a fractional tile index mid-move: a straight line between neighbours. */

@@ -89,7 +89,8 @@ const PlayerTokenComponent: React.FC<Props> = ({
       height: tokenSize,
       backgroundColor: player.color,
       borderRadius: tokenSize / 2,
-      borderWidth: 2,
+      // A 2px ring would leave a tiny dot on phone-size tokens.
+      borderWidth: tokenSize < 14 ? 1.5 : 2,
       borderColor: 'white',
       transform: [{ translateX: point.x - tokenSize / 2 }, { translateY: point.y - tokenSize / 2 }],
       zIndex: 100 + index,
