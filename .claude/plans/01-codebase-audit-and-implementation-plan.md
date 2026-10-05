@@ -9,15 +9,18 @@ Full audit of the monorepo (apps/client Expo RN+web, apps/server Express+SSE+Red
 ## Findings Summary
 
 ### Critical
+
 - **C1 — Full player impersonation.** `Player.id` is both the auth credential (`RoomManager.ts:277` checks `action.playerId === userId`) and broadcast to every client in every state event (`stripBoard` only removes `board`). Any player can act as any other: spend their money, accept trades, mortgage assets, hijack their session via `reconnect`.
 
 ### High
+
 - **H1 — No numeric validation on client input** (`routes/rooms.ts:88` only checks `action.type` is a string). Negative trade `offer.money` mints money; string money corrupts balances via concatenation (`reducer.ts:815-891`); non-numeric `PLACE_BID.amount` slips past both guards.
 - **H2 — No error middleware.** Server is Express 5 (async rejections ARE forwarded), but there's no JSON error handler, and `RedisRoomStore.update` throws a bare error after 5 CAS retries → unstructured HTML 500s under contention.
 - **H3 — Client falls back to `localhost:3001`** when `EXPO_PUBLIC_SERVER_URL` is unset (`components/online-platform.ts:7-9`) → production builds silently break online play.
 - **H4 — `OnlineGame.tsx` (all multiplayer client logic: SSE, polling, POSTs, reconnect) has zero tests.**
 
 ### Medium (server/engine)
+
 - **M1** Reducer calls `Math.random` (dice `reducer.ts:320-321`, cards `:399,:434`) inside the CAS-retried `store.update` mutator — violates the documented purity contract; Redis CAS retry silently re-rolls.
 - **M2** `ACCEPT_TRADE` never transfers/forbids `houses` on traded properties → orphaned house records, vanished buildings.
 - **M3** `GameState.logs` grows unbounded; full array re-broadcast + persisted every action.
@@ -28,6 +31,7 @@ Full audit of the monorepo (apps/client Expo RN+web, apps/server Express+SSE+Red
 - **M8** Player names uncapped at create/join (only `updatePlayer` caps at 15) → up-to-64kB names stored and broadcast.
 
 ### Medium (client)
+
 - **M9** `errorMessage`/`toastMessage` live in shared broadcast `GameState` → all players see each other's private errors; any player's DISMISS clears it for everyone.
 - **M10** Toast auto-dismiss timer resets on every re-render (effect depends on inline closure) → toast persists indefinitely during online update churn.
 - **M11** `PropertyManager` binds to `currentPlayerId` (active player), not the local user, and stays open across turn changes → can act on the wrong player's assets.
@@ -36,16 +40,19 @@ Full audit of the monorepo (apps/client Expo RN+web, apps/server Express+SSE+Red
 - **M14** No in-flight guard on create/join/start/action handlers → double-submit (two rooms, duplicate actions).
 
 ### Medium (CI/tooling)
+
 - **M15** CI has no lint step and no typecheck for server or game-logic (vitest/esbuild strips types unchecked — server type errors pass green). ESLint config covers client only.
 
 ### Low (bundled cleanup)
+
 Duplicated `Action` vs `GameAction` unions; dead fields (`lastDiceRoll`, phase `'end'`, `TradeRequest.status`); `RESET_GAME` crash on empty players; `Math.random` ids/room codes; CORS `*`; doubles bonus roll not enforced; no house supply limit; double broadcasts on start/leave; client: overlapping toast channels, no back-button handling, `onTouchEnd` backdrop (no mouse), `price && ...` 0-value rendering, non-lazy `createInitialState`, name-based log colors, `@ts-ignore`, TradeModal non-functional setState, no duplicate-color validation; tooling: dead `lint-staged` config, reanimated 4.5.0 vs 4.4.1 override mismatch, pre-commit runs full suite + `format` doesn't re-stage, no `pull_request` CI trigger.
 
 ---
 
-## Phase 1 — Security (C1, H1, M8) — *ship server+client together (breaking wire change)*
+## Phase 1 — Security (C1, H1, M8) — _ship server+client together (breaking wire change)_
 
 ### 1a. Session tokens (C1)
+
 - On create/join: `token = crypto.randomBytes(24).toString('base64url')`; store `sessions: Record<token, playerId>` **inside** `LobbyState` (`packages/game-logic/src/socket-types.ts`) — rides existing CAS atomicity + room TTL. Store raw token (Redis already holds authoritative state).
 - New `apps/server/src/serialize.ts`: `toPublicLobbyState` / `toPublicGameState` omitting `sessions` (+ `board`; + `errorMessage` in Phase 2). **Every** response and `eventBus.publish` goes through it — replaces `stripBoard` whack-a-mole with a type boundary.
 - Auth transport: POST bodies `{ token }`; SSE via `?token=` (EventSource can't set headers — query param accepted tradeoff).
@@ -53,10 +60,12 @@ Duplicated `Action` vs `GameAction` unions; dead fields (`lastDiceRoll`, phase `
 - Client (`OnlineGame.tsx`): localStorage key bumped to `trade_tycoon_session_v2` `{roomId, playerId, token}`; old v1 sessions simply fail resume (no compat — rooms are TTL-ephemeral, and any bare-userId compat path reopens the hole).
 
 ### 1b. Input validation (H1)
+
 - New `packages/game-logic/src/validate-action.ts`: `parseGameAction(input: unknown): GameAction | null` — hand-rolled per-action validator (keeps game-logic zero-dependency): `Number.isSafeInteger && >= 0 && <= 1e9` for bid amount / trade money / GOOJ card counts; `string[]` for properties; unknown types rejected. Call it in `routes/rooms.ts` actions handler (replacing the line-88 check); 400 on failure.
 - Defensive reducer checks in `PLACE_BID` (~`reducer.ts:644`) and `PROPOSE_TRADE` (~`:797`): reject non-integer/negative amounts with `errorMessage`.
 
 ### 1c. Name cap (M8)
+
 - `createRoom`/`joinRoom`: `playerName.trim().slice(0, 15)` (mirror `RoomManager.ts:197`).
 
 **Tests:** update `RoomManager.test.ts` + `routes/rooms.test.ts` for token flows; new: `sessions` absent from every response/publish (EventBus spy); acting with another player's id + own token → rejected; bogus token → 401; table-driven `parseGameAction` tests; name truncation.
@@ -64,25 +73,31 @@ Duplicated `Action` vs `GameAction` unions; dead fields (`lastDiceRoll`, phase `
 ## Phase 2 — Server/engine correctness (H2, M1, M2, M5, M6, M7 + hardening)
 
 ### 2a. Error handling (H2)
+
 - `apps/server/src/middleware/errors.ts`: terminal JSON error middleware; register after routers in `index.ts`. Type `RedisRoomStore.update` CAS exhaustion as `StoreConflictError` → 503 `{ error: 'busy, retry' }`. Drop per-route try/catch (Express 5 forwards async rejections).
 
 ### 2b. Deterministic reducer (M1)
+
 - `reduceGameAction(state, action, rng: () => number = Math.random)`; add `mulberry32(seed)` PRNG to game-logic helpers. In `handleGameAction`, generate `seed = crypto.randomInt(2**31)` **outside** `store.update`; inside the mutator call with `mulberry32(seed)` — CAS retries replay identical dice/cards. Replace the 4 `Math.random` sites. Local client play passes nothing (unchanged). Migrate tests to seeded rng; delete `die1/die2` backdoor in Phase 6.
 - (Rejected alternative: pre-rolling dice/pre-drawing cards outside the mutator — card draws depend on landing tile, which can change between retries.)
 
 ### 2c. Rejected actions + private errors (M5, server half of M9)
+
 - `handleGameAction` returns a discriminated union: same-state/`ACTION_REJECTED`/`errorMessage`-set → `{ ok: false, message }` and abort the update (mutator returns null); success → `{ ok: true, state }`. (Verified: every `errorMessage` path leaves the rest of state unchanged — no reducer rewrite needed.)
 - Route: `ok:false` → **409 `{ error }`**, **no publish**; success → publish + 200. Client already renders 409 bodies via `setTransientError` (`OnlineGame.tsx:342-344`) so private errors reach only the actor. Strip `errorMessage` in `toPublicGameState`; keep `toastMessage` (shared announcements). Exclude `DISMISS_ERROR`/`DISMISS_TOAST` from the online action allowlist.
 - Adopt the same result union for `startGame/joinRoom/leaveRoom` (removes the "re-get to distinguish 404 vs 409" dance at `rooms.ts:52-55, 68-73`).
 
 ### 2d. SSE leak (M6)
+
 - `routes/events.ts`: on write failure call idempotent `cleanup()` (guard boolean), not just warn; also listen on `res.on('close')`.
 
 ### 2e. Trade + bankruptcy rules (M2, M7)
+
 - **M2 — forbid, don't transfer** (matches Monopoly rules, less code): `PROPOSE_TRADE` + re-check in `ACCEPT_TRADE` reject any property with `houses[propId] > 0`.
 - **M7 — shared cleanup**: refactor `DECLARE_BANKRUPTCY` (`reducer.ts:~1186`) to delegate to the cleanup used by `removePlayerFromGame` (cancel involving trades, fix auction participants, advance turn). Creditor asset transfer = optional gameplay follow-up, not part of this plan.
 
 ### 2f. Hardening
+
 - `RESET_GAME` with empty players → `ACTION_REJECTED` (currently crashes at `reducer.ts:206`).
 - `generateUserId`/`generateRoomId` (`RoomManager.ts:314-325`) → `crypto` instead of `Math.random`.
 
@@ -109,7 +124,7 @@ Duplicated `Action` vs `GameAction` unions; dead fields (`lastDiceRoll`, phase `
 
 ## Phase 5 — Tests & CI (H4, M15)
 
-- **H4 — extract for testability**: split `OnlineGame.tsx` into `components/online/api.ts` (typed fetch client), `components/online/session.ts` (v2 storage, injectable), `components/online/useRoomSync.ts` (SSE-vs-polling hook). Test with mocked fetch / fake EventSource / fake timers following the proven `hooks/useStatusPanelActions.test.ts` pure-module pattern (no full RN component-tree rendering). *If the same engineer does Phases 1+5, pull this extraction into Phase 1 to avoid touching the token plumbing twice.*
+- **H4 — extract for testability**: split `OnlineGame.tsx` into `components/online/api.ts` (typed fetch client), `components/online/session.ts` (v2 storage, injectable), `components/online/useRoomSync.ts` (SSE-vs-polling hook). Test with mocked fetch / fake EventSource / fake timers following the proven `hooks/useStatusPanelActions.test.ts` pure-module pattern (no full RN component-tree rendering). _If the same engineer does Phases 1+5, pull this extraction into Phase 1 to avoid touching the token plumbing twice._
 - **M15 — CI** (`.github/workflows/test.yml`): add `pull_request` trigger; add `npm run lint`; add `type-check` scripts (`tsc --noEmit`) to apps/server and packages/game-logic and run them in CI.
 
 ## Phase 6 — Cleanup bundle (all Lows, one PR)

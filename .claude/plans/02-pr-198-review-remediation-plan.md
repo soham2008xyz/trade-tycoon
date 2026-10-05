@@ -90,15 +90,17 @@ Extract the inline sync effect (OnlineGame.tsx:124-245) into a **framework-free 
 export interface RoomSyncCallbacks {
   onLobbyState(s: LobbyState): void;
   onGameState(s: GameState): void;
-  onSessionExpired(): void;   // poll 404 → replaces setTransientError+onBack
+  onSessionExpired(): void; // poll 404 → replaces setTransientError+onBack
 }
 export function startRoomSync(opts: {
-  serverUrl: string; roomId: string; token: string;
-  transport: 'sse' | 'poll';                    // caller decides via supportsOnlineEventStream
+  serverUrl: string;
+  roomId: string;
+  token: string;
+  transport: 'sse' | 'poll'; // caller decides via supportsOnlineEventStream
   callbacks: RoomSyncCallbacks;
-  createEventSource?: (url: string) => EventSourceLike;   // injectable; default: new EventSource(url)
-  fetchSnapshot?: typeof reconnectToRoom;                  // injectable; default: online-api's reconnectToRoom
-}): { stop(): void }
+  createEventSource?: (url: string) => EventSourceLike; // injectable; default: new EventSource(url)
+  fetchSnapshot?: typeof reconnectToRoom; // injectable; default: online-api's reconnectToRoom
+}): { stop(): void };
 ```
 
 - Poll branch keeps `MIN_POLL_MS=2000`/`MAX_POLL_MS=5000`, in-flight guard, version-skip → back off to 5s, change → reset to 2s, 404 → `onSessionExpired` + stop.
@@ -116,17 +118,17 @@ Add `"type-check": "tsc --noEmit"` to game-logic scripts; add a workflow step `n
 
 All stale passages verified; corrections must also reflect Step 1's new 401 semantics.
 
-| File | Fix |
-| --- | --- |
-| `AGENTS.md` (root) | :158 SSE `?userId=`→`?token=`; :160-163 auth = token→session resolution (`playerId` public, `token` secret, POST bodies `{token}`); :174-192 rejection contract — ALL soft rejections now 409 + no persist/broadcast (drop "trade-auth-only exception" framing); :212-214 remove lint-staged clause; :229-233 `errorMessage` no longer broadcast — actor gets it via 409 body |
-| `packages/game-logic/AGENTS.md` | :34-36 userId wording; :65-88 rejection contract (mirror root — the :106-108 mandate names both files); :12-25 scope statement — sanction transport-agnostic session data in `LobbyState` (decision 3) |
-| `apps/server/AGENTS.md` | :82-88 rejection contract; token auth in the add-an-endpoint (:39-59) and SSE (:90-107) sections; mention `ALLOWED_ORIGINS` |
-| `apps/client/AGENTS.md` | :112 `?token=`; :134 key `trade_tycoon_session_v2` `{roomId, playerId, token}`; :85-86 `userId`→`playerId` |
-| `docs/ARCHITECTURE.md` | :62 body `{token, action}`; :64-65 token-auth wording; :69, 77 publish only on successful state change |
-| `docs/SPECIFICATION.md` | :105-106 session storage/reconnect (token, v2 key); :84-86 logs capped at 200; :100-101 broadcast-on-success + align `game_update`→`game_state_update` naming |
-| `docs/DEPLOY.md` | add `ALLOWED_ORIGINS` row to the server env table (format at :34-37) — mandated by root AGENTS.md:248-250 |
-| `CONTRIBUTING.MD` | :137 lint-staged → husky pre-commit (`lint && lint:md && format && test`) |
-| `.claude/memory/project.md` | fix stale bullet :7-10 (`errorMessage` is no longer broadcast); add durable insights per root AGENTS.md:8-13 (SSE needs `res.on('close')` not `req.on('close')`; DISMISS_* are client-local in multiplayer; sessions-in-LobbyState layering rationale; 401/404/409 mapping) |
+| File                            | Fix                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTS.md` (root)              | :158 SSE `?userId=`→`?token=`; :160-163 auth = token→session resolution (`playerId` public, `token` secret, POST bodies `{token}`); :174-192 rejection contract — ALL soft rejections now 409 + no persist/broadcast (drop "trade-auth-only exception" framing); :212-214 remove lint-staged clause; :229-233 `errorMessage` no longer broadcast — actor gets it via 409 body |
+| `packages/game-logic/AGENTS.md` | :34-36 userId wording; :65-88 rejection contract (mirror root — the :106-108 mandate names both files); :12-25 scope statement — sanction transport-agnostic session data in `LobbyState` (decision 3)                                                                                                                                                                        |
+| `apps/server/AGENTS.md`         | :82-88 rejection contract; token auth in the add-an-endpoint (:39-59) and SSE (:90-107) sections; mention `ALLOWED_ORIGINS`                                                                                                                                                                                                                                                   |
+| `apps/client/AGENTS.md`         | :112 `?token=`; :134 key `trade_tycoon_session_v2` `{roomId, playerId, token}`; :85-86 `userId`→`playerId`                                                                                                                                                                                                                                                                    |
+| `docs/ARCHITECTURE.md`          | :62 body `{token, action}`; :64-65 token-auth wording; :69, 77 publish only on successful state change                                                                                                                                                                                                                                                                        |
+| `docs/SPECIFICATION.md`         | :105-106 session storage/reconnect (token, v2 key); :84-86 logs capped at 200; :100-101 broadcast-on-success + align `game_update`→`game_state_update` naming                                                                                                                                                                                                                 |
+| `docs/DEPLOY.md`                | add `ALLOWED_ORIGINS` row to the server env table (format at :34-37) — mandated by root AGENTS.md:248-250                                                                                                                                                                                                                                                                     |
+| `CONTRIBUTING.MD`               | :137 lint-staged → husky pre-commit (`lint && lint:md && format && test`)                                                                                                                                                                                                                                                                                                     |
+| `.claude/memory/project.md`     | fix stale bullet :7-10 (`errorMessage` is no longer broadcast); add durable insights per root AGENTS.md:8-13 (SSE needs `res.on('close')` not `req.on('close')`; DISMISS_* are client-local in multiplayer; sessions-in-LobbyState layering rationale; 401/404/409 mapping)                                                                                                   |
 
 ---
 

@@ -8,8 +8,7 @@ import type { GameState, LobbyState } from '@trade-tycoon/game-logic';
  * the same business logic during the transition.
  */
 export type RoomEvent =
-  | { type: 'lobby_update'; state: LobbyState }
-  | { type: 'game_state_update'; state: GameState };
+  { type: 'lobby_update'; state: LobbyState } | { type: 'game_state_update'; state: GameState };
 
 /**
  * Cross-instance fan-out for room events. The in-memory implementation is for

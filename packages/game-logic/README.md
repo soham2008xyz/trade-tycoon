@@ -54,17 +54,17 @@ console.log(tile?.name);
 
 All public exports come from [`src/index.ts`](./src/index.ts).
 
-| Export | Purpose |
-| --- | --- |
-| `GameState`, `Player`, `Tile`, `GameAction` | Shared game and action types. |
-| `createInitialState`, `createPlayer` | Initialize game and player data. |
-| `gameReducer` | Apply an action with a `GameState` return type, suitable for local play. |
-| `reduceGameAction`, `ACTION_REJECTED` | Apply actions with explicit hard-rejection signaling for server use. |
-| `parseGameAction` | Validate and narrow an untrusted payload into a permitted network action, or return `null`. |
-| `BOARD` | Ordered board tiles and their rules data. |
-| `CHANCE_CARDS`, `COMMUNITY_CHEST_CARDS` | The two card decks. |
-| `mulberry32` | Seedable random-number generator for deterministic execution. |
-| `LobbyState`, `LobbyPlayer` | Shared multiplayer room types; these are not network transport implementations. |
+| Export                                      | Purpose                                                                                     |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `GameState`, `Player`, `Tile`, `GameAction` | Shared game and action types.                                                               |
+| `createInitialState`, `createPlayer`        | Initialize game and player data.                                                            |
+| `gameReducer`                               | Apply an action with a `GameState` return type, suitable for local play.                    |
+| `reduceGameAction`, `ACTION_REJECTED`       | Apply actions with explicit hard-rejection signaling for server use.                        |
+| `parseGameAction`                           | Validate and narrow an untrusted payload into a permitted network action, or return `null`. |
+| `BOARD`                                     | Ordered board tiles and their rules data.                                                   |
+| `CHANCE_CARDS`, `COMMUNITY_CHEST_CARDS`     | The two card decks.                                                                         |
+| `mulberry32`                                | Seedable random-number generator for deterministic execution.                               |
+| `LobbyState`, `LobbyPlayer`                 | Shared multiplayer room types; these are not network transport implementations.             |
 
 Other exported helpers cover property groups, building rules, mortgage costs, player names, and color selection.
 
@@ -84,11 +84,7 @@ For incoming network payloads, use `parseGameAction(input)` before applying an a
 `reduceGameAction` accepts an optional third argument, `rng: () => number`:
 
 ```ts
-import {
-  ACTION_REJECTED,
-  mulberry32,
-  reduceGameAction,
-} from '@trade-tycoon/game-logic';
+import { ACTION_REJECTED, mulberry32, reduceGameAction } from '@trade-tycoon/game-logic';
 
 const next = reduceGameAction(
   state,
@@ -105,18 +101,18 @@ For a retryable store operation, recreate the generator from the **same seed on 
 
 ## Source layout
 
-| File | Responsibility |
-| --- | --- |
-| [`types.ts`](./src/types.ts) | Game state, players, tiles, trades, auctions, and action types. |
-| [`reducer.ts`](./src/reducer.ts) | Rules and game state transitions. |
-| [`game-setup.ts`](./src/game-setup.ts) | Initial game and player state. |
-| [`board-data.ts`](./src/board-data.ts) | Board layout and tile values. |
-| [`cards.ts`](./src/cards.ts), [`chance-cards.ts`](./src/chance-cards.ts), [`community-chest-cards.ts`](./src/community-chest-cards.ts) | Card effects and deck content. |
-| [`jail-cards.ts`](./src/jail-cards.ts) | Tracks which deck each held jail-free card came from. |
-| [`helpers.ts`](./src/helpers.ts) | Property, build/sell, mortgage, and random-number helpers. |
-| [`player-colors.ts`](./src/player-colors.ts), [`player-names.ts`](./src/player-names.ts) | Shared player setup helpers. |
-| [`validate-action.ts`](./src/validate-action.ts) | Validation of incoming multiplayer actions. |
-| [`socket-types.ts`](./src/socket-types.ts) | Shared lobby types; the filename is historical (multiplayer now uses REST + SSE). |
+| File                                                                                                                                   | Responsibility                                                                    |
+| -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [`types.ts`](./src/types.ts)                                                                                                           | Game state, players, tiles, trades, auctions, and action types.                   |
+| [`reducer.ts`](./src/reducer.ts)                                                                                                       | Rules and game state transitions.                                                 |
+| [`game-setup.ts`](./src/game-setup.ts)                                                                                                 | Initial game and player state.                                                    |
+| [`board-data.ts`](./src/board-data.ts)                                                                                                 | Board layout and tile values.                                                     |
+| [`cards.ts`](./src/cards.ts), [`chance-cards.ts`](./src/chance-cards.ts), [`community-chest-cards.ts`](./src/community-chest-cards.ts) | Card effects and deck content.                                                    |
+| [`jail-cards.ts`](./src/jail-cards.ts)                                                                                                 | Tracks which deck each held jail-free card came from.                             |
+| [`helpers.ts`](./src/helpers.ts)                                                                                                       | Property, build/sell, mortgage, and random-number helpers.                        |
+| [`player-colors.ts`](./src/player-colors.ts), [`player-names.ts`](./src/player-names.ts)                                               | Shared player setup helpers.                                                      |
+| [`validate-action.ts`](./src/validate-action.ts)                                                                                       | Validation of incoming multiplayer actions.                                       |
+| [`socket-types.ts`](./src/socket-types.ts)                                                                                             | Shared lobby types; the filename is historical (multiplayer now uses REST + SSE). |
 
 Unit tests live alongside the source as `src/*.test.ts`.
 
