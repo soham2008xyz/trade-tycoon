@@ -286,3 +286,10 @@
   `'worklet'` itself. Web preview and vitest both pass without it; only the
   iOS simulator shows the error, so always run a token move on native after
   touching `token-position.ts`.
+
+- Tile colour bar (#303): `Tile` puts the bar on the board-facing side of all
+  four edges (`FLEX_DIRECTION_BY_ORIENTATION`), so tokens in `token-position.ts`
+  always anchor to the outer edge. The top and bottom rows had the bar on the
+  outer edge until then, and the old inline comments hid it. If you change the
+  bar's side, change the token anchor and `anchorFraction` in
+  `token-position.test.ts` together.
