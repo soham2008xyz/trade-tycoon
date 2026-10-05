@@ -5,6 +5,8 @@ import { PlayerList } from './PlayerList';
 import { TurnPanel } from './TabletTurn';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
 import type { StatusPanelProps } from './types';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '../../constants/theme';
 
 interface Props extends StatusPanelProps {
   /** False when the layout shows the Players list under the board instead. */
@@ -18,17 +20,32 @@ interface TopButtonsProps {
 }
 
 function TopButtons({ isGameOver, onRestart, onShowLog }: TopButtonsProps) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.topButtons}>
       {!isGameOver && (
-        <IconButton title="Restart" icon="restart" onPress={onRestart} color="#666" size="small" />
+        <IconButton
+          title="Restart"
+          icon="restart"
+          onPress={onRestart}
+          color={theme.neutralButton}
+          size="small"
+        />
       )}
-      <IconButton title="Log" icon="script-text" onPress={onShowLog} color="#666" size="small" />
+      <IconButton
+        title="Log"
+        icon="script-text"
+        onPress={onShowLog}
+        color={theme.neutralButton}
+        size="small"
+      />
     </View>
   );
 }
 
 export function TabletCenter(props: Props) {
+  const styles = createStyles(useTheme());
   const { state, myPlayerId } = props;
   const actions = useStatusPanelActions(state, myPlayerId, props.isTokenMoving);
   const { currentPlayer, isGameOver } = actions;
@@ -61,20 +78,21 @@ export function TabletCenter(props: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  // The board's center slot is a bounded box, so the panel scrolls when large
-  // Dynamic Type outgrows it instead of spilling over the tiles. alignSelf
-  // stretch because that slot centres (and so shrink-wraps) its child.
-  scroll: { alignSelf: 'stretch', flex: 1 },
-  // Top-aligned so the controls do not move as the panel's height changes (#268).
-  root: { alignItems: 'center', padding: 20 },
-  topButtons: { flexDirection: 'row', gap: 10, marginBottom: 10, zIndex: 20 },
-  statusPanel: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    padding: 15,
-    borderRadius: 10,
-    width: '100%',
-    maxWidth: 300,
-    alignItems: 'center',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    // The board's center slot is a bounded box, so the panel scrolls when large
+    // Dynamic Type outgrows it instead of spilling over the tiles. alignSelf
+    // stretch because that slot centres (and so shrink-wraps) its child.
+    scroll: { alignSelf: 'stretch', flex: 1 },
+    // Top-aligned so the controls do not move as the panel's height changes (#268).
+    root: { alignItems: 'center', padding: 20 },
+    topButtons: { flexDirection: 'row', gap: 10, marginBottom: 10, zIndex: 20 },
+    statusPanel: {
+      backgroundColor: theme.panelScrim,
+      padding: 15,
+      borderRadius: 10,
+      width: '100%',
+      maxWidth: 300,
+      alignItems: 'center',
+    },
+  });

@@ -10,6 +10,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from '../../hooks/useTheme';
 
 interface IconButtonProps extends TouchableOpacityProps {
   title: string;
@@ -24,14 +25,18 @@ interface IconButtonProps extends TouchableOpacityProps {
 export const IconButton: React.FC<IconButtonProps> = ({
   title,
   icon,
-  color = '#2196F3',
-  textColor = 'white',
+  color: colorProp,
+  textColor: textColorProp,
   disabled,
   style,
   textStyle,
   size = 'medium',
   ...props
 }) => {
+  const theme = useTheme();
+  const color = colorProp ?? theme.primary;
+  const textColor = textColorProp ?? theme.onAccent;
+
   const getPadding = () => {
     switch (size) {
       case 'small':
@@ -67,7 +72,12 @@ export const IconButton: React.FC<IconButtonProps> = ({
 
   return (
     <TouchableOpacity
-      style={[styles.button, { backgroundColor: disabled ? '#ccc' : color }, getPadding(), style]}
+      style={[
+        styles.button,
+        { backgroundColor: disabled ? theme.disabledFill : color },
+        getPadding(),
+        style,
+      ]}
       disabled={disabled}
       activeOpacity={0.8}
       {...props}
@@ -77,14 +87,14 @@ export const IconButton: React.FC<IconButtonProps> = ({
           <MaterialCommunityIcons
             name={icon}
             size={getIconSize()}
-            color={disabled ? '#888' : textColor}
+            color={disabled ? theme.disabledText : textColor}
             style={title ? styles.icon : undefined}
           />
         )}
         <Text
           style={[
             styles.text,
-            { color: disabled ? '#666' : textColor, fontSize: getFontSize() },
+            { color: disabled ? theme.disabledText : textColor, fontSize: getFontSize() },
             textStyle,
           ]}
         >

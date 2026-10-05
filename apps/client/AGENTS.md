@@ -288,6 +288,52 @@ opt-in design is what's correct; the test in
   Trade money sliders count steps of `MONEY_STEP` with the last step at the
   exact balance (`trade-money.ts`).
 
+## Theming (dark mode, #264)
+
+Colours for the UI chrome come from the tokens in `constants/theme.ts`
+(`lightTheme` / `darkTheme`, picked by the pure `pickTheme`). Components read
+them with `useTheme()` (`hooks/useTheme.ts`, a thin wrapper over
+`useColorScheme`), build styles with a `createStyles(theme)` factory
+instead of a module-level `StyleSheet.create`, and never write a colour
+literal. `pickTheme` returns one of two stable objects, so the factory is cheap
+and needs no `useMemo`.
+
+- **Map by role, not by value.** `#fff` was both a surface and a button label
+  (`onAccent`); `#666` was both secondary text and a neutral button fill
+  (`neutralButton`); `#ccc` was a border and the disabled fill (`disabled*`).
+- **Every `Text` needs a colour.** A bare `<Text>` is black, which vanishes on a
+  dark surface. Give it a `color: theme.textPrimary` style.
+- **Game-semantic colours do not theme:** `GROUP_COLORS`, the board felt, tile
+  faces and borders, houses/hotels, the mortgage overlay, player colours,
+  `PlayerToken` and `Dice`. The board stays light in dark mode. Text drawn on
+  the felt must keep a fixed dark colour; the tablet panels that sit over it
+  use the `panelScrim` token so themed text stays readable.
+- **Modals** call `useTheme()` themselves. A `Modal` is a separate native
+  root, but `useColorScheme` reads the system value, so no provider is needed.
+- **Things that default to white:** the `@gorhom/bottom-sheet` background and
+  handle (`backgroundStyle` / `handleIndicatorStyle` in `PhoneGameLayout`),
+  `TextInput` (set `color`, `placeholderTextColor`, `keyboardAppearance`) and
+  the navigation card. `app/_layout.tsx` wraps the app in expo-router's
+  `ThemeProvider`; light keeps `DefaultTheme` so the menu backdrop is
+  unchanged.
+- **Web shell.** `app/+html.tsx` replaces the generated HTML document. It
+  keeps the default markup and `ScrollViewStyleReset` and adds `color-scheme`
+  meta plus a `prefers-color-scheme` body background, so overscroll and the
+  first paint are not white. `expo-router/head` tags still land in its
+  `<head>`. `public/manifest.json` stays white: a manifest has one colour.
+- Add a token to `Theme` (and both themes) rather than a one-off literal; the
+  contrast tests in `constants/theme.test.ts` then cover it.
+- Verified in the web build with `prefers-color-scheme` dark and light
+  (menus, setup, join form, board, trade and log modals, phone sheet).
+  Verified on the iPad Air 11-inch (M4) simulator (iOS 26.4) with the
+  simulator appearance set to dark and light: menu, setup, board with the
+  Players strip, Log modal, and the dark `keyboardAppearance` accessory bar.
+  `xcrun simctl ui <udid> appearance dark` switches a running app live. The
+  On the iPhone 17 simulator (iOS 26.4): menu, setup, board with the native
+  bottom sheet, and the Trade `pageSheet` in dark and light. Android is
+  unchecked. A dev build older than #258 crashes on launch with a missing
+  `ExpoSecureStore` module; reinstall a newer build rather than debugging it.
+
 ## Test command
 
 ```sh

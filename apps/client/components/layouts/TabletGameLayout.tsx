@@ -7,6 +7,8 @@ import { PlayerList } from '../StatusPanel/PlayerList';
 import { TabletCenter } from '../StatusPanel/TabletCenter';
 import type { StatusPanelProps } from '../StatusPanel/types';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '../../constants/theme';
 
 interface Props extends StatusPanelProps {
   onTilePress: (_tileId: string) => void;
@@ -15,6 +17,7 @@ interface Props extends StatusPanelProps {
 
 export const TabletGameLayout: React.FC<Props> = (props) => {
   const insets = useSafeAreaInsets();
+  const styles = createStyles(useTheme());
   const [frame, setFrame] = React.useState<{ width: number; height: number } | null>(null);
   const { currentPlayer, isGameOver } = useStatusPanelActions(
     props.state,
@@ -73,15 +76,16 @@ export const TabletGameLayout: React.FC<Props> = (props) => {
   );
 };
 
-const styles = StyleSheet.create({
-  wrapper: { flex: 1 },
-  root: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 10 },
-  rootWithStrip: { justifyContent: 'flex-start' },
-  strip: {
-    flex: 1,
-    marginTop: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-  },
-  stripContent: { padding: 15 },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    wrapper: { flex: 1 },
+    root: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 10 },
+    rootWithStrip: { justifyContent: 'flex-start' },
+    strip: {
+      flex: 1,
+      marginTop: 10,
+      borderRadius: 10,
+      backgroundColor: theme.panelScrim,
+    },
+    stripContent: { padding: 15 },
+  });

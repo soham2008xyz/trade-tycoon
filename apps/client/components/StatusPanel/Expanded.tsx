@@ -6,6 +6,8 @@ import { JailStatus } from '../ui/JailStatus';
 import { DisconnectedBadge } from '../ui/DisconnectedBadge';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
 import type { StatusPanelProps } from './types';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '../../constants/theme';
 
 export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = (props) => {
   const {
@@ -19,6 +21,8 @@ export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = (
     onRemovePlayer,
     scrollable = true,
   } = props;
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { currentPlayer, isGameOver } = useStatusPanelActions(state, myPlayerId);
 
   const content = (
@@ -50,7 +54,7 @@ export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = (
                 title="Remove"
                 icon="account-remove"
                 onPress={() => onRemovePlayer(player.id)}
-                color="#d9534f"
+                color={theme.danger}
                 size="small"
               />
             </View>
@@ -72,14 +76,20 @@ export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = (
       <View style={styles.divider} />
 
       <View style={styles.footerRow}>
-        <IconButton title="Log" icon="script-text" onPress={onShowLog} color="#666" size="small" />
+        <IconButton
+          title="Log"
+          icon="script-text"
+          onPress={onShowLog}
+          color={theme.neutralButton}
+          size="small"
+        />
         {/* Peek's game-over card already offers New Game / Back to Menu. */}
         {!isGameOver && (
           <IconButton
             title="Restart"
             icon="restart"
             onPress={onRestart}
-            color="#666"
+            color={theme.neutralButton}
             size="small"
           />
         )}
@@ -96,28 +106,29 @@ export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = (
   );
 };
 
-const styles = StyleSheet.create({
-  root: { padding: 12, paddingBottom: 36, gap: 4 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
-  playerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-  },
-  // flex: 1 + shrinking label keeps the Trade button on-screen when large
-  // Dynamic Type makes the name wrap onto several lines.
-  playerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  playerLabel: {
-    flexShrink: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    columnGap: 6,
-  },
-  playerColor: { width: 12, height: 12, marginRight: 6, borderRadius: 2, flexShrink: 0 },
-  playerText: { fontSize: 14 },
-  activePlayerText: { fontWeight: '700' },
-  divider: { height: 1, backgroundColor: '#e5e7eb', marginVertical: 12 },
-  footerRow: { flexDirection: 'row', gap: 12, justifyContent: 'flex-end' },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    root: { padding: 12, paddingBottom: 36, gap: 4 },
+    sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8, color: theme.textPrimary },
+    playerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 4,
+    },
+    // flex: 1 + shrinking label keeps the Trade button on-screen when large
+    // Dynamic Type makes the name wrap onto several lines.
+    playerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+    playerLabel: {
+      flexShrink: 1,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      columnGap: 6,
+    },
+    playerColor: { width: 12, height: 12, marginRight: 6, borderRadius: 2, flexShrink: 0 },
+    playerText: { fontSize: 14, color: theme.textPrimary },
+    activePlayerText: { fontWeight: '700' },
+    divider: { height: 1, backgroundColor: theme.border, marginVertical: 12 },
+    footerRow: { flexDirection: 'row', gap: 12, justifyContent: 'flex-end' },
+  });

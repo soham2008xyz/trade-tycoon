@@ -333,3 +333,11 @@
   `minSize` prop) or the board clips. On react-native-web, `flex: 0` becomes
   `flex: 0 1 0%`, and the 0% basis overrides `width`; use
   `flexGrow: 0, flexShrink: 0, flexBasis: 'auto'` to keep a fixed width.
+
+- Dark mode (#264): chrome colours are tokens in `apps/client/constants/theme.ts`;
+  never add a colour literal to a component. Two traps from the conversion: a
+  bare `<Text>` renders black (invisible on dark surfaces), and the bottom
+  sheet, `TextInput` and navigation card paint white by default. The board and
+  tiles are game-semantic and stay light on purpose. `app/+html.tsx` replaces
+  the generated web document, so keep its `ScrollViewStyleReset`. Details are
+  in `apps/client/AGENTS.md` ("Theming").

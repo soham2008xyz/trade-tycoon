@@ -19,6 +19,8 @@ import {
   removePlayer as apiRemovePlayer,
   type JoinedRoomResponse,
 } from './online-api';
+import { useTheme } from '../hooks/useTheme';
+import type { Theme } from '../constants/theme';
 
 // `null` means: no EXPO_PUBLIC_SERVER_URL configured, production build,
 // native platform — there's no safe host to guess (see online-platform.ts).
@@ -35,6 +37,8 @@ interface OnlineGameProps {
 }
 
 export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [lobbyState, setLobbyState] = useState<LobbyState | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   // `playerId` is the public id (safe to render, sent to other players in
@@ -401,6 +405,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
             nativeID="online-player-name"
             accessibilityLabel="Your name"
             placeholder="Your Name"
+            placeholderTextColor={theme.textMuted}
+            keyboardAppearance={theme.scheme}
             value={playerName}
             onChangeText={(text) => {
               setPlayerName(limitPlayerNameInput(text));
@@ -414,6 +420,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
               nativeID="online-room-code"
               accessibilityLabel="Room code"
               placeholder="Room Code (e.g. ABCD123)"
+              placeholderTextColor={theme.textMuted}
+              keyboardAppearance={theme.scheme}
               value={inputRoomId}
               onChangeText={(text) => {
                 setInputRoomId(text.toUpperCase());
@@ -506,85 +514,90 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     );
   }
 
-  return <Text>Loading...</Text>;
+  return <Text style={styles.subtitle}>Loading...</Text>;
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    padding: 24,
-  },
-  card: {
-    width: '90%',
-    maxWidth: 460,
-    backgroundColor: '#f8fbff',
-    borderRadius: 28,
-    padding: 24,
-    alignItems: 'center',
-    boxShadow: '0px 18px 36px rgba(0,0,0,0.2)',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
-  },
-  subtitle: {
-    fontSize: 18,
-    marginBottom: 10,
-    alignSelf: 'flex-start',
-  },
-  input: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  buttonContainer: {
-    width: '100%',
-    gap: 10,
-  },
-  button: {
-    width: '100%',
-  },
-  secondaryButton: {
-    width: '100%',
-    backgroundColor: '#666',
-    marginTop: 10,
-  },
-  error: {
-    color: 'red',
-    marginBottom: 10,
-  },
-  playerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  colorDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 10,
-  },
-  playerText: {
-    fontSize: 16,
-  },
-  spacer: {
-    height: 20,
-  },
-  waitingText: {
-    fontStyle: 'italic',
-    color: '#666',
-    marginBottom: 20,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+      padding: 24,
+    },
+    card: {
+      width: '90%',
+      maxWidth: 460,
+      backgroundColor: theme.card,
+      borderRadius: 28,
+      padding: 24,
+      alignItems: 'center',
+      boxShadow: '0px 18px 36px rgba(0,0,0,0.2)',
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: 20,
+      color: theme.textPrimary,
+    },
+    subtitle: {
+      fontSize: 18,
+      marginBottom: 10,
+      alignSelf: 'flex-start',
+      color: theme.textPrimary,
+    },
+    input: {
+      width: '100%',
+      borderWidth: 1,
+      borderColor: theme.borderStrong,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 15,
+      fontSize: 16,
+      color: theme.textPrimary,
+      backgroundColor: theme.surface,
+    },
+    buttonContainer: {
+      width: '100%',
+      gap: 10,
+    },
+    button: {
+      width: '100%',
+    },
+    secondaryButton: {
+      width: '100%',
+      backgroundColor: theme.neutralButton,
+      marginTop: 10,
+    },
+    error: {
+      color: theme.errorText,
+      marginBottom: 10,
+    },
+    playerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      width: '100%',
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+    },
+    colorDot: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      marginRight: 10,
+    },
+    playerText: {
+      fontSize: 16,
+      color: theme.textPrimary,
+    },
+    spacer: {
+      height: 20,
+    },
+    waitingText: {
+      fontStyle: 'italic',
+      color: theme.textSecondary,
+      marginBottom: 20,
+    },
+  });

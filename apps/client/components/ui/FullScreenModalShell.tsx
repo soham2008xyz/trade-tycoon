@@ -3,6 +3,8 @@ import { Modal, StyleSheet, View, Text } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useGameLayout } from '../../hooks/useGameLayout';
 import { CloseButton } from './CloseButton';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '../../constants/theme';
 
 interface Props {
   visible: boolean;
@@ -39,6 +41,7 @@ export const FullScreenModalShell: React.FC<Props> = ({
   children,
 }) => {
   const layout = useGameLayout();
+  const styles = createStyles(useTheme());
   const dismiss = showClose ? onClose : NOOP;
 
   if (layout === 'phone') {
@@ -106,17 +109,24 @@ function NOOP(): void {
   /* intentional no-op for non-dismissable modals */
 }
 
-const styles = StyleSheet.create({
-  phoneRoot: { flex: 1, backgroundColor: '#fff' },
-  phoneHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  phoneTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600' },
-  headerSpacer: { width: 32 },
-  phoneBody: { flex: 1 },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    phoneRoot: { flex: 1, backgroundColor: theme.surface },
+    phoneHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+    },
+    phoneTitle: {
+      flex: 1,
+      textAlign: 'center',
+      fontSize: 17,
+      fontWeight: '600',
+      color: theme.textPrimary,
+    },
+    headerSpacer: { width: 32 },
+    phoneBody: { flex: 1 },
+  });

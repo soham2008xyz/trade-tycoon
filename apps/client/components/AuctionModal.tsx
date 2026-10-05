@@ -5,6 +5,8 @@ import { AuctionState, Player, BOARD } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { DisconnectedBadge } from './ui/DisconnectedBadge';
 import { shouldShowAuctionControls } from './multiplayer-gating';
+import { useTheme } from '../hooks/useTheme';
+import type { Theme } from '../constants/theme';
 
 export { shouldShowAuctionControls };
 
@@ -90,6 +92,8 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
   canRemove,
   onRemove,
 }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   // Confirmed inline rather than through `CustomAlert`: that is a second
   // `Modal`, and presenting one while this auction `Modal` is up can fail to
   // show on iOS.
@@ -120,13 +124,13 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
                 title="Yes, remove"
                 icon="account-remove"
                 onPress={() => onRemove(player.id)}
-                color="#d9534f"
+                color={theme.danger}
                 size="small"
               />
               <IconButton
                 title="Cancel"
                 onPress={() => setConfirming(false)}
-                color="#666"
+                color={theme.neutralButton}
                 size="small"
               />
             </View>
@@ -136,7 +140,7 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
             title={`Remove ${player.name}`}
             icon="account-remove"
             onPress={() => setConfirming(true)}
-            color="#d9534f"
+            color={theme.danger}
             size="small"
           />
         ))}
@@ -163,7 +167,7 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
               title="Fold"
               icon="close-circle"
               onPress={() => onConcede(player.id)}
-              color="#d9534f"
+              color={theme.danger}
               disabled={!isTurn || isHighestBidder}
               size="small"
             />
@@ -184,6 +188,7 @@ export const AuctionModal: React.FC<Props> = ({
   myPlayerId,
   presence,
 }) => {
+  const styles = createStyles(useTheme());
   if (!auction) return null;
 
   const property = BOARD.find((t) => t.id === auction.propertyId);
@@ -236,113 +241,116 @@ export const AuctionModal: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '95%',
-    maxHeight: '90%',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
-    elevation: 5,
-    overflow: 'hidden', // Ensure content doesn't spill out of rounded corners
-  },
-  header: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  currentBid: {
-    fontSize: 18,
-    color: '#444',
-    textAlign: 'center',
-  },
-  participantsList: {
-    flexGrow: 0, // Important for ScrollView inside centered modal
-    padding: 10,
-  },
-  playerRow: {
-    backgroundColor: '#fff',
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 8,
-    elevation: 2,
-    boxShadow: '0px 1px 1.41px rgba(0,0,0,0.2)',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  activePlayerRow: {
-    borderColor: '#007AFF',
-    backgroundColor: '#f0f8ff',
-  },
-  inactiveDim: {
-    opacity: 0.6,
-  },
-  playerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  playerColor: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: '#000',
-  },
-  playerName: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  activePlayerName: {
-    color: '#007AFF',
-    fontWeight: 'bold',
-  },
-  controls: {
-    gap: 10,
-  },
-  badgeWrapper: {
-    marginLeft: 10,
-  },
-  confirmText: {
-    fontSize: 15,
-    color: '#444',
-  },
-  bidButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 5,
-  },
-  buttonWrapper: {
-    minWidth: 60,
-  },
-  foldButton: {
-    alignSelf: 'flex-start',
-  },
-  footer: {
-    padding: 15,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderColor: '#ccc',
-    backgroundColor: '#eee',
-  },
-  footerText: {
-    fontStyle: 'italic',
-    color: '#666',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.scrim,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      width: '95%',
+      maxHeight: '90%',
+      backgroundColor: theme.surface,
+      borderRadius: 12,
+      boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
+      elevation: 5,
+      overflow: 'hidden', // Ensure content doesn't spill out of rounded corners
+    },
+    header: {
+      padding: 20,
+      backgroundColor: theme.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderStrong,
+      alignItems: 'center',
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: 10,
+      textAlign: 'center',
+      color: theme.textPrimary,
+    },
+    currentBid: {
+      fontSize: 18,
+      color: theme.textSecondary,
+      textAlign: 'center',
+    },
+    participantsList: {
+      flexGrow: 0, // Important for ScrollView inside centered modal
+      padding: 10,
+    },
+    playerRow: {
+      backgroundColor: theme.surfaceMuted,
+      padding: 15,
+      marginBottom: 10,
+      borderRadius: 8,
+      elevation: 2,
+      boxShadow: '0px 1px 1.41px rgba(0,0,0,0.2)',
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    activePlayerRow: {
+      borderColor: theme.highlight,
+      backgroundColor: theme.surfaceSelected,
+    },
+    inactiveDim: {
+      opacity: 0.6,
+    },
+    playerInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    playerColor: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      marginRight: 10,
+      borderWidth: 1,
+      borderColor: theme.outline,
+    },
+    playerName: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.textPrimary,
+    },
+    activePlayerName: {
+      color: theme.highlight,
+      fontWeight: 'bold',
+    },
+    controls: {
+      gap: 10,
+    },
+    badgeWrapper: {
+      marginLeft: 10,
+    },
+    confirmText: {
+      fontSize: 15,
+      color: theme.textSecondary,
+    },
+    bidButtons: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginBottom: 5,
+    },
+    buttonWrapper: {
+      minWidth: 60,
+    },
+    foldButton: {
+      alignSelf: 'flex-start',
+    },
+    footer: {
+      padding: 15,
+      alignItems: 'center',
+      borderTopWidth: 1,
+      borderColor: theme.borderStrong,
+      backgroundColor: theme.border,
+    },
+    footerText: {
+      fontStyle: 'italic',
+      color: theme.textSecondary,
+    },
+  });

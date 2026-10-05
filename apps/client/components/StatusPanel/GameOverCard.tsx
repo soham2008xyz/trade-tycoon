@@ -5,6 +5,8 @@ import { IconButton } from '../ui/IconButton';
 import { getGameOverSummary, getGameOverTitle } from '../game-over';
 import { canStartNewGame } from '../multiplayer-gating';
 import type { StatusPanelProps } from './types';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '../../constants/theme';
 
 type Props = Pick<
   StatusPanelProps,
@@ -25,6 +27,8 @@ export const GameOverCard: React.FC<Props> = ({
   onNewGame,
   onBackToMenu,
 }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const summary = getGameOverSummary(state);
   if (!summary) return null;
 
@@ -34,6 +38,7 @@ export const GameOverCard: React.FC<Props> = ({
   return (
     <View style={styles.root} accessibilityRole="summary">
       <View style={styles.headline}>
+        {/* Gold in both schemes: a trophy is not UI chrome. */}
         <MaterialCommunityIcons name="trophy" size={26} color="#f59e0b" />
         <View style={[styles.dot, { backgroundColor: summary.color }]} />
         <Text style={styles.title}>{getGameOverTitle(summary, myPlayerId, isMultiplayer)}</Text>
@@ -43,17 +48,23 @@ export const GameOverCard: React.FC<Props> = ({
       </Text>
       <View style={styles.actions}>
         {showNewGame && <IconButton title="New Game" icon="restart" onPress={onNewGame} />}
-        <IconButton title="Back to Menu" icon="home" onPress={onBackToMenu} color="#666" />
+        <IconButton
+          title="Back to Menu"
+          icon="home"
+          onPress={onBackToMenu}
+          color={theme.neutralButton}
+        />
       </View>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  root: { gap: 8, alignItems: 'center', width: '100%' },
-  headline: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 12, height: 12, borderRadius: 6 },
-  title: { fontSize: 18, fontWeight: '800' },
-  stats: { fontSize: 13, color: '#666', textAlign: 'center' },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    root: { gap: 8, alignItems: 'center', width: '100%' },
+    headline: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    dot: { width: 12, height: 12, borderRadius: 6 },
+    title: { fontSize: 18, fontWeight: '800', color: theme.textPrimary },
+    stats: { fontSize: 13, color: theme.textSecondary, textAlign: 'center' },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  });

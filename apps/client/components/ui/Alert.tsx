@@ -1,6 +1,8 @@
 import React from 'react';
 import { Modal, View, Text, StyleSheet } from 'react-native';
 import { IconButton } from './IconButton';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '../../constants/theme';
 
 export interface AlertButton {
   text: string;
@@ -21,6 +23,9 @@ interface CustomAlertProps {
 }
 
 export const CustomAlert: React.FC<CustomAlertProps> = ({ visible, options, onClose }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
+
   if (!visible || !options) return null;
 
   return (
@@ -42,10 +47,10 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({ visible, options, onCl
                 }}
                 color={
                   btn.style === 'destructive'
-                    ? '#f44336'
+                    ? theme.danger
                     : btn.style === 'cancel'
-                      ? '#9e9e9e'
-                      : '#2196F3'
+                      ? theme.neutralButton
+                      : theme.primary
                 }
                 style={styles.button}
                 size="medium"
@@ -58,44 +63,45 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({ visible, options, onCl
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  alertBox: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    width: '100%',
-    maxWidth: 400,
-    elevation: 5,
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
-    textAlign: 'center',
-  },
-  message: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 20,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
-  button: {
-    minWidth: 100,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.scrim,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    alertBox: {
+      backgroundColor: theme.surface,
+      borderRadius: 12,
+      padding: 20,
+      width: '100%',
+      maxWidth: 400,
+      elevation: 5,
+      boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginBottom: 10,
+      color: theme.textPrimary,
+      textAlign: 'center',
+    },
+    message: {
+      fontSize: 16,
+      color: theme.textSecondary,
+      marginBottom: 20,
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    buttonContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 10,
+      flexWrap: 'wrap',
+    },
+    button: {
+      minWidth: 100,
+    },
+  });

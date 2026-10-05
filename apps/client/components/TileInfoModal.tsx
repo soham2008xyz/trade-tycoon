@@ -5,6 +5,8 @@ import { IconButton } from './ui/IconButton';
 import { GROUP_COLORS } from '../constants';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { useGameLayout } from '../hooks/useGameLayout';
+import { useTheme } from '../hooks/useTheme';
+import type { Theme } from '../constants/theme';
 
 interface Props {
   visible: boolean;
@@ -17,6 +19,7 @@ interface Props {
 export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }) => {
   // Hook must run before the early return below to keep hook order stable.
   const isPhone = useGameLayout() === 'phone';
+  const styles = createStyles(useTheme());
 
   // Skip rendering entirely when closed — the FullScreenModalShell would hide
   // its Modal anyway, but the children tree (backdrop + ScrollView + rent
@@ -184,114 +187,117 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
   );
 };
 
-const styles = StyleSheet.create({
-  phoneContainer: { flex: 1, backgroundColor: '#fff' },
-  phoneContent: { flex: 1 },
-  colorStrip: { height: 16, borderBottomWidth: 2, borderBottomColor: '#000' },
-  overlayContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 99999, // Ensure it sits on top of everything in Board
-  },
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    width: 300,
-    maxHeight: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#000',
-    overflow: 'hidden',
-    // No zIndex needed here relative to parent, but parent is high
-    elevation: 5,
-  },
-  header: {
-    padding: 20,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#000',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  scrollContent: {
-    padding: 20,
-  },
-  section: {
-    marginBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingBottom: 10,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  text: {
-    fontSize: 14,
-    color: '#333',
-  },
-  descriptionText: {
-    fontSize: 14,
-    color: '#333',
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  mortgagedText: {
-    color: 'red',
-    fontWeight: 'bold',
-    marginTop: 2,
-  },
-  rentSection: {
-    marginBottom: 15,
-    padding: 10,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 5,
-  },
-  rentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 2,
-  },
-  activeRentRow: {
-    backgroundColor: '#e6fffa',
-    fontWeight: 'bold',
-    paddingHorizontal: 5,
-    marginHorizontal: -5,
-  },
-  rentLabel: {
-    fontSize: 12,
-  },
-  rentValue: {
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  note: {
-    fontSize: 10,
-    fontStyle: 'italic',
-    marginTop: 5,
-    color: '#666',
-  },
-  footer: {
-    padding: 10,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderColor: '#eee',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    phoneContainer: { flex: 1, backgroundColor: theme.surface },
+    phoneContent: { flex: 1 },
+    colorStrip: { height: 16, borderBottomWidth: 2, borderBottomColor: theme.outline },
+    overlayContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 99999, // Ensure it sits on top of everything in Board
+    },
+    backdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: theme.scrim,
+    },
+    modalContent: {
+      width: 300,
+      maxHeight: '80%',
+      backgroundColor: theme.surface,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.outline,
+      overflow: 'hidden',
+      // No zIndex needed here relative to parent, but parent is high
+      elevation: 5,
+    },
+    header: {
+      padding: 20,
+      alignItems: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: theme.outline,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+    },
+    scrollContent: {
+      padding: 20,
+    },
+    section: {
+      marginBottom: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+      paddingBottom: 10,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 2,
+    },
+    text: {
+      fontSize: 14,
+      color: theme.textPrimary,
+    },
+    descriptionText: {
+      fontSize: 14,
+      color: theme.textPrimary,
+      fontStyle: 'italic',
+      textAlign: 'center',
+    },
+    mortgagedText: {
+      color: theme.errorText,
+      fontWeight: 'bold',
+      marginTop: 2,
+    },
+    rentSection: {
+      marginBottom: 15,
+      padding: 10,
+      backgroundColor: theme.surfaceMuted,
+      borderRadius: 5,
+    },
+    rentRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 2,
+    },
+    activeRentRow: {
+      backgroundColor: theme.surfaceInfo,
+      fontWeight: 'bold',
+      paddingHorizontal: 5,
+      marginHorizontal: -5,
+    },
+    rentLabel: {
+      fontSize: 12,
+      color: theme.textPrimary,
+    },
+    rentValue: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: theme.textPrimary,
+    },
+    note: {
+      fontSize: 10,
+      fontStyle: 'italic',
+      marginTop: 5,
+      color: theme.textSecondary,
+    },
+    footer: {
+      padding: 10,
+      alignItems: 'center',
+      borderTopWidth: 1,
+      borderColor: theme.border,
+    },
+  });

@@ -14,6 +14,8 @@ import { CloseButton } from './ui/CloseButton';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { useGameLayout } from '../hooks/useGameLayout';
 import { GROUP_COLORS, GROUP_DISPLAY_NAMES } from '../constants';
+import { useTheme } from '../hooks/useTheme';
+import type { Theme } from '../constants/theme';
 
 // Both `GROUP_COLORS` and `GROUP_DISPLAY_NAMES` are imported as `Record<string, string>`.
 // Wrapping them in `Map`s once at module load lets us read with `.get()` instead of
@@ -50,6 +52,7 @@ const HouseControls: React.FC<{
   onBuild: PropertyAction;
   onSell: PropertyAction;
 }> = ({ tile, player, houses, hasCompleteGroup, onBuild, onSell }) => {
+  const theme = useTheme();
   const houseCost = tile.houseCost || 0;
   return (
     <>
@@ -64,7 +67,7 @@ const HouseControls: React.FC<{
         title={`Sell House ($${houseCost / 2})`}
         icon="home-minus"
         onPress={() => onSell(tile.id)}
-        color="orange"
+        color={theme.warning}
         disabled={houses <= 0}
         size="small"
       />
@@ -82,6 +85,7 @@ const MortgageControls: React.FC<{
   onMortgage: PropertyAction;
   onUnmortgage: PropertyAction;
 }> = ({ tile, player, houses, isMortgaged, groupHasHouses, onMortgage, onUnmortgage }) => {
+  const theme = useTheme();
   const mortgageValue = tile.mortgageValue || 0;
   const unmortgageCost = getUnmortgageCost(mortgageValue);
   if (isMortgaged) {
@@ -90,7 +94,7 @@ const MortgageControls: React.FC<{
         title={`Unmortgage ($${unmortgageCost})`}
         icon="bank-plus"
         onPress={() => onUnmortgage(tile.id)}
-        color="#5cb85c"
+        color={theme.successFill}
         disabled={player.money < unmortgageCost}
         size="small"
       />
@@ -101,7 +105,7 @@ const MortgageControls: React.FC<{
       title={`Mortgage ($${mortgageValue})`}
       icon="bank-minus"
       onPress={() => onMortgage(tile.id)}
-      color="#d9534f"
+      color={theme.danger}
       disabled={houses > 0 || groupHasHouses}
       size="small"
     />
@@ -138,6 +142,7 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   onMortgage,
   onUnmortgage,
 }) => {
+  const styles = createStyles(useTheme());
   const isMortgaged = player.mortgaged.includes(tile.id);
   const isStreet = tile.type === 'street';
 
@@ -207,6 +212,8 @@ const GroupSection: React.FC<GroupSectionProps> = ({
   onMortgage,
   onUnmortgage,
 }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const ownedCount = tiles.length;
   // `group` may fall back to 'misc' for unrecognized groups; coerce to an
   // empty array if the helper has nothing for it. Resolved once and reused
@@ -219,7 +226,12 @@ const GroupSection: React.FC<GroupSectionProps> = ({
 
   return (
     <View style={styles.groupContainer}>
-      <View style={[styles.groupHeader, { backgroundColor: groupColorMap.get(group) ?? '#ccc' }]}>
+      <View
+        style={[
+          styles.groupHeader,
+          { backgroundColor: groupColorMap.get(group) ?? theme.borderStrong },
+        ]}
+      >
         <Text style={styles.groupTitle}>
           {displayName} ({ownedCount}/{totalCount} properties owned)
         </Text>
@@ -251,6 +263,7 @@ export const PropertyManager: React.FC<Props> = ({
   onMortgage,
   onUnmortgage,
 }) => {
+  const styles = createStyles(useTheme());
   // On phone the shell already draws the title + close button and fills the
   // screen; the card-on-grey-backdrop chrome below is only for wide layouts,
   // where the shell renders a bare transparent Modal.
@@ -321,113 +334,116 @@ export const PropertyManager: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  phoneOverlay: { flex: 1, backgroundColor: 'white' },
-  phoneContent: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    width: '100%',
-    maxWidth: 500,
-    maxHeight: '90%',
-    padding: 20,
-    elevation: 5,
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 5,
-    position: 'relative',
-    minHeight: 40,
-  },
-  closeBtnContainer: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  balance: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 15,
-    color: 'green',
-    fontWeight: 'bold',
-  },
-  scroll: {
-    marginBottom: 10,
-  },
-  emptyText: {
-    textAlign: 'center',
-    fontStyle: 'italic',
-    color: '#666',
-    marginTop: 20,
-  },
-  groupContainer: {
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 5,
-    overflow: 'hidden',
-  },
-  groupHeader: {
-    padding: 5,
-  },
-  groupTitle: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    ...Platform.select({
-      web: {
-        textShadow: '0px 0px 2px rgba(0,0,0,0.5)',
-      },
-      default: {
-        textShadowColor: 'rgba(0,0,0,0.5)',
-        textShadowRadius: 2,
-      },
-    }),
-  },
-  propertyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  propertyInfo: {
-    flex: 1,
-    marginRight: 10,
-  },
-  propertyName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  mortgagedText: {
-    color: 'red',
-    fontStyle: 'italic',
-  },
-  houseCount: {
-    fontSize: 12,
-    color: '#666',
-  },
-  buttons: {
-    flexDirection: 'column',
-    gap: 5,
-    minWidth: 140,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    phoneOverlay: { flex: 1, backgroundColor: theme.surface },
+    phoneContent: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.scrim,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    modalContent: {
+      backgroundColor: theme.surface,
+      borderRadius: 12,
+      width: '100%',
+      maxWidth: 500,
+      maxHeight: '90%',
+      padding: 20,
+      elevation: 5,
+      boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 5,
+      position: 'relative',
+      minHeight: 40,
+    },
+    closeBtnContainer: {
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      bottom: 0,
+      justifyContent: 'center',
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      color: theme.textPrimary,
+    },
+    balance: {
+      fontSize: 16,
+      textAlign: 'center',
+      marginBottom: 15,
+      color: theme.successText,
+      fontWeight: 'bold',
+    },
+    scroll: {
+      marginBottom: 10,
+    },
+    emptyText: {
+      textAlign: 'center',
+      fontStyle: 'italic',
+      color: theme.textSecondary,
+      marginTop: 20,
+    },
+    groupContainer: {
+      marginBottom: 15,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 5,
+      overflow: 'hidden',
+    },
+    groupHeader: {
+      padding: 5,
+    },
+    groupTitle: {
+      color: theme.onAccent,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      ...Platform.select({
+        web: {
+          textShadow: '0px 0px 2px rgba(0,0,0,0.5)',
+        },
+        default: {
+          textShadowColor: 'rgba(0,0,0,0.5)',
+          textShadowRadius: 2,
+        },
+      }),
+    },
+    propertyRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+    },
+    propertyInfo: {
+      flex: 1,
+      marginRight: 10,
+    },
+    propertyName: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: theme.textPrimary,
+    },
+    mortgagedText: {
+      color: theme.errorText,
+      fontStyle: 'italic',
+    },
+    houseCount: {
+      fontSize: 12,
+      color: theme.textSecondary,
+    },
+    buttons: {
+      flexDirection: 'column',
+      gap: 5,
+      minWidth: 140,
+    },
+  });
