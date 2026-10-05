@@ -236,6 +236,13 @@ opt-in design is what's correct; the test in
   `keyboardShouldPersistTaps="handled"` so taps on its buttons still work
   while the keyboard is up. Verified on the iPhone 17 simulator (iOS 26.4).
 
+- **Dynamic Type: board text is capped, panel text scales** (#273). `Tile`
+  sets `maxFontSizeMultiplier={1}` because tiles have fixed pixel sizes; any
+  new text drawn on the board needs the same. Panel rows that share a line
+  with other content use `flexWrap` / `flexShrink: 1` so large text wraps
+  instead of overflowing. Not yet verified on a simulator at
+  `accessibility-extra-extra-extra-large`.
+
 ## Test command
 
 ```sh

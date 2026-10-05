@@ -162,10 +162,12 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
   playerName: { fontWeight: '700', fontSize: 14 },
   money: { color: '#666', fontSize: 13 },
-  positionRow: { flexDirection: 'row', alignItems: 'center' },
+  // flexWrap + shrinking text: a long tile name at large Dynamic Type must wrap
+  // rather than run off the right edge.
+  positionRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
   positionLabel: { fontSize: 12, color: '#666' },
   tileColor: { width: 10, height: 10, marginRight: 4, borderWidth: 1, borderColor: '#333' },
-  positionText: { fontSize: 13 },
+  positionText: { fontSize: 13, flexShrink: 1 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   waitingText: { color: '#aab8c2', fontStyle: 'italic', textAlign: 'center', paddingVertical: 8 },
 });

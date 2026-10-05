@@ -261,7 +261,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     columnGap: 6,
   },
-  currentTileInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  currentTileInfo: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   statusText: { fontSize: 14 },
   tileColor: { width: 12, height: 12, marginRight: 6, borderWidth: 1, borderColor: '#333' },
   actions: { gap: 8, width: '100%' },

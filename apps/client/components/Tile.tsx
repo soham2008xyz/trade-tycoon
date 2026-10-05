@@ -26,6 +26,10 @@ interface Props {
 
 const STRIPES = Array.from({ length: 40 });
 
+// Tiles have fixed pixel dimensions set by the board layout, so OS text-size
+// scaling would break labels mid-word or clip prices. 1 disables scaling.
+const TILE_MAX_FONT_SCALE = 1;
+
 // Color bar runs along whichever edge faces the board's center; corners
 // simplify to a single fixed layout. Extracted as a lookup (rather than an
 // if/else chain inside the component) to keep TileComponent's own
@@ -120,11 +124,18 @@ const TileComponent: React.FC<Props> = ({
       <View style={styles.content}>
         {owner && <View style={[styles.ownerIndicator, { backgroundColor: owner.color }]} />}
         {!(compact && orientation !== 'corner') && (
-          <Text style={[styles.text, { fontSize: orientation === 'corner' ? 10 : 8 }]}>
+          <Text
+            maxFontSizeMultiplier={TILE_MAX_FONT_SCALE}
+            style={[styles.text, { fontSize: orientation === 'corner' ? 10 : 8 }]}
+          >
             {tile.name}
           </Text>
         )}
-        {tile.price && <Text style={styles.price}>${tile.price}</Text>}
+        {tile.price && (
+          <Text maxFontSizeMultiplier={TILE_MAX_FONT_SCALE} style={styles.price}>
+            ${tile.price}
+          </Text>
+        )}
       </View>
       {renderMortgageOverlay(isMortgaged)}
     </Pressable>
