@@ -175,9 +175,12 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         // the lobby roster only — bankrupt players stay in it (see the helper).
         if (wasRemovedFromRoom(state, playerIdRef.current)) {
           setTransientError('You were removed from the game');
-          // Leave only once the session is gone, so the menu doesn't offer
-          // to resume it (#258).
-          void clearStoredSession(onlineSessionStorage).then(onBack);
+          // Stop syncing so the next update can't run this again while the
+          // clear is pending, and leave only once the session is gone, so the
+          // menu doesn't offer to resume it (#258).
+          syncHandleRef.current?.stop();
+          syncHandleRef.current = null;
+          clearStoredSession(onlineSessionStorage).then(onBack);
           return;
         }
         setLobbyState(state);
@@ -195,7 +198,12 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       onPresence: setDisconnectedPlayerIds,
       onSessionExpired: () => {
         setTransientError('Session expired');
-        onBack();
+        // The server answered 404 session_expired, so the stored session is
+        // dead: drop it before leaving, or the menu offers a Resume that can
+        // only fail (#258).
+        syncHandleRef.current?.stop();
+        syncHandleRef.current = null;
+        clearStoredSession(onlineSessionStorage).then(onBack);
       },
     });
     syncHandleRef.current = handle;
@@ -340,7 +348,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     setPlayerId(body.playerId);
     setToken(body.token);
     setStep('lobby');
-    void writeStoredSession(onlineSessionStorage, {
+    writeStoredSession(onlineSessionStorage, {
       roomId: body.roomId,
       playerId: body.playerId,
       token: body.token,

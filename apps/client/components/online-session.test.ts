@@ -28,8 +28,12 @@ const makeAsyncMemoryStorage = (): SessionStorage => {
   const sync = makeMemoryStorage();
   return {
     getItem: async (key) => sync.getItem(key),
-    setItem: async (key, value) => sync.setItem(key, value),
-    removeItem: async (key) => sync.removeItem(key),
+    setItem: async (key, value) => {
+      sync.setItem(key, value);
+    },
+    removeItem: async (key) => {
+      sync.removeItem(key);
+    },
   };
 };
 
