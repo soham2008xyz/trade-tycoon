@@ -10,6 +10,8 @@ import { Dice } from '../Dice';
 import type { StatusPanelActions, StatusPanelButtons } from '../../hooks/useStatusPanelActions';
 import { GameOverCard } from './GameOverCard';
 import type { StatusPanelProps } from './types';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '../../constants/theme';
 
 interface TurnInfoProps {
   player: Player;
@@ -22,6 +24,7 @@ interface TurnInfoProps {
 
 /** Who is playing, where they stand and the dice, for the tablet board centre. */
 function TurnInfo({ player, tileName, tileGroup, panel }: TurnInfoProps) {
+  const styles = createStyles(useTheme());
   // Looked up through entries(), not GROUP_COLORS[tileGroup], to avoid a generic object injection sink.
   const groupColor = Object.entries(GROUP_COLORS).find(([group]) => group === tileGroup)?.[1];
   return (
@@ -49,6 +52,7 @@ function TurnInfo({ player, tileName, tileGroup, panel }: TurnInfoProps) {
 
 /** Reserved even before the first roll so the dice appearing does not push the buttons below down (#268). */
 function DiceSlot({ panel }: { panel: StatusPanelProps }) {
+  const styles = createStyles(useTheme());
   return (
     <View style={styles.diceSlot}>
       {panel.state.phase === 'action' && (
@@ -69,6 +73,8 @@ interface SlotProps {
 }
 
 function WaitingNotice({ player, panel }: Pick<SlotProps, 'player' | 'panel'>) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <>
       <Text style={styles.waitingText}>
@@ -82,7 +88,7 @@ function WaitingNotice({ player, panel }: Pick<SlotProps, 'player' | 'panel'>) {
           onPress={() => {
             panel.onRemovePlayer(player.id);
           }}
-          color="#d9534f"
+          color={theme.danger}
         />
       )}
     </>
@@ -90,6 +96,7 @@ function WaitingNotice({ player, panel }: Pick<SlotProps, 'player' | 'panel'>) {
 }
 
 function JailAndDebtButtons({ buttons, panel }: Pick<SlotProps, 'buttons' | 'panel'>) {
+  const theme = useTheme();
   return (
     <>
       {buttons.payFine.visible && (
@@ -98,7 +105,7 @@ function JailAndDebtButtons({ buttons, panel }: Pick<SlotProps, 'buttons' | 'pan
           icon="cash-remove"
           onPress={panel.onPayFine}
           disabled={!buttons.payFine.enabled}
-          color="#d9534f"
+          color={theme.danger}
         />
       )}
       {buttons.useGOOJCard.visible && (
@@ -106,7 +113,7 @@ function JailAndDebtButtons({ buttons, panel }: Pick<SlotProps, 'buttons' | 'pan
           title={`Use Card (${buttons.useGOOJCard.count})`}
           icon="card-account-details"
           onPress={panel.onUseGOOJCard}
-          color="#5bc0de"
+          color={theme.info}
         />
       )}
       {buttons.declareBankruptcy.visible && (
@@ -114,7 +121,7 @@ function JailAndDebtButtons({ buttons, panel }: Pick<SlotProps, 'buttons' | 'pan
           title="Declare Bankruptcy"
           icon="alert-circle"
           onPress={panel.onDeclareBankruptcy}
-          color="#444"
+          color={theme.neutralButton}
         />
       )}
     </>
@@ -122,6 +129,7 @@ function JailAndDebtButtons({ buttons, panel }: Pick<SlotProps, 'buttons' | 'pan
 }
 
 function TurnButtons({ buttons, panel }: Pick<SlotProps, 'buttons' | 'panel'>) {
+  const theme = useTheme();
   return (
     <>
       {buttons.roll.visible && (
@@ -132,11 +140,11 @@ function TurnButtons({ buttons, panel }: Pick<SlotProps, 'buttons' | 'panel'>) {
           title="Roll Again"
           icon="dice-multiple"
           onPress={panel.onRollAgain}
-          color="orange"
+          color={theme.warning}
         />
       )}
       {buttons.endTurn.visible && (
-        <IconButton title="End Turn" icon="check" onPress={panel.onEndTurn} color="#d9534f" />
+        <IconButton title="End Turn" icon="check" onPress={panel.onEndTurn} color={theme.danger} />
       )}
     </>
   );
@@ -149,6 +157,8 @@ function TurnButtons({ buttons, panel }: Pick<SlotProps, 'buttons' | 'panel'>) {
  * Manage, then the single roll / roll again / end turn button.
  */
 function TurnActions({ player, buttons, panel }: SlotProps) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.actions}>
       <View style={styles.decisionSlot}>
@@ -158,7 +168,12 @@ function TurnActions({ player, buttons, panel }: SlotProps) {
           <IconButton title={`Buy ($${buttons.buy.price})`} icon="cart" onPress={panel.onBuy} />
         )}
         {buttons.auction.visible && (
-          <IconButton title="Auction" icon="gavel" onPress={panel.onDeclineBuy} color="#f0ad4e" />
+          <IconButton
+            title="Auction"
+            icon="gavel"
+            onPress={panel.onDeclineBuy}
+            color={theme.warning}
+          />
         )}
       </View>
       <View style={styles.buttonSlot}>
@@ -167,7 +182,7 @@ function TurnActions({ player, buttons, panel }: SlotProps) {
             title="Manage Properties"
             icon="city"
             onPress={panel.onOpenPropertyManager}
-            color="#841584"
+            color={theme.brand}
           />
         )}
       </View>
@@ -210,32 +225,39 @@ export function TurnPanel({ panel, actions }: TurnPanelProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  playerColor: { width: 12, height: 12, marginRight: 6, borderRadius: 2, flexShrink: 0 },
-  gameInfo: { marginBottom: 15, alignItems: 'center', gap: 4 },
-  currentPlayerInfo: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'center',
-    columnGap: 6,
-  },
-  currentTileInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  statusText: { fontSize: 14 },
-  // Shrinks so a long tile name wraps in place at large Dynamic Type instead
-  // of overflowing the panel (same pattern as Peek).
-  positionText: { flexShrink: 1 },
-  tileColor: { width: 12, height: 12, marginRight: 6, borderWidth: 1, borderColor: '#333' },
-  actions: { gap: 8, width: '100%' },
-  // Dice are 40px tall plus padding; reserve that height before they appear.
-  diceSlot: { minHeight: 50, justifyContent: 'center' },
-  // Two medium buttons (Buy + Auction) and the gap between them.
-  decisionSlot: { minHeight: 96, gap: 8 },
-  buttonSlot: { minHeight: 44, justifyContent: 'center' },
-  waitingText: {
-    color: '#aab8c2',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: 12,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    playerColor: { width: 12, height: 12, marginRight: 6, borderRadius: 2, flexShrink: 0 },
+    gameInfo: { marginBottom: 15, alignItems: 'center', gap: 4 },
+    currentPlayerInfo: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'center',
+      columnGap: 6,
+    },
+    currentTileInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+    statusText: { fontSize: 14, color: theme.textPrimary },
+    // Shrinks so a long tile name wraps in place at large Dynamic Type instead
+    // of overflowing the panel (same pattern as Peek).
+    positionText: { flexShrink: 1 },
+    tileColor: {
+      width: 12,
+      height: 12,
+      marginRight: 6,
+      borderWidth: 1,
+      borderColor: theme.outline,
+    },
+    actions: { gap: 8, width: '100%' },
+    // Dice are 40px tall plus padding; reserve that height before they appear.
+    diceSlot: { minHeight: 50, justifyContent: 'center' },
+    // Two medium buttons (Buy + Auction) and the gap between them.
+    decisionSlot: { minHeight: 96, gap: 8 },
+    buttonSlot: { minHeight: 44, justifyContent: 'center' },
+    waitingText: {
+      color: theme.textMuted,
+      fontStyle: 'italic',
+      textAlign: 'center',
+      paddingVertical: 12,
+    },
+  });

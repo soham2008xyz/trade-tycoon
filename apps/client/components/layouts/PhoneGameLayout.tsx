@@ -7,6 +7,8 @@ import { getSideBySideBoardArea, isSideBySide } from '../board-size';
 import { Peek } from '../StatusPanel/Peek';
 import { Expanded } from '../StatusPanel/Expanded';
 import type { StatusPanelProps } from '../StatusPanel/types';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '../../constants/theme';
 
 interface Props extends StatusPanelProps {
   onTilePress: (_tileId: string) => void;
@@ -15,6 +17,8 @@ interface Props extends StatusPanelProps {
 
 export const PhoneGameLayout: React.FC<Props> = (props) => {
   const sheetRef = useRef<BottomSheet>(null);
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
   const win = useWindowDimensions();
   const [rootFrame, setRootFrame] = React.useState<{ width: number; height: number } | null>(null);
@@ -120,6 +124,9 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
           // elevation rather than zIndex decides draw order across siblings.
           containerStyle={styles.sheetContainer}
           style={styles.sheet}
+          // The sheet paints its own white background and handle by default.
+          backgroundStyle={styles.sheetBackground}
+          handleIndicatorStyle={styles.sheetHandle}
           snapPoints={snapPoints}
           enableDynamicSizing={false}
           enablePanDownToClose={false}
@@ -156,18 +163,21 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
   );
 };
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#fff' },
-  rootSideBySide: { flexDirection: 'row' },
-  boardWrapper: { flex: 1, zIndex: 0 },
-  boardArea: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    padding: 10,
-  },
-  sidePanel: { flex: 1, borderLeftWidth: 1, borderLeftColor: '#e5e7eb' },
-  sheetContainer: { zIndex: 1, elevation: 10 },
-  sheet: { elevation: 10 },
-  peek: { borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: theme.background },
+    rootSideBySide: { flexDirection: 'row' },
+    boardWrapper: { flex: 1, zIndex: 0 },
+    boardArea: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      padding: 10,
+    },
+    sidePanel: { flex: 1, borderLeftWidth: 1, borderLeftColor: theme.border },
+    sheetContainer: { zIndex: 1, elevation: 10 },
+    sheet: { elevation: 10 },
+    peek: { borderBottomWidth: 1, borderBottomColor: theme.border },
+    sheetBackground: { backgroundColor: theme.surface },
+    sheetHandle: { backgroundColor: theme.borderStrong },
+  });

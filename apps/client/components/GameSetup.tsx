@@ -9,6 +9,8 @@ import {
   pickUnusedColor,
 } from '@trade-tycoon/game-logic';
 import { validateSetupPlayers } from './game-setup-validation';
+import { useTheme } from '../hooks/useTheme';
+import type { Theme } from '../constants/theme';
 
 interface PlayerConfig {
   name: string;
@@ -21,6 +23,8 @@ interface Props {
 }
 
 export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [playerCount, setPlayerCount] = useState(2);
   const [players, setPlayers] = useState<PlayerConfig[]>([
     { name: 'Player 1', color: PLAYER_COLORS[0] },
@@ -65,7 +69,7 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
         <Text style={styles.title}>Game Setup</Text>
 
         <View style={styles.countContainer}>
-          <Text>Number of Players:</Text>
+          <Text style={styles.label}>Number of Players:</Text>
           <View style={styles.countButtons}>
             {[2, 3, 4, 5, 6].map((num) => (
               <TouchableOpacity
@@ -106,6 +110,8 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
                   setError(null);
                 }}
                 placeholder="Name"
+                placeholderTextColor={theme.textMuted}
+                keyboardAppearance={theme.scheme}
               />
               <View style={styles.colorPicker}>
                 {PLAYER_COLORS.map((color) => {
@@ -143,7 +149,7 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
             title="Back"
             icon="arrow-left"
             onPress={onBack}
-            style={{ backgroundColor: '#666', flex: 1 }}
+            style={{ backgroundColor: theme.neutralButton, flex: 1 }}
           />
           <IconButton title="Start Game" icon="play" onPress={handleSubmit} style={{ flex: 2 }} />
         </View>
@@ -152,100 +158,106 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    padding: 24,
-  },
-  content: {
-    width: '90%',
-    maxWidth: 560,
-    backgroundColor: '#f8fbff',
-    borderRadius: 28,
-    padding: 24,
-    maxHeight: '90%',
-    elevation: 5,
-    boxShadow: '0px 18px 36px rgba(0,0,0,0.2)',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  countContainer: {
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  countButtons: {
-    flexDirection: 'row',
-    marginTop: 10,
-    gap: 10,
-  },
-  countButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: '#eee',
-  },
-  activeCountButton: {
-    backgroundColor: '#007AFF',
-  },
-  countButtonText: {
-    fontSize: 16,
-  },
-  activeCountButtonText: {
-    color: 'white',
-  },
-  playersList: {
-    marginBottom: 20,
-  },
-  playerRow: {
-    marginBottom: 15,
-    padding: 10,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-  },
-  playerLabel: {
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 8,
-    borderRadius: 4,
-    marginBottom: 10,
-    backgroundColor: 'white',
-  },
-  colorPicker: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  colorOption: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-  },
-  selectedColor: {
-    borderWidth: 2,
-    borderColor: 'black',
-  },
-  takenColor: {
-    opacity: 0.2,
-  },
-  errorText: {
-    color: '#b00020',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+      padding: 24,
+    },
+    content: {
+      width: '90%',
+      maxWidth: 560,
+      backgroundColor: theme.card,
+      borderRadius: 28,
+      padding: 24,
+      maxHeight: '90%',
+      elevation: 5,
+      boxShadow: '0px 18px 36px rgba(0,0,0,0.2)',
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: 20,
+      textAlign: 'center',
+      color: theme.textPrimary,
+    },
+    label: { color: theme.textPrimary },
+    countContainer: {
+      marginBottom: 20,
+      alignItems: 'center',
+    },
+    countButtons: {
+      flexDirection: 'row',
+      marginTop: 10,
+      gap: 10,
+    },
+    countButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: 20,
+      backgroundColor: theme.border,
+    },
+    activeCountButton: {
+      backgroundColor: theme.highlight,
+    },
+    countButtonText: {
+      fontSize: 16,
+      color: theme.textPrimary,
+    },
+    activeCountButtonText: {
+      color: theme.onAccent,
+    },
+    playersList: {
+      marginBottom: 20,
+    },
+    playerRow: {
+      marginBottom: 15,
+      padding: 10,
+      backgroundColor: theme.surfaceMuted,
+      borderRadius: 8,
+    },
+    playerLabel: {
+      fontWeight: 'bold',
+      marginBottom: 5,
+      color: theme.textPrimary,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.borderStrong,
+      padding: 8,
+      borderRadius: 4,
+      marginBottom: 10,
+      backgroundColor: theme.surface,
+      color: theme.textPrimary,
+    },
+    colorPicker: {
+      flexDirection: 'row',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    colorOption: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+    },
+    selectedColor: {
+      borderWidth: 2,
+      borderColor: theme.outline,
+    },
+    takenColor: {
+      opacity: 0.2,
+    },
+    errorText: {
+      color: theme.errorText,
+      textAlign: 'center',
+      marginBottom: 8,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 10,
+    },
+  });

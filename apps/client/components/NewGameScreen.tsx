@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { IconButton } from './ui/IconButton';
+import { useTheme } from '../hooks/useTheme';
+import type { Theme } from '../constants/theme';
 
 interface Props {
   onLocalMultiplayer: () => void;
@@ -8,6 +10,7 @@ interface Props {
 }
 
 export const NewGameScreen: React.FC<Props> = ({ onLocalMultiplayer, onOnlineMultiplayer }) => {
+  const styles = createStyles(useTheme());
   return (
     <View style={styles.modalContainer}>
       <View style={styles.content}>
@@ -36,43 +39,44 @@ export const NewGameScreen: React.FC<Props> = ({ onLocalMultiplayer, onOnlineMul
   );
 };
 
-const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    padding: 24,
-  },
-  content: {
-    width: '90%',
-    maxWidth: 460,
-    backgroundColor: '#f8fbff',
-    borderRadius: 28,
-    padding: 32,
-    elevation: 5,
-    boxShadow: '0px 18px 36px rgba(0,0,0,0.2)',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-    color: '#333',
-  },
-  subtitle: {
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 32,
-    textAlign: 'center',
-    color: '#516078',
-  },
-  buttonContainer: {
-    width: '100%',
-    gap: 20,
-  },
-  button: {
-    width: '100%',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+      padding: 24,
+    },
+    content: {
+      width: '90%',
+      maxWidth: 460,
+      backgroundColor: theme.card,
+      borderRadius: 28,
+      padding: 32,
+      elevation: 5,
+      boxShadow: '0px 18px 36px rgba(0,0,0,0.2)',
+      alignItems: 'center',
+    },
+    title: {
+      fontSize: 34,
+      fontWeight: 'bold',
+      marginBottom: 16,
+      textAlign: 'center',
+      color: theme.textPrimary,
+    },
+    subtitle: {
+      fontSize: 16,
+      lineHeight: 24,
+      marginBottom: 32,
+      textAlign: 'center',
+      color: theme.textSecondary,
+    },
+    buttonContainer: {
+      width: '100%',
+      gap: 20,
+    },
+    button: {
+      width: '100%',
+    },
+  });

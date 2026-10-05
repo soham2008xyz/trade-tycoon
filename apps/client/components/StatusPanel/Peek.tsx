@@ -9,6 +9,8 @@ import { GROUP_COLORS } from '../../constants';
 import { getPlayerPositionLabel } from '../jail-status';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
 import type { StatusPanelProps } from './types';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '../../constants/theme';
 
 export const Peek: React.FC<StatusPanelProps> = ({
   state,
@@ -30,6 +32,8 @@ export const Peek: React.FC<StatusPanelProps> = ({
   removablePlayerIds,
   onRemovePlayer,
 }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { currentPlayer, currentTile, buttons, isGameOver } = useStatusPanelActions(
     state,
     myPlayerId,
@@ -90,7 +94,7 @@ export const Peek: React.FC<StatusPanelProps> = ({
                 title={`Remove ${currentPlayer.name}`}
                 icon="account-remove"
                 onPress={() => onRemovePlayer(currentPlayer.id)}
-                color="#d9534f"
+                color={theme.danger}
               />
             )}
           </>
@@ -102,7 +106,7 @@ export const Peek: React.FC<StatusPanelProps> = ({
             icon="cash-remove"
             onPress={onPayFine}
             disabled={!buttons.payFine.enabled}
-            color="#d9534f"
+            color={theme.danger}
           />
         )}
         {buttons.useGOOJCard.visible && (
@@ -110,7 +114,7 @@ export const Peek: React.FC<StatusPanelProps> = ({
             title={`Use Card (${buttons.useGOOJCard.count})`}
             icon="card-account-details"
             onPress={onUseGOOJCard}
-            color="#5bc0de"
+            color={theme.info}
           />
         )}
         {buttons.declareBankruptcy.visible && (
@@ -118,56 +122,73 @@ export const Peek: React.FC<StatusPanelProps> = ({
             title="Declare Bankruptcy"
             icon="alert-circle"
             onPress={onDeclareBankruptcy}
-            color="#444"
+            color={theme.neutralButton}
           />
         )}
         {buttons.buy.visible && (
           <IconButton title={`Buy ($${buttons.buy.price})`} icon="cart" onPress={onBuy} />
         )}
         {buttons.auction.visible && (
-          <IconButton title="Auction" icon="gavel" onPress={onDeclineBuy} color="#f0ad4e" />
+          <IconButton title="Auction" icon="gavel" onPress={onDeclineBuy} color={theme.warning} />
         )}
         {buttons.manage.visible && (
-          <IconButton title="Manage" icon="city" onPress={onOpenPropertyManager} color="#841584" />
+          <IconButton
+            title="Manage"
+            icon="city"
+            onPress={onOpenPropertyManager}
+            color={theme.brand}
+          />
         )}
         {buttons.rollAgain.visible && (
           <IconButton
             title="Roll Again"
             icon="dice-multiple"
             onPress={onRollAgain}
-            color="orange"
+            color={theme.warning}
           />
         )}
         {buttons.endTurn.visible && (
-          <IconButton title="End Turn" icon="check" onPress={onEndTurn} color="#d9534f" />
+          <IconButton title="End Turn" icon="check" onPress={onEndTurn} color={theme.danger} />
         )}
       </View>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  root: { padding: 12, gap: 8 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  // flexShrink + wrap: the chip shares a row with the dice, and large Dynamic
-  // Type must wrap the name/money/badge rather than push the dice off-screen.
-  playerChip: {
-    flexShrink: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    columnGap: 6,
-    rowGap: 2,
-  },
-  dot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
-  playerName: { fontWeight: '700', fontSize: 14 },
-  money: { color: '#666', fontSize: 13 },
-  // The text shrinks (rather than the row wrapping) so a long tile name at
-  // large Dynamic Type wraps in place instead of running off the right edge.
-  positionRow: { flexDirection: 'row', alignItems: 'center' },
-  positionLabel: { fontSize: 12, color: '#666' },
-  tileColor: { width: 10, height: 10, marginRight: 4, borderWidth: 1, borderColor: '#333' },
-  positionText: { fontSize: 13, flexShrink: 1 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  waitingText: { color: '#aab8c2', fontStyle: 'italic', textAlign: 'center', paddingVertical: 8 },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    root: { padding: 12, gap: 8 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    // flexShrink + wrap: the chip shares a row with the dice, and large Dynamic
+    // Type must wrap the name/money/badge rather than push the dice off-screen.
+    playerChip: {
+      flexShrink: 1,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      columnGap: 6,
+      rowGap: 2,
+    },
+    dot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
+    playerName: { fontWeight: '700', fontSize: 14, color: theme.textPrimary },
+    money: { color: theme.textSecondary, fontSize: 13 },
+    // The text shrinks (rather than the row wrapping) so a long tile name at
+    // large Dynamic Type wraps in place instead of running off the right edge.
+    positionRow: { flexDirection: 'row', alignItems: 'center' },
+    positionLabel: { fontSize: 12, color: theme.textSecondary },
+    tileColor: {
+      width: 10,
+      height: 10,
+      marginRight: 4,
+      borderWidth: 1,
+      borderColor: theme.outline,
+    },
+    positionText: { fontSize: 13, flexShrink: 1, color: theme.textPrimary },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    waitingText: {
+      color: theme.textMuted,
+      fontStyle: 'italic',
+      textAlign: 'center',
+      paddingVertical: 8,
+    },
+  });

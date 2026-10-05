@@ -3,6 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { IconButton } from './ui/IconButton';
 import type { StoredSession } from './online-session';
 import { readStoredSession } from './session-storage';
+import { useTheme } from '../hooks/useTheme';
+import type { Theme } from '../constants/theme';
 
 interface Props {
   onBack: () => void;
@@ -17,6 +19,7 @@ export const MultiplayerMenuScreen: React.FC<Props> = ({
   onCreateRoom,
   onResumeGame,
 }) => {
+  const styles = createStyles(useTheme());
   // Session detection runs once on mount. If the user navigates away and
   // comes back the menu remounts, so this stays fresh. The read is async
   // (native storage is the keychain/keystore), so the Resume button appears
@@ -70,40 +73,42 @@ export const MultiplayerMenuScreen: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#333',
-  },
-  content: {
-    width: '90%',
-    maxWidth: 400,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 30,
-    elevation: 5,
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 40,
-    textAlign: 'center',
-    color: '#333',
-  },
-  buttonContainer: {
-    width: '100%',
-    gap: 20,
-  },
-  button: {
-    width: '100%',
-  },
-  secondaryButton: {
-    width: '100%',
-    marginTop: 10,
-    backgroundColor: '#666',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+      padding: 24,
+    },
+    content: {
+      width: '90%',
+      maxWidth: 460,
+      backgroundColor: theme.card,
+      borderRadius: 28,
+      padding: 32,
+      elevation: 5,
+      boxShadow: '0px 18px 36px rgba(0,0,0,0.2)',
+      alignItems: 'center',
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      marginBottom: 40,
+      textAlign: 'center',
+      color: theme.textPrimary,
+    },
+    buttonContainer: {
+      width: '100%',
+      gap: 20,
+    },
+    button: {
+      width: '100%',
+    },
+    secondaryButton: {
+      width: '100%',
+      marginTop: 10,
+      backgroundColor: theme.neutralButton,
+    },
+  });
