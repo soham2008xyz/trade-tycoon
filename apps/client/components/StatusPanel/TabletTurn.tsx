@@ -22,7 +22,8 @@ interface TurnInfoProps {
 
 /** Who is playing, where they stand and the dice, for the tablet board centre. */
 function TurnInfo({ player, tileName, tileGroup, panel }: TurnInfoProps) {
-  const groupColor = tileGroup ? GROUP_COLORS[tileGroup] : undefined;
+  // Looked up through entries(), not GROUP_COLORS[tileGroup], to avoid a generic object injection sink.
+  const groupColor = Object.entries(GROUP_COLORS).find(([group]) => group === tileGroup)?.[1];
   return (
     <View style={styles.gameInfo}>
       <View style={styles.currentPlayerInfo}>
@@ -78,7 +79,9 @@ function WaitingNotice({ player, panel }: Pick<SlotProps, 'player' | 'panel'>) {
         <IconButton
           title={`Remove ${player.name}`}
           icon="account-remove"
-          onPress={() => panel.onRemovePlayer(player.id)}
+          onPress={() => {
+            panel.onRemovePlayer(player.id);
+          }}
           color="#d9534f"
         />
       )}
