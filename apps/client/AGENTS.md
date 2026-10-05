@@ -329,7 +329,10 @@ and needs no `useMemo`.
   simulator appearance set to dark and light: menu, setup, board with the
   Players strip, Log modal, and the dark `keyboardAppearance` accessory bar.
   `xcrun simctl ui <udid> appearance dark` switches a running app live. The
-  iPhone sheet and `pageSheet` modals were checked on web only.
+  On the iPhone 17 simulator (iOS 26.4): menu, setup, board with the native
+  bottom sheet, and the Trade `pageSheet` in dark and light. Android is
+  unchecked. A dev build older than #258 crashes on launch with a missing
+  `ExpoSecureStore` module; reinstall a newer build rather than debugging it.
 
 ## Test command
 
