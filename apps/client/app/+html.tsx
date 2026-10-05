@@ -32,7 +32,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="color-scheme" content="light dark" />
         <ScrollViewStyleReset />
-        <style id="color-scheme" dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_CSS }} />
+        <style id="color-scheme">{COLOR_SCHEME_CSS}</style>
       </head>
       <body>{children}</body>
     </html>
