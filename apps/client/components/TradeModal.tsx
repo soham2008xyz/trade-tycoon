@@ -12,6 +12,7 @@ import { useGameLayout } from '../hooks/useGameLayout';
 import { moneyFromSlider, moneySliderMax, sliderFromMoney } from './trade-money';
 import { useTheme } from '../hooks/useTheme';
 import type { Theme } from '../constants/theme';
+import { formatMoney } from './format-money';
 
 export { canAcceptTrade, canCancelTrade };
 
@@ -295,7 +296,7 @@ export const TradeModal: React.FC<Props> = ({
                   <Text style={styles.subtitle}>You Offer</Text>
                 </View>
 
-                <Text style={styles.text}>Money (Max: ${initiator.money})</Text>
+                <Text style={styles.text}>Money (Max: {formatMoney(initiator.money)})</Text>
                 <View style={styles.sliderRow}>
                   <Text style={styles.moneyText}>${offerMoney}</Text>
                   <Slider
@@ -383,7 +384,7 @@ export const TradeModal: React.FC<Props> = ({
                   <Text style={styles.subtitle}>You Request</Text>
                 </View>
 
-                <Text style={styles.text}>Money (Max: ${target.money})</Text>
+                <Text style={styles.text}>Money (Max: {formatMoney(target.money)})</Text>
                 <View style={styles.sliderRow}>
                   <Text style={styles.moneyText}>${reqMoney}</Text>
                   <Slider

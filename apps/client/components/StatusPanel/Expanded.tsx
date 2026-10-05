@@ -8,6 +8,7 @@ import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
 import type { StatusPanelProps } from './types';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
+import { formatMoney } from '../format-money';
 
 export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = (props) => {
   const {
@@ -39,7 +40,8 @@ export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = (
                   currentPlayer?.id === player.id && styles.activePlayerText,
                 ]}
               >
-                {player.name} (${player.money}){state.winner === player.id ? ' 🏆 Winner' : ''}
+                {player.name} ({formatMoney(player.money)})
+                {state.winner === player.id ? ' 🏆 Winner' : ''}
               </Text>
               <GOOJBadge count={player.getOutOfJailCards} />
               <JailStatus player={player} />

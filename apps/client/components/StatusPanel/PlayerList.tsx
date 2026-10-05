@@ -7,6 +7,7 @@ import { DisconnectedBadge } from '../ui/DisconnectedBadge';
 import type { StatusPanelProps } from './types';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
+import { formatMoney } from '../format-money';
 
 interface Props extends Pick<
   StatusPanelProps,
@@ -50,7 +51,7 @@ export const PlayerList: React.FC<Props> = ({
               <Text
                 style={[styles.playerText, activePlayerId === player.id && styles.activePlayerText]}
               >
-                {player.name} (${player.money}){state.winner === player.id ? ' 🏆' : ''}
+                {player.name} ({formatMoney(player.money)}){state.winner === player.id ? ' 🏆' : ''}
               </Text>
               <GOOJBadge count={player.getOutOfJailCards} />
               <JailStatus player={player} />
