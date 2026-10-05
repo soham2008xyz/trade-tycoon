@@ -700,7 +700,7 @@ const reduceGameActionUnbounded = (
             // Stay in Jail
             const newPlayers = [...state.players];
             newPlayers[playerIndex] = { ...player, jailTurns: turns };
-            const toastMessage = 'Still in Jail.';
+            const toastMessage = `No doubles — still in Jail. Attempt ${turns}/3 failed.${turns === 2 ? ' Next non-doubles roll: pay $50 and move.' : ''}`;
             return {
               ...state,
               dice: [die1, die2],

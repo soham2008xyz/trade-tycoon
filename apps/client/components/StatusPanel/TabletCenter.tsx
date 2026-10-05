@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { GROUP_COLORS } from '../../constants';
+import { getPlayerPositionLabel } from '../jail-status';
 import { IconButton } from '../ui/IconButton';
 import { GOOJBadge } from '../ui/GOOJBadge';
+import { JailStatus } from '../ui/JailStatus';
 import { DisconnectedBadge } from '../ui/DisconnectedBadge';
 import { Dice } from '../Dice';
 import { GameOverCard } from './GameOverCard';
@@ -75,6 +77,7 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
                     {player.name} (${player.money}){state.winner === player.id ? ' 🏆' : ''}
                   </Text>
                   <GOOJBadge count={player.getOutOfJailCards} />
+                  <JailStatus player={player} />
                   {disconnectedPlayerIds.includes(player.id) && (
                     <DisconnectedBadge name={player.name} />
                   )}
@@ -130,8 +133,11 @@ export const TabletCenter: React.FC<StatusPanelProps> = ({
                     style={[styles.tileColor, { backgroundColor: GROUP_COLORS[currentTile.group] }]}
                   />
                 )}
-                <Text style={styles.statusText}>{isTokenMoving ? '...' : currentTile?.name}</Text>
+                <Text style={styles.statusText}>
+                  {isTokenMoving ? '...' : getPlayerPositionLabel(currentPlayer, currentTile?.name)}
+                </Text>
               </View>
+              <JailStatus player={currentPlayer} showHint />
               {state.phase === 'action' && (
                 <Dice value1={state.dice[0]} value2={state.dice[1]} isRolling={isTokenMoving} />
               )}

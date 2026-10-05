@@ -15,7 +15,20 @@ interface Props extends StatusPanelProps {
 export const PhoneGameLayout: React.FC<Props> = (props) => {
   const sheetRef = useRef<BottomSheet>(null);
   const insets = useSafeAreaInsets();
-  const snapPoints = useMemo(() => ['28%', '85%'], []);
+  const [layoutHeight, setLayoutHeight] = React.useState(0);
+  const [peekHeight, setPeekHeight] = React.useState(0);
+  const isCurrentPlayerInJail = props.state.players.some(
+    (player) => player.id === props.state.currentPlayerId && player.isInJail
+  );
+  // Jail guidance and a held-card action can add rows. Keep every action above
+  // the collapsed sheet's edge rather than clipping its non-scrolling Peek.
+  const snapPoints = useMemo(
+    () =>
+      isCurrentPlayerInJail && layoutHeight > 0 && peekHeight > 0
+        ? [Math.min(Math.max(layoutHeight * 0.28, peekHeight + 24), layoutHeight * 0.85 - 1), '85%']
+        : ['28%', '85%'],
+    [isCurrentPlayerInJail, layoutHeight, peekHeight]
+  );
   const [boardFrame, setBoardFrame] = React.useState<{ width: number; height: number } | null>(
     null
   );
@@ -28,7 +41,10 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
   };
 
   return (
-    <View style={styles.root}>
+    <View
+      style={styles.root}
+      onLayout={({ nativeEvent }) => setLayoutHeight(nativeEvent.layout.height)}
+    >
       {/* zIndex: 0 makes this wrapper its own stacking context. Board's corners/center/
           tokens use zIndex 10-100+, which otherwise compete with the sibling sheet
           at the root and paint over the Players list and Trade button (#257).
@@ -63,7 +79,10 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
         enableHandlePanningGesture={props.state.phase !== 'auction'}
         keyboardBehavior="interactive"
       >
-        <View style={styles.peek}>
+        <View
+          style={[styles.peek, isCurrentPlayerInJail && { paddingBottom: insets.bottom }]}
+          onLayout={({ nativeEvent }) => setPeekHeight(nativeEvent.layout.height)}
+        >
           <Peek {...props} />
         </View>
         <Expanded {...props} />

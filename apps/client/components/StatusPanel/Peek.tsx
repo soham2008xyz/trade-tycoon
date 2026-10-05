@@ -2,9 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { IconButton } from '../ui/IconButton';
 import { GOOJBadge } from '../ui/GOOJBadge';
+import { JailStatus } from '../ui/JailStatus';
 import { Dice } from '../Dice';
 import { GameOverCard } from './GameOverCard';
 import { GROUP_COLORS } from '../../constants';
+import { getPlayerPositionLabel } from '../jail-status';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
 import type { StatusPanelProps } from './types';
 
@@ -69,8 +71,12 @@ export const Peek: React.FC<StatusPanelProps> = ({
         {!isTokenMoving && currentTile?.group && GROUP_COLORS[currentTile.group] && (
           <View style={[styles.tileColor, { backgroundColor: GROUP_COLORS[currentTile.group] }]} />
         )}
-        <Text style={styles.positionText}>{isTokenMoving ? '…' : currentTile?.name}</Text>
+        <Text style={styles.positionText}>
+          {isTokenMoving ? '…' : getPlayerPositionLabel(currentPlayer, currentTile?.name)}
+        </Text>
       </View>
+
+      <JailStatus player={currentPlayer} showHint />
 
       <View style={styles.actions}>
         {buttons.waiting.visible && (

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { IconButton } from '../ui/IconButton';
 import { GOOJBadge } from '../ui/GOOJBadge';
+import { JailStatus } from '../ui/JailStatus';
 import { DisconnectedBadge } from '../ui/DisconnectedBadge';
 import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
 import type { StatusPanelProps } from './types';
@@ -35,6 +36,7 @@ export const Expanded: React.FC<StatusPanelProps> = ({
                 {player.name} (${player.money}){state.winner === player.id ? ' 🏆 Winner' : ''}
               </Text>
               <GOOJBadge count={player.getOutOfJailCards} />
+              <JailStatus player={player} />
               {disconnectedPlayerIds.includes(player.id) && (
                 <DisconnectedBadge name={player.name} />
               )}

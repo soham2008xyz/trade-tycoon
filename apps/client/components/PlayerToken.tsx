@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -8,6 +10,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Player } from '@trade-tycoon/game-logic';
+import { getPlayerTokenLabel } from './jail-status';
 
 interface Props {
   player: Player;
@@ -164,7 +167,39 @@ const PlayerTokenComponent: React.FC<Props> = ({
     };
   });
 
-  return <Animated.View style={style} />;
+  return (
+    <Animated.View
+      accessible
+      {...(Platform.OS === 'web'
+        ? { role: 'img' as const }
+        : { accessibilityRole: 'image' as const })}
+      accessibilityLabel={getPlayerTokenLabel(player)}
+      pointerEvents="none"
+      style={style}
+    >
+      {player.isInJail && (
+        <View style={styles.jailMarker}>
+          <MaterialCommunityIcons name="lock" size={11} color="white" />
+        </View>
+      )}
+    </Animated.View>
+  );
 };
 
 export const PlayerToken = React.memo(PlayerTokenComponent);
+
+const styles = StyleSheet.create({
+  jailMarker: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 15,
+    height: 15,
+    borderRadius: 3,
+    backgroundColor: '#7c2d12',
+    borderWidth: 1,
+    borderColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
