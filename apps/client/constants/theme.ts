@@ -50,6 +50,8 @@ export interface Theme {
   highlight: string;
   danger: string;
   success: string;
+  /** Button fill behind `onAccent` labels; `success` itself is too light for white text. */
+  successFill: string;
   info: string;
   warning: string;
   brand: string;
@@ -94,6 +96,7 @@ export const lightTheme: Theme = {
   highlight: '#0062cc',
   danger: '#d9534f',
   success: '#4CAF50',
+  successFill: '#2e7d32',
   info: '#5bc0de',
   warning: '#f0ad4e',
   brand: '#841584',
@@ -137,6 +140,7 @@ export const darkTheme: Theme = {
   highlight: '#5aaeff',
   danger: '#d9534f',
   success: '#4CAF50',
+  successFill: '#2e7d32',
   info: '#5bc0de',
   warning: '#f0ad4e',
   brand: '#a23ba2',

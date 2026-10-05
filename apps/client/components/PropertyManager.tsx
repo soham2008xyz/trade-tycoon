@@ -94,7 +94,7 @@ const MortgageControls: React.FC<{
         title={`Unmortgage ($${unmortgageCost})`}
         icon="bank-plus"
         onPress={() => onUnmortgage(tile.id)}
-        color={theme.success}
+        color={theme.successFill}
         disabled={player.money < unmortgageCost}
         size="small"
       />

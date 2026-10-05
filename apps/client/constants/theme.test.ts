@@ -53,6 +53,10 @@ describe.each([lightTheme, darkTheme])('$scheme theme contrast', (theme: Theme) 
     expect(contrast(theme.jailText, theme.jailBg)).toBeGreaterThanOrEqual(4.5);
   });
 
+  it('keeps the white label readable on the success button fill', () => {
+    expect(contrast(theme.onAccent, theme.successFill)).toBeGreaterThanOrEqual(4.5);
+  });
+
   it('keeps the neutral button label readable', () => {
     expect(contrast(theme.onAccent, theme.neutralButton)).toBeGreaterThanOrEqual(4.5);
   });

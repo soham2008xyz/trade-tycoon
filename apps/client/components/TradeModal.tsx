@@ -234,7 +234,7 @@ export const TradeModal: React.FC<Props> = ({
                 title="Accept"
                 icon="check"
                 onPress={() => onAccept(effectiveActiveTrade.id)}
-                color={theme.success}
+                color={theme.successFill}
               />
               <IconButton
                 title="Reject"
