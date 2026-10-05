@@ -267,9 +267,8 @@ opt-in design is what's correct; the test in
   landscape web keeps it in the centre. Player tokens sit in a free corner of
   their tile (`token-position.ts`, scaled with the board) because the tile
   centre holds the name and price. `Tile` puts the colour bar (and houses) on
-  the board-facing side of the left and right columns but on the outer side of
-  the top and bottom rows, so tokens go to the outer edge on columns and the
-  inner edge on rows, and `PlayerToken` must get the board's inner size
+  the board-facing side of all four edges (#303), so tokens always go to the
+  outer edge, and `PlayerToken` must get the board's inner size
   (minus its 2px border) or tokens drift 3px past the outer tiles. Every
   helper that `token-position.ts` calls from inside a worklet needs its own
   `'worklet'` directive: the web build and vitest ignore a missing one, but
