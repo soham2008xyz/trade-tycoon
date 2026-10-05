@@ -174,7 +174,7 @@ participate in the security boundary.
 
 ### Resume is opt-in, never auto
 
-`OnlineGame` does NOT auto-restore from `localStorage` on mount. The
+`OnlineGame` does NOT auto-restore the stored session on mount. The
 multiplayer menu surfaces a "Resume Game" button when a session is
 stored; that's the only entry point. **Do not add silent auto-resume
 on Create/Join intent** — it caused a host-impersonation bug whose

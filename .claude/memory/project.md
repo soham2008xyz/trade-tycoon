@@ -293,3 +293,10 @@
   outer edge until then, and the old inline comments hid it. If you change the
   bar's side, change the token anchor and `anchorFraction` in
   `token-position.test.ts` together.
+
+- Native session resume (#258): the online session is stored on native via
+  `expo-secure-store`, so `online-session.ts` is async and takes an injected
+  `SessionStorage` (`session-storage.tsx` picks localStorage or SecureStore).
+  SecureStore has no sync delete, so every `clearStoredSession` followed by
+  `onBack()` awaits the clear; otherwise the menu remounts and offers a stale
+  Resume button.

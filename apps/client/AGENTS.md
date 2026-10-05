@@ -184,14 +184,22 @@ in the component.
 ## Resume is opt-in (not auto)
 
 `OnlineGame` mounts in one of three modes via `initialMode`:
-`'create'`, `'join'`, or `'resume'`. Only `'resume'` reads
-`localStorage` and calls `POST /api/rooms/:id/reconnect`; the
+`'create'`, `'join'`, or `'resume'`. Only `'resume'` reads the
+stored session and calls `POST /api/rooms/:id/reconnect`; the
 multiplayer menu surfaces a "Resume Game" button when a session is
 stored under key `trade_tycoon_session_v2` (shape:
 `{ roomId, playerId, token }`, read/written via `online-session.ts`),
-and that's the only entry point. `online-session.ts` is a `.ts`
-module — it takes `Platform.OS` as an injected parameter rather than
-importing `Platform` itself; see "File-extension discipline" above.
+and that's the only entry point. The session lives in `localStorage`
+on web and in the keychain/keystore (`expo-secure-store`) on native,
+so it survives the app being killed (#258). `online-session.ts` is a
+`.ts` module, so it takes the storage as an injected parameter;
+`session-storage.tsx` picks it by `Platform.OS` (see "File-extension
+discipline" above). The read/write/clear calls are async because
+SecureStore is: **await `clearStoredSession` before `onBack()`**, or
+the menu remounts, reads the not-yet-deleted session and offers a
+stale Resume button. Native needs a rebuild (`expo run:ios`) after
+adding a native module like this one; a JS reload alone fails with a
+missing `ExpoSecureStore` module.
 
 **Do not add silent auto-restore on Create/Join intent.** That was
 the impersonation bug — a 2nd browser tab with shared localStorage
@@ -203,9 +211,9 @@ opt-in design is what's correct; the test in
 ## Platform guards
 
 - `localStorage` is **web-only**. Always wrap reads/writes in
-  `if (Platform.OS === 'web') { ... }`. Native has no equivalent in
-  the current code; the resume affordance simply doesn't appear on
-  native.
+  `if (Platform.OS === 'web') { ... }`. The online session is the one
+  thing stored on native too, via `session-storage.tsx` (see "Resume
+  is opt-in" above).
 - `EventSource` is web-only. `OnlineGame.tsx` guards on
   `typeof EventSource === 'undefined'` before subscribing. Native
   multiplayer uses a reconnect-polling fallback instead, via

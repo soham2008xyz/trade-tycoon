@@ -7,6 +7,7 @@ import { LobbyState, GameState, GameAction, limitPlayerNameInput } from '@trade-
 import { getOnlineServerUrl, supportsOnlineEventStream } from './online-platform';
 import { startRoomSync, type RoomSyncHandle } from './online-sync';
 import { readStoredSession, writeStoredSession, clearStoredSession } from './online-session';
+import { onlineSessionStorage } from './session-storage';
 import { validateConnectForm } from './online-form';
 import { wasRemovedFromRoom } from './multiplayer-gating';
 import {
@@ -104,25 +105,27 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     // same-origin sentinel for an unconfigured production web build (see
     // online-platform.ts) and must be treated as configured.
     if (initialMode !== 'resume' || SERVER_URL === null) return;
-    const session = readStoredSession(Platform.OS);
-    if (!session) {
-      onBack();
-      return;
-    }
     let cancelled = false;
     (async () => {
+      const session = await readStoredSession(onlineSessionStorage);
+      if (cancelled) return;
+      if (!session) {
+        onBack();
+        return;
+      }
       const result = await reconnectToRoom(SERVER_URL, session.roomId, session.token);
       if (cancelled) return;
       if (!result.ok) {
         if (result.status === 0) {
           // Network error: we don't know if the session is still valid —
-          // leave localStorage alone and bounce so the user can retry.
+          // leave the stored session alone and bounce so the user can retry.
           console.error('Resume failed:', result.error);
           onBack();
           return;
         }
         // 404 session_expired, or any other failure — drop the session and exit.
-        clearStoredSession(Platform.OS);
+        // Awaited so the menu we return to doesn't read it back (#258).
+        await clearStoredSession(onlineSessionStorage);
         onBack();
         return;
       }
@@ -171,9 +174,10 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
         // session is gone, so leave rather than sit on a dead screen. Judged on
         // the lobby roster only — bankrupt players stay in it (see the helper).
         if (wasRemovedFromRoom(state, playerIdRef.current)) {
-          clearStoredSession(Platform.OS);
           setTransientError('You were removed from the game');
-          onBack();
+          // Leave only once the session is gone, so the menu doesn't offer
+          // to resume it (#258).
+          void clearStoredSession(onlineSessionStorage).then(onBack);
           return;
         }
         setLobbyState(state);
@@ -321,7 +325,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       }
     }
 
-    clearStoredSession(Platform.OS);
+    await clearStoredSession(onlineSessionStorage);
     onBack();
   }, [roomId, token, onBack]);
 
@@ -336,7 +340,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     setPlayerId(body.playerId);
     setToken(body.token);
     setStep('lobby');
-    writeStoredSession(Platform.OS, {
+    void writeStoredSession(onlineSessionStorage, {
       roomId: body.roomId,
       playerId: body.playerId,
       token: body.token,
