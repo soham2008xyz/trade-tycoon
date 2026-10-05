@@ -1,22 +1,28 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import type { Player, Tile } from '@trade-tycoon/game-logic';
+import type { Player } from '@trade-tycoon/game-logic';
 import { GROUP_COLORS } from '../../constants';
 import { getPlayerPositionLabel } from '../jail-status';
 import { IconButton } from '../ui/IconButton';
 import { GOOJBadge } from '../ui/GOOJBadge';
 import { JailStatus } from '../ui/JailStatus';
 import { Dice } from '../Dice';
-import type { StatusPanelButtons } from '../../hooks/useStatusPanelActions';
+import type { StatusPanelActions, StatusPanelButtons } from '../../hooks/useStatusPanelActions';
+import { GameOverCard } from './GameOverCard';
 import type { StatusPanelProps } from './types';
 
-/** Who is playing, where they stand and the dice, for the tablet board centre. */
-export const TurnInfo: React.FC<{
+interface TurnInfoProps {
   player: Player;
-  tile: Tile | null;
+  /** Name of the tile the player stands on; undefined when unknown. */
+  tileName?: string;
+  /** Group key of that tile, for its colour swatch; undefined for non-streets. */
+  tileGroup?: string;
   panel: StatusPanelProps;
-}> = ({ player, tile, panel }) => {
-  const groupColor = tile?.group ? GROUP_COLORS[tile.group] : undefined;
+}
+
+/** Who is playing, where they stand and the dice, for the tablet board centre. */
+function TurnInfo({ player, tileName, tileGroup, panel }: TurnInfoProps) {
+  const groupColor = tileGroup ? GROUP_COLORS[tileGroup] : undefined;
   return (
     <View style={styles.gameInfo}>
       <View style={styles.currentPlayerInfo}>
@@ -31,24 +37,29 @@ export const TurnInfo: React.FC<{
           <View style={[styles.tileColor, { backgroundColor: groupColor }]} />
         )}
         <Text style={[styles.statusText, styles.positionText]}>
-          {panel.isTokenMoving ? '...' : getPlayerPositionLabel(player, tile?.name)}
+          {panel.isTokenMoving ? '...' : getPlayerPositionLabel(player, tileName)}
         </Text>
       </View>
       <JailStatus player={player} showHint />
-      {/* Reserved even before the first roll so the dice appearing does not push
-          the buttons below down (#268). */}
-      <View style={styles.diceSlot}>
-        {panel.state.phase === 'action' && (
-          <Dice
-            value1={panel.state.dice[0]}
-            value2={panel.state.dice[1]}
-            isRolling={panel.isTokenMoving}
-          />
-        )}
-      </View>
+      <DiceSlot panel={panel} />
     </View>
   );
-};
+}
+
+/** Reserved even before the first roll so the dice appearing does not push the buttons below down (#268). */
+function DiceSlot({ panel }: { panel: StatusPanelProps }) {
+  return (
+    <View style={styles.diceSlot}>
+      {panel.state.phase === 'action' && (
+        <Dice
+          value1={panel.state.dice[0]}
+          value2={panel.state.dice[1]}
+          isRolling={panel.isTokenMoving}
+        />
+      )}
+    </View>
+  );
+}
 
 interface SlotProps {
   player: Player;
@@ -56,69 +67,77 @@ interface SlotProps {
   panel: StatusPanelProps;
 }
 
-const WaitingNotice: React.FC<Pick<SlotProps, 'player' | 'panel'>> = ({ player, panel }) => (
-  <>
-    <Text style={styles.waitingText}>
-      Waiting for {player.name} to play…
-      {panel.disconnectedPlayerIds.includes(player.id) ? ' (disconnected)' : ''}
-    </Text>
-    {panel.removablePlayerIds.includes(player.id) && (
-      <IconButton
-        title={`Remove ${player.name}`}
-        icon="account-remove"
-        onPress={() => panel.onRemovePlayer(player.id)}
-        color="#d9534f"
-      />
-    )}
-  </>
-);
+function WaitingNotice({ player, panel }: Pick<SlotProps, 'player' | 'panel'>) {
+  return (
+    <>
+      <Text style={styles.waitingText}>
+        Waiting for {player.name} to play…
+        {panel.disconnectedPlayerIds.includes(player.id) ? ' (disconnected)' : ''}
+      </Text>
+      {panel.removablePlayerIds.includes(player.id) && (
+        <IconButton
+          title={`Remove ${player.name}`}
+          icon="account-remove"
+          onPress={() => panel.onRemovePlayer(player.id)}
+          color="#d9534f"
+        />
+      )}
+    </>
+  );
+}
 
-const JailAndDebtButtons: React.FC<Pick<SlotProps, 'buttons' | 'panel'>> = ({ buttons, panel }) => (
-  <>
-    {buttons.payFine.visible && (
-      <IconButton
-        title="Pay Fine ($50)"
-        icon="cash-remove"
-        onPress={panel.onPayFine}
-        disabled={!buttons.payFine.enabled}
-        color="#d9534f"
-      />
-    )}
-    {buttons.useGOOJCard.visible && (
-      <IconButton
-        title={`Use Card (${buttons.useGOOJCard.count})`}
-        icon="card-account-details"
-        onPress={panel.onUseGOOJCard}
-        color="#5bc0de"
-      />
-    )}
-    {buttons.declareBankruptcy.visible && (
-      <IconButton
-        title="Declare Bankruptcy"
-        icon="alert-circle"
-        onPress={panel.onDeclareBankruptcy}
-        color="#444"
-      />
-    )}
-  </>
-);
+function JailAndDebtButtons({ buttons, panel }: Pick<SlotProps, 'buttons' | 'panel'>) {
+  return (
+    <>
+      {buttons.payFine.visible && (
+        <IconButton
+          title="Pay Fine ($50)"
+          icon="cash-remove"
+          onPress={panel.onPayFine}
+          disabled={!buttons.payFine.enabled}
+          color="#d9534f"
+        />
+      )}
+      {buttons.useGOOJCard.visible && (
+        <IconButton
+          title={`Use Card (${buttons.useGOOJCard.count})`}
+          icon="card-account-details"
+          onPress={panel.onUseGOOJCard}
+          color="#5bc0de"
+        />
+      )}
+      {buttons.declareBankruptcy.visible && (
+        <IconButton
+          title="Declare Bankruptcy"
+          icon="alert-circle"
+          onPress={panel.onDeclareBankruptcy}
+          color="#444"
+        />
+      )}
+    </>
+  );
+}
 
-const TurnButtons: React.FC<Pick<SlotProps, 'buttons' | 'panel'>> = ({ buttons, panel }) => (
-  <>
-    {buttons.roll.visible && <IconButton title="Roll Dice" icon="dice-5" onPress={panel.onRoll} />}
-    {buttons.rollAgain.visible && (
-      <IconButton
-        title="Roll Again"
-        icon="dice-multiple"
-        onPress={panel.onRollAgain}
-        color="orange"
-      />
-    )}
-    {buttons.endTurn.visible && (
-      <IconButton title="End Turn" icon="check" onPress={panel.onEndTurn} color="#d9534f" />
-    )}
-  </>
-);
+function TurnButtons({ buttons, panel }: Pick<SlotProps, 'buttons' | 'panel'>) {
+  return (
+    <>
+      {buttons.roll.visible && (
+        <IconButton title="Roll Dice" icon="dice-5" onPress={panel.onRoll} />
+      )}
+      {buttons.rollAgain.visible && (
+        <IconButton
+          title="Roll Again"
+          icon="dice-multiple"
+          onPress={panel.onRollAgain}
+          color="orange"
+        />
+      )}
+      {buttons.endTurn.visible && (
+        <IconButton title="End Turn" icon="check" onPress={panel.onEndTurn} color="#d9534f" />
+      )}
+    </>
+  );
+}
 
 /**
  * Fixed slots, so Manage Properties and the turn button keep their y-position
@@ -126,33 +145,67 @@ const TurnButtons: React.FC<Pick<SlotProps, 'buttons' | 'panel'>> = ({ buttons, 
  * must settle first (buy or auction, jail options, who we wait for), then
  * Manage, then the single roll / roll again / end turn button.
  */
-export const TurnActions: React.FC<SlotProps> = ({ player, buttons, panel }) => (
-  <View style={styles.actions}>
-    <View style={styles.decisionSlot}>
-      {buttons.waiting.visible && <WaitingNotice player={player} panel={panel} />}
-      <JailAndDebtButtons buttons={buttons} panel={panel} />
-      {buttons.buy.visible && (
-        <IconButton title={`Buy ($${buttons.buy.price})`} icon="cart" onPress={panel.onBuy} />
-      )}
-      {buttons.auction.visible && (
-        <IconButton title="Auction" icon="gavel" onPress={panel.onDeclineBuy} color="#f0ad4e" />
-      )}
+function TurnActions({ player, buttons, panel }: SlotProps) {
+  return (
+    <View style={styles.actions}>
+      <View style={styles.decisionSlot}>
+        {buttons.waiting.visible && <WaitingNotice player={player} panel={panel} />}
+        <JailAndDebtButtons buttons={buttons} panel={panel} />
+        {buttons.buy.visible && (
+          <IconButton title={`Buy ($${buttons.buy.price})`} icon="cart" onPress={panel.onBuy} />
+        )}
+        {buttons.auction.visible && (
+          <IconButton title="Auction" icon="gavel" onPress={panel.onDeclineBuy} color="#f0ad4e" />
+        )}
+      </View>
+      <View style={styles.buttonSlot}>
+        {buttons.manage.visible && (
+          <IconButton
+            title="Manage Properties"
+            icon="city"
+            onPress={panel.onOpenPropertyManager}
+            color="#841584"
+          />
+        )}
+      </View>
+      <View style={styles.buttonSlot}>
+        <TurnButtons buttons={buttons} panel={panel} />
+      </View>
     </View>
-    <View style={styles.buttonSlot}>
-      {buttons.manage.visible && (
-        <IconButton
-          title="Manage Properties"
-          icon="city"
-          onPress={panel.onOpenPropertyManager}
-          color="#841584"
-        />
-      )}
-    </View>
-    <View style={styles.buttonSlot}>
-      <TurnButtons buttons={buttons} panel={panel} />
-    </View>
-  </View>
-);
+  );
+}
+
+interface TurnPanelProps {
+  panel: StatusPanelProps;
+  actions: StatusPanelActions;
+}
+
+/** Everything under the Players list: the game-over card, or the turn info and its buttons. */
+export function TurnPanel({ panel, actions }: TurnPanelProps) {
+  const { currentPlayer, currentTile, buttons, isGameOver } = actions;
+  if (isGameOver || !currentPlayer) {
+    return (
+      <GameOverCard
+        state={panel.state}
+        myPlayerId={panel.myPlayerId}
+        isMultiplayer={panel.isMultiplayer}
+        onNewGame={panel.onNewGame}
+        onBackToMenu={panel.onBackToMenu}
+      />
+    );
+  }
+  return (
+    <>
+      <TurnInfo
+        player={currentPlayer}
+        tileName={currentTile?.name}
+        tileGroup={currentTile?.group}
+        panel={panel}
+      />
+      <TurnActions player={currentPlayer} buttons={buttons} panel={panel} />
+    </>
+  );
+}
 
 const styles = StyleSheet.create({
   playerColor: { width: 12, height: 12, marginRight: 6, borderRadius: 2, flexShrink: 0 },
