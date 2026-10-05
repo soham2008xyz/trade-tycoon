@@ -191,8 +191,9 @@ export const PlayerToken = React.memo(PlayerTokenComponent);
 const styles = StyleSheet.create({
   jailMarker: {
     position: 'absolute',
-    top: -6,
-    right: -6,
+    // Above the token so a visitor sharing tile 10 cannot cover the lock.
+    top: -13,
+    right: 0,
     width: 15,
     height: 15,
     borderRadius: 3,
