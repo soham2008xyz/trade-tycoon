@@ -228,6 +228,12 @@ opt-in design is what's correct; the test in
   positioned overlays do the same: `ui/Toast.tsx` sets
   `top: insets.top + 8` inline (not a hard-coded offset) so it clears the
   Dynamic Island / notch and sits 8px from the top on web.
+  **Every `Modal` needs its own `SafeAreaProvider`** (#260): a `Modal`'s
+  content is a separate native root, so the app's provider is not an
+  ancestor and `SafeAreaView` finds none and applies 0 insets. A `pageSheet`
+  starts below the status bar and hides this; a `fullScreen` modal (the
+  non-dismissable `AuctionModal`) exposes it. `FullScreenModalShell` wraps
+  its phone content in one. Verified on the iPhone 17 simulator (iOS 26.4).
 
 - **Screens with text inputs go in `ui/KeyboardAwareScreen`** (#262). It
   adds iOS keyboard avoidance and tap-outside-to-dismiss (native only; on web
