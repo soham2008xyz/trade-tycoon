@@ -15,6 +15,8 @@ interface Props {
   slot?: React.ReactNode;
   availableWidth?: number;
   availableHeight?: number;
+  /** Floor for the board edge; defaults to `MIN_BOARD_SIZE` (see board-size.ts). */
+  minSize?: number;
   /** Tile-tap handler. The host (GameUI) opens TileInfoModal. */
   onTilePress: (_tileId: string) => void;
   /** Notifies the host when a player token starts/finishes animating. */
@@ -26,13 +28,14 @@ const BoardComponent: React.FC<Props> = ({
   slot,
   availableWidth,
   availableHeight,
+  minSize,
   onTilePress,
   onTokenMovingChange,
 }) => {
   const { width, height } = useWindowDimensions();
   const boardWidth = availableWidth ?? width;
   const boardHeight = availableHeight ?? height;
-  const size = getBoardSize(boardWidth, boardHeight);
+  const size = getBoardSize(boardWidth, boardHeight, minSize);
   const compact = size < COMPACT_TILE_THRESHOLD;
 
   // Stable references so `React.memo` on PlayerToken can actually skip

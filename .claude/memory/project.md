@@ -325,3 +325,11 @@
   `public/`, not just the one you changed, so restore the ones you didn't mean
   to touch before committing. The og image has its own `generate:og` script
   for that reason.
+
+- Phone landscape (#288, web only): `PhoneGameLayout` puts the status panel
+  beside the board when the frame is wider than tall (`isSideBySide` in
+  `board-size.ts`). `getBoardSize` floors the board at 320px so a 320px-wide
+  portrait phone fills its width; a short frame needs a lower floor (Board's
+  `minSize` prop) or the board clips. On react-native-web, `flex: 0` becomes
+  `flex: 0 1 0%`, and the 0% basis overrides `width`; use
+  `flexGrow: 0, flexShrink: 0, flexBasis: 'auto'` to keep a fixed width.
