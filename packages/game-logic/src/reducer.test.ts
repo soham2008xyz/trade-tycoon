@@ -137,6 +137,86 @@ describe('Game Reducer', () => {
       }
       expect(first.dice).toEqual(second.dice);
     });
+
+    describe('game log', () => {
+      it('logs a plain move with the tile landed on', () => {
+        const newState = gameReducer(stateWithPlayers, {
+          type: 'ROLL_DICE',
+          playerId: 'p1',
+          die1: 1,
+          die2: 2,
+        });
+
+        expect(newState.logs).toEqual([`[Player 1] Rolled 1 + 2 and moved to ${BOARD[3].name}.`]);
+      });
+
+      it('marks doubles in the roll entry', () => {
+        const newState = gameReducer(stateWithPlayers, {
+          type: 'ROLL_DICE',
+          playerId: 'p1',
+          die1: 4,
+          die2: 4,
+        });
+
+        expect(newState.logs).toEqual([
+          `[Player 1] Rolled 4 + 4 (doubles) and moved to ${BOARD[8].name}.`,
+        ]);
+      });
+
+      it('logs the roll before the effect of the tile', () => {
+        stateWithPlayers.players[0].position = 38;
+
+        const newState = gameReducer(stateWithPlayers, {
+          type: 'ROLL_DICE',
+          playerId: 'p1',
+          die1: 2,
+          die2: 3,
+        });
+
+        expect(newState.logs).toEqual([
+          `[Player 1] Rolled 2 + 3 and moved to ${BOARD[3].name}.`,
+          '[Player 1] Passed GO! Collected $200.',
+        ]);
+      });
+
+      it('logs the dice of a roll that sends the player to jail for speeding', () => {
+        stateWithPlayers.doublesCount = 2;
+        stateWithPlayers.phase = 'action';
+
+        const newState = gameReducer(stateWithPlayers, {
+          type: 'ROLL_DICE',
+          playerId: 'p1',
+          die1: 3,
+          die2: 3,
+        });
+
+        expect(newState.logs).toEqual([
+          '[Player 1] Rolled 3 + 3 (doubles).',
+          '[Player 1] Speeding! 3 doubles in a row. Go directly to Jail.',
+        ]);
+      });
+
+      it('logs the dice of a failed jail roll before the failure message', () => {
+        stateWithPlayers.players[0] = {
+          ...stateWithPlayers.players[0],
+          isInJail: true,
+          position: 10,
+          jailTurns: 0,
+        };
+
+        const newState = gameReducer(stateWithPlayers, {
+          type: 'ROLL_DICE',
+          playerId: 'p1',
+          die1: 1,
+          die2: 2,
+        });
+
+        expect(newState.logs).toEqual([
+          '[Player 1] Rolled 1 + 2.',
+          '[Player 1] No doubles — still in Jail. Attempt 1/3 failed.',
+        ]);
+      });
+    });
   });
 
   describe('BUY_PROPERTY', () => {
@@ -266,6 +346,18 @@ describe('Game Reducer', () => {
       });
 
       expect(newState.currentPlayerId).toBe('p1');
+    });
+
+    it('logs who ended their turn', () => {
+      const newState = gameReducer(state, { type: 'END_TURN', playerId: 'p1' });
+
+      expect(newState.logs).toEqual(['[Player 1] Ended their turn.']);
+    });
+
+    it('does not log a turn end that was rejected', () => {
+      const newState = gameReducer(state, { type: 'END_TURN', playerId: 'p2' });
+
+      expect(newState.logs).toEqual([]);
     });
   });
 
@@ -2054,19 +2146,19 @@ describe('Game Reducer', () => {
   });
 
   describe('Log capping', () => {
-    it('caps logs at 200 entries, keeping the most recent', () => {
+    it('caps logs at 400 entries, keeping the most recent', () => {
       let state = createInitialState();
       state.players = [createPlayer('p1', 'Player 1'), createPlayer('p2', 'Player 2')];
       state.currentPlayerId = 'p1';
       state.phase = 'action';
       state.players[0].money = -500;
-      state.logs = Array.from({ length: 200 }, (_, i) => `entry-${i}`);
+      state.logs = Array.from({ length: 400 }, (_, i) => `entry-${i}`);
 
       const newState = gameReducer(state, { type: 'DECLARE_BANKRUPTCY', playerId: 'p1' });
 
       // Bankruptcy with one player remaining appends two log lines (the
       // bankruptcy itself, then the win), pushing the oldest two out.
-      expect(newState.logs.length).toBe(200);
+      expect(newState.logs.length).toBe(400);
       expect(newState.logs[0]).toBe('entry-2');
       expect(newState.logs[newState.logs.length - 1]).toMatch(/went bankrupt|wins/);
     });
@@ -2082,7 +2174,7 @@ describe('Game Reducer', () => {
       const newState = gameReducer(state, { type: 'DECLARE_BANKRUPTCY', playerId: 'p1' });
 
       expect(newState.logs[0]).toBe('entry-0');
-      expect(newState.logs.length).toBeLessThan(200);
+      expect(newState.logs.length).toBeLessThan(400);
     });
 
     it('caps logs on the direct removePlayerFromGame path too', () => {
@@ -2095,11 +2187,11 @@ describe('Game Reducer', () => {
         createPlayer('p3', 'Player 3'),
       ];
       state.currentPlayerId = 'p1';
-      state.logs = Array.from({ length: 200 }, (_, i) => `entry-${i}`);
+      state.logs = Array.from({ length: 400 }, (_, i) => `entry-${i}`);
 
       const newState = removePlayerFromGame(state, 'p2');
 
-      expect(newState.logs.length).toBe(200);
+      expect(newState.logs.length).toBe(400);
       expect(newState.logs[0]).not.toBe('entry-0');
       expect(newState.logs[newState.logs.length - 1]).toMatch(/left the game/);
     });
