@@ -234,7 +234,7 @@ opt-in design is what's correct; the test in
   a press handler around inputs would blur a field right after focus). A
   `ScrollView` inside such a screen needs
   `keyboardShouldPersistTaps="handled"` so taps on its buttons still work
-  while the keyboard is up. Not verified on a simulator in #262.
+  while the keyboard is up. Verified on the iPhone 17 simulator (iOS 26.4).
 
 ## Test command
 
