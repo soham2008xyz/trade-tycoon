@@ -5,7 +5,7 @@
   `FLUSHALL`, and run test files in sequence so the shared database cannot be
   cleared underneath another suite. Production and test ioredis 6 clients set
   `protocol: 2` to retain the existing RESP2 wire behavior.
-- Online multiplayer leave is server-authoritative: `OnlineGame.handleLeave`
+- Online multiplayer leave is server-authoritative: `handleLeave` (`useRoomActions`)
   must POST `/api/rooms/:id/leave` before returning to the menu, otherwise the
   departed player remains in the room snapshot and their board marker stays
   visible for other clients.
@@ -316,11 +316,23 @@
   (interface methods, function types), even with a `_` prefix. A new type with
   function members fails the gate; restructure so the type isn't needed (the
   first #306 attempt injected a storage interface and had to be undone).
-- Codacy (#325): it keys findings to line content. `OnlineGame` has always
-  been over its size (50 lines) and complexity (15) limits, so editing the
-  component's signature line re-reports both as "new" and fails the check,
-  though nothing got worse. The check isn't required on `master`. The lasting
-  fix is splitting `OnlineGame`.
+- Codacy (#325): it keys findings to line content, so editing the signature
+  line of a function already over its size (50 lines) or complexity (15)
+  limits re-reports both as "new" and fails the check, though nothing got
+  worse. The check isn't required on `master`. `OnlineGame` was split into
+  `components/online/*` plus `hooks/useOnlineRoom.ts` / `useRoomActions.ts`
+  to clear it. Codacy's numbers come from lizard and match it exactly:
+  `uvx lizard -T nloc=50 -C 15 -w <files>` (nested arrows are scored on their
+  own, and "lines of code" is NLOC, not span).
+  Codacy can't resolve `@trade-tycoon/game-logic` types (reads them as `any`),
+  so it flags `LobbyState | null`-style unions as redundant; wrap them in a
+  generic alias (`Nullable<T>`) instead. It also lacks the `react-hooks`
+  plugin, so an `eslint-disable … react-hooks/…` line is itself a finding, and
+  a second `if (cancelled) return;` after an `await` reads as always false,
+  because narrowing from the first check survives the `await` (a property
+  like `signal.aborted` too). Read the flag through a call
+  (`const isCancelled = () => cancelled`), and use a ref for values a run-once
+  effect captures.
 - Web link previews (#286): the client lives at
   `https://trade-tycoon.sohambanerjee.me`; `trade-tycoon.vercel.app` is someone
   else's app, so never use it as a fallback host. Put head tags only in the

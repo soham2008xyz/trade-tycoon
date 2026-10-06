@@ -29,7 +29,8 @@ trade-tycoon/
   - Handling user input.
   - **Local game loop:** imports `game-logic` directly to run the game offline.
   - **Online game loop:** issues REST requests for actions and listens to a
-    Server-Sent Events stream for state updates (see `OnlineGame.tsx`).
+    Server-Sent Events stream for state updates (see `OnlineGame.tsx`,
+    `hooks/useOnlineRoom.ts` and `hooks/useRoomActions.ts`).
 
 ### 2. `apps/server`
 
@@ -124,7 +125,7 @@ client only knows about REST + SSE.
 2. **Client UI (`apps/client`):**
    - Build the React component (e.g. `AuctionModal.tsx`).
    - Connect to local game state for offline play.
-   - For online play, dispatch through `OnlineGame.handleGameDispatch`, which
+   - For online play, dispatch through `handleGameDispatch` (`hooks/useRoomActions.ts`), which
      POSTs to `/api/rooms/:id/actions`.
 
 3. **Server (`apps/server`):**

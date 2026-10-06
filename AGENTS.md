@@ -95,7 +95,7 @@ The "logic-first" approach for any game feature:
      `apps/server/AGENTS.md`.
 
 3. **Client** (`apps/client`):
-   - Render UI; dispatch actions through `OnlineGame.handleGameDispatch`
+   - Render UI; dispatch actions through `handleGameDispatch` (`hooks/useRoomActions.ts`)
      (online — POSTs to `/api/rooms/:id/actions`) or `LocalGame`
      (offline — local reducer dispatch).
    - For any UI element whose visibility depends on hotseat-vs-online
