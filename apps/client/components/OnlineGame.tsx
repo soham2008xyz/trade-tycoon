@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
 import { GameUI } from './GameUI';
-import { ConnectionBanner } from './ui/ConnectionBanner';
+import { ConnectionBanner, ConnectionStatusProvider } from './ui/ConnectionBanner';
 import { IconButton } from './ui/IconButton';
 import { KeyboardAwareScreen } from './ui/KeyboardAwareScreen';
 import { LobbyState, GameState, GameAction, limitPlayerNameInput } from '@trade-tycoon/game-logic';
@@ -461,50 +461,52 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     const isHost = lobbyState?.players.find((p) => p.id === playerId)?.isHost;
 
     return (
-      <View style={styles.container}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Room: {roomId}</Text>
-          <Text style={styles.subtitle}>Players:</Text>
-          {lobbyState?.players.map((p) => (
-            <View key={p.id} style={styles.playerRow}>
-              <View style={[styles.colorDot, { backgroundColor: p.color }]} />
-              <Text style={styles.playerText}>
-                {p.name} {p.isHost ? '(Host)' : ''} {p.id === playerId ? '(You)' : ''}
-              </Text>
-            </View>
-          ))}
+      <ConnectionStatusProvider connected={connected}>
+        <View style={styles.container}>
+          <View style={styles.card}>
+            <Text style={styles.title}>Room: {roomId}</Text>
+            <Text style={styles.subtitle}>Players:</Text>
+            {lobbyState?.players.map((p) => (
+              <View key={p.id} style={styles.playerRow}>
+                <View style={[styles.colorDot, { backgroundColor: p.color }]} />
+                <Text style={styles.playerText}>
+                  {p.name} {p.isHost ? '(Host)' : ''} {p.id === playerId ? '(You)' : ''}
+                </Text>
+              </View>
+            ))}
 
-          <View style={styles.spacer} />
+            <View style={styles.spacer} />
 
-          {isHost ? (
+            {isHost ? (
+              <IconButton
+                title="Start Game"
+                icon="play"
+                onPress={handleStartGame}
+                style={styles.button}
+                disabled={busy || !lobbyState || lobbyState.players.length < 2}
+              />
+            ) : (
+              <Text style={styles.waitingText}>Waiting for host to start...</Text>
+            )}
+
+            {error && <Text style={styles.error}>{error}</Text>}
+
             <IconButton
-              title="Start Game"
-              icon="play"
-              onPress={handleStartGame}
-              style={styles.button}
-              disabled={busy || !lobbyState || lobbyState.players.length < 2}
+              title="Leave"
+              icon="close"
+              onPress={handleLeave}
+              style={styles.secondaryButton}
             />
-          ) : (
-            <Text style={styles.waitingText}>Waiting for host to start...</Text>
-          )}
-
-          {error && <Text style={styles.error}>{error}</Text>}
-
-          <IconButton
-            title="Leave"
-            icon="close"
-            onPress={handleLeave}
-            style={styles.secondaryButton}
-          />
+          </View>
+          <ConnectionBanner floating />
         </View>
-        {!connected && <ConnectionBanner />}
-      </View>
+      </ConnectionStatusProvider>
     );
   }
 
   if (step === 'game' && gameState) {
     return (
-      <View style={styles.fill}>
+      <ConnectionStatusProvider connected={connected}>
         <GameUI
           state={gameState}
           currentPlayerId={playerId || ''}
@@ -517,8 +519,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
           hostId={lobbyState?.players.find((p) => p.isHost)?.id}
           onRemovePlayer={handleRemovePlayer}
         />
-        {!connected && <ConnectionBanner />}
-      </View>
+      </ConnectionStatusProvider>
     );
   }
 
@@ -527,9 +528,6 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    fill: {
-      flex: 1,
-    },
     container: {
       flex: 1,
       justifyContent: 'center',

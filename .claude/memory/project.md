@@ -341,6 +341,14 @@
   tiles are game-semantic and stay light on purpose. `app/+html.tsx` replaces
   the generated web document, so keep its `ScrollViewStyleReset`. Details are
   in `apps/client/AGENTS.md` ("Theming").
+- Online connection-lost banner (#313): `startRoomSync` reports the first
+  connection result and then changes only, since the sync effect can restart
+  while React state says "lost". The banner reads a context
+  (`ConnectionStatusProvider`) so `FullScreenModalShell` can render its own: a
+  `Modal` is a separate native root and hides anything beside the screen. Keep
+  it in flow at the top of the layouts; at the bottom it covered the phone
+  sheet's player list. `useSafeAreaInsets` throws in a transparent tablet
+  modal (no provider), so the banner reads `SafeAreaInsetsContext`.
 - Client accessibility: react-native-web ignores `accessibilityState`, so use
   `aria-checked` / `aria-disabled` / `aria-hidden` props (they also work on
   native). Tax tiles carry a `price` but are not ownable, so owner text keys on

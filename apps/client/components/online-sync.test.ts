@@ -185,18 +185,31 @@ describe('startRoomSync (sse)', () => {
       const { source, onConnectionChange } = startSse();
 
       source.emit('open', {});
-      expect(onConnectionChange).not.toHaveBeenCalled(); // starts out connected
+      source.emit('open', {}); // repeat results stay quiet
+      expect(onConnectionChange).toHaveBeenCalledTimes(1);
+      expect(onConnectionChange).toHaveBeenLastCalledWith(true);
 
       source.readyState = 0;
       source.emit('error', {});
       source.emit('error', {}); // browser retries; repeat errors stay quiet
-      expect(onConnectionChange).toHaveBeenCalledTimes(1);
+      expect(onConnectionChange).toHaveBeenCalledTimes(2);
       expect(onConnectionChange).toHaveBeenLastCalledWith(false);
 
       source.readyState = 1;
       source.emit('open', {});
-      expect(onConnectionChange).toHaveBeenCalledTimes(2);
+      expect(onConnectionChange).toHaveBeenCalledTimes(3);
       expect(onConnectionChange).toHaveBeenLastCalledWith(true);
+    });
+
+    it('reports a first result of "lost" even before any open', () => {
+      // A restarted sync must be able to set a banner the old one left up.
+      const { source, onConnectionChange } = startSse();
+
+      source.readyState = 0;
+      source.emit('error', {});
+
+      expect(onConnectionChange).toHaveBeenCalledTimes(1);
+      expect(onConnectionChange).toHaveBeenLastCalledWith(false);
     });
 
     it('stays quiet after stop()', () => {
@@ -407,16 +420,17 @@ describe('startRoomSync (poll)', () => {
         .mockResolvedValue(snapshot(1));
       const { onConnectionChange } = startPoll(fetchSnapshot);
 
-      await vi.advanceTimersByTimeAsync(0); // first poll ok: still connected, no call
-      expect(onConnectionChange).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(0); // first poll ok: first result is reported
+      expect(onConnectionChange).toHaveBeenCalledTimes(1);
+      expect(onConnectionChange).toHaveBeenLastCalledWith(true);
 
       await vi.advanceTimersByTimeAsync(MIN_POLL_MS); // network down
       await vi.advanceTimersByTimeAsync(MIN_POLL_MS); // still down: no repeat call
-      expect(onConnectionChange).toHaveBeenCalledTimes(1);
+      expect(onConnectionChange).toHaveBeenCalledTimes(2);
       expect(onConnectionChange).toHaveBeenLastCalledWith(false);
 
       await vi.advanceTimersByTimeAsync(MIN_POLL_MS); // server back, same version
-      expect(onConnectionChange).toHaveBeenCalledTimes(2);
+      expect(onConnectionChange).toHaveBeenCalledTimes(3);
       expect(onConnectionChange).toHaveBeenLastCalledWith(true);
     });
 
@@ -429,7 +443,8 @@ describe('startRoomSync (poll)', () => {
 
       await vi.advanceTimersByTimeAsync(MIN_POLL_MS * 2);
 
-      expect(onConnectionChange).not.toHaveBeenCalled();
+      expect(onConnectionChange).toHaveBeenCalledTimes(1);
+      expect(onConnectionChange).toHaveBeenCalledWith(true);
     });
 
     it('stays quiet when the first poll fails and stop() has been called', async () => {

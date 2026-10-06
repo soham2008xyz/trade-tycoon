@@ -169,12 +169,19 @@ state in a `useEffect` keyed on `[roomId, token]`.
   good with no event to act on. `startRoomSync` therefore asks
   `/reconnect` once `readyState` is CLOSED and calls `onSessionExpired` on
   a 404.
-- Connection state (#313): `onConnectionChange(connected)` fires only on a
-  change and starts out connected. SSE: `error` means lost, `open` means
-  back. Poll: `status === 0` means lost, any other answer (even a 5xx)
-  means the server is reachable. `OnlineGame` shows `ConnectionBanner`
-  (bottom, touch-transparent, `role="alert"` plus an announcement) while
-  it is false.
+- Connection state (#313): `onConnectionChange(connected)` reports the
+  first result a sync sees, then only changes. The first is always reported
+  because the sync effect can re-run while the React state still says
+  "lost". SSE: `error` means lost, `open` means back. Poll: `status === 0`
+  means lost, any other answer (even a 5xx) means the server is reachable.
+  `OnlineGame` wraps the game and lobby in `ConnectionStatusProvider`;
+  `ConnectionBanner` reads that context and renders nothing while connected.
+  It is in flow at the top of each game layout (above the board, never over
+  the phone sheet) and in `FullScreenModalShell`, because a `Modal` is a
+  separate native root and would hide a banner placed beside the screen
+  (an auction cannot be dismissed). `floating` overlays the top edge for the
+  lobby and the transparent tablet modal. It uses `role="alert"`; the
+  provider announces a loss once.
 - Being removed is judged by `wasRemovedFromRoom` on the **lobby** roster,
   never `gameState.players`: a bankrupt player leaves the game roster but
   is still in the room.

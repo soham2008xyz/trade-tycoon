@@ -3,6 +3,7 @@ import { Modal, StyleSheet, View, Text } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useGameLayout } from '../../hooks/useGameLayout';
 import { CloseButton } from './CloseButton';
+import { ConnectionBanner } from './ConnectionBanner';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
 
@@ -72,6 +73,7 @@ export const FullScreenModalShell: React.FC<Props> = ({
               {title ? <Text style={styles.phoneTitle}>{title}</Text> : null}
               <View style={styles.headerSpacer} />
             </View>
+            <ConnectionBanner />
             <View style={styles.phoneBody}>{children}</View>
           </SafeAreaView>
         </SafeAreaProvider>
@@ -95,6 +97,7 @@ export const FullScreenModalShell: React.FC<Props> = ({
       onDismiss={dismiss}
     >
       {children}
+      <ConnectionBanner floating />
     </Modal>
   );
 };

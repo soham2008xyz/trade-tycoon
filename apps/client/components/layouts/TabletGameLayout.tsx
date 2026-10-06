@@ -2,6 +2,7 @@ import React from 'react';
 import { LayoutChangeEvent, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Board } from '../Board';
+import { ConnectionBanner } from '../ui/ConnectionBanner';
 import { getBoardSize, getPlayerStripHeight } from '../board-size';
 import { PlayerList } from '../StatusPanel/PlayerList';
 import { TabletCenter } from '../StatusPanel/TabletCenter';
@@ -45,6 +46,7 @@ export const TabletGameLayout: React.FC<Props> = (props) => {
     // Outer wrapper carries the status-bar inset (iPad shows one too) so the inner
     // onLayout frame, which sizes the Board, excludes it (#250).
     <View style={[styles.wrapper, { paddingTop: insets.top }]}>
+      <ConnectionBanner />
       <View style={[styles.root, showStrip && styles.rootWithStrip]} onLayout={onLayout}>
         <Board
           players={props.state.players}

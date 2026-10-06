@@ -52,11 +52,12 @@ export interface RoomSyncOptions {
   /** Poll transport only: the server reported the session gone (404). */
   onSessionExpired: () => void;
   /**
-   * Whether the server is reachable. Called only when the answer changes, and
-   * never before the first change: a fresh sync is assumed connected. Any
-   * HTTP answer (even an error status) counts as reachable; `false` means the
-   * request or the stream failed at the network level, so the screen may be
-   * out of date.
+   * Whether the server is reachable. Called with the first result a sync
+   * observes, then only when the answer changes. The first is always reported
+   * because the caller may start a new sync (the effect re-runs) while its own
+   * state still says "lost". Any HTTP answer (even an error status) counts as
+   * reachable; `false` means the request or the stream failed at the network
+   * level, so the screen may be out of date.
    */
   onConnectionChange: (_connected: boolean) => void;
   /** Test injectable; defaults to `new EventSource(url)`. */
@@ -96,7 +97,7 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
   } = options;
 
   let stopped = false;
-  let connected = true;
+  let connected: boolean | undefined;
   const reportConnection = (next: boolean) => {
     if (stopped || next === connected) return;
     connected = next;

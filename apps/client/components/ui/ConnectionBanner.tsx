@@ -1,25 +1,58 @@
-import React, { useEffect } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { View, Text, StyleSheet, AccessibilityInfo } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
 
 export const CONNECTION_LOST_MESSAGE = 'Connection lost. This screen may be out of date.';
 
-/**
- * Non-blocking strip shown while the server is unreachable. It sits at the
- * bottom (the Toast owns the top), ignores touches so play stays possible, and
- * is only mounted while offline: it clears itself when the caller unmounts it.
- */
-export const ConnectionBanner: React.FC = () => {
-  const insets = useSafeAreaInsets();
-  const theme = useTheme();
-  const styles = createStyles(theme);
+// Context, not a prop: a `Modal` mounts in a separate native root, so a banner
+// rendered beside the game screen sits under any open modal (an auction cannot
+// be dismissed). React context still crosses that boundary, so each modal
+// shell can render its own banner. Offline play never mounts a provider and
+// reads "connected".
+const ConnectionStatusContext = createContext(true);
 
+/**
+ * Supplies the connection state to every `ConnectionBanner` below it and
+ * announces a loss once, however many banners (screen plus open modals) show.
+ */
+export const ConnectionStatusProvider: React.FC<{
+  connected: boolean;
+  children: React.ReactNode;
+}> = ({ connected, children }) => {
   // A screen reader doesn't notice a view that appears on its own (see Toast).
   useEffect(() => {
-    AccessibilityInfo.announceForAccessibility(CONNECTION_LOST_MESSAGE);
-  }, []);
+    if (!connected) AccessibilityInfo.announceForAccessibility(CONNECTION_LOST_MESSAGE);
+  }, [connected]);
+
+  return (
+    <ConnectionStatusContext.Provider value={connected}>
+      {children}
+    </ConnectionStatusContext.Provider>
+  );
+};
+
+interface Props {
+  /**
+   * Overlay the top edge instead of taking space in the layout. For screens
+   * with no layout to push down (the lobby card, a transparent modal).
+   */
+  floating?: boolean;
+}
+
+/**
+ * Non-blocking strip shown while the server is unreachable. In game layouts it
+ * sits in flow at the top, above the board, so it never covers the status
+ * sheet; it renders nothing while connected.
+ */
+export const ConnectionBanner: React.FC<Props> = ({ floating = false }) => {
+  const connected = useContext(ConnectionStatusContext);
+  // The context, not `useSafeAreaInsets`: a transparent tablet modal has no
+  // provider above it, and the hook throws there.
+  const insets = useContext(SafeAreaInsetsContext);
+  const styles = createStyles(useTheme());
+  if (connected) return null;
 
   return (
     // `announceForAccessibility` is a no-op in react-native-web, so the alert
@@ -27,31 +60,27 @@ export const ConnectionBanner: React.FC = () => {
     <View
       role="alert"
       pointerEvents="none"
-      style={[styles.container, { bottom: insets.bottom + 8 }]}
+      style={[styles.strip, floating && [styles.floating, { top: insets?.top ?? 0 }]]}
     >
-      <View style={styles.content}>
-        <Text style={styles.text}>{CONNECTION_LOST_MESSAGE}</Text>
-      </View>
+      <Text style={styles.text}>{CONNECTION_LOST_MESSAGE}</Text>
     </View>
   );
 };
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      position: 'absolute',
-      left: 20,
-      right: 20,
-      alignItems: 'center',
-      zIndex: 999,
-    },
-    content: {
+    strip: {
       backgroundColor: theme.toastBg,
-      borderWidth: 1,
-      borderColor: theme.warning,
-      paddingVertical: 8,
+      borderBottomWidth: 2,
+      borderBottomColor: theme.warning,
+      paddingVertical: 6,
       paddingHorizontal: 16,
-      borderRadius: 20,
+    },
+    floating: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      zIndex: 999,
     },
     text: {
       color: theme.toastText,
