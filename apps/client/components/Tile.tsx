@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle, Pressable } from 'react-native';
 import { Tile as TileType, Player } from '@trade-tycoon/game-logic';
 import { GROUP_COLORS } from '../constants';
+import { getTileAccessibilityLabel } from './tile-labels';
 
 interface Props {
   tile: TileType;
@@ -115,6 +116,14 @@ const TileComponent: React.FC<Props> = ({
     <Pressable
       testID={testID || `tile-${tile.id}`}
       onPress={() => onPress?.(tile.id)}
+      accessibilityRole="button"
+      accessibilityLabel={getTileAccessibilityLabel({
+        tile,
+        ownerName: owner?.name,
+        houseCount,
+        isMortgaged,
+      })}
+      accessibilityHint="Shows tile details"
       style={({ pressed }) => [
         styles.container,
         { flexDirection, opacity: pressed ? 0.8 : 1 },

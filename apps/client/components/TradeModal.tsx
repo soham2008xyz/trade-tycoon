@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { Player, TradeOffer, TradeRequest, BOARD } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
@@ -15,6 +15,21 @@ import type { Theme } from '../constants/theme';
 import { formatMoney } from './format-money';
 
 export { canAcceptTrade, canCancelTrade };
+
+/**
+ * Accessibility props for a property row that toggles in or out of the offer.
+ * Native gets a real checkbox. On web react-native-web only fires Space on
+ * `role="button"` (it does not turn `role="checkbox"` into an `<input>`), so
+ * the row stays a button there and reports its state with `aria-pressed`.
+ */
+const checkRowA11yProps = (isChecked: boolean, label: string) =>
+  Platform.OS === 'web'
+    ? { accessibilityRole: 'button' as const, 'aria-pressed': isChecked, accessibilityLabel: label }
+    : {
+        accessibilityRole: 'checkbox' as const,
+        'aria-checked': isChecked,
+        accessibilityLabel: label,
+      };
 
 /**
  * One property line in the trade-proposal display (color swatch + tile name).
@@ -322,6 +337,7 @@ export const TradeModal: React.FC<Props> = ({
                     <View style={styles.stepper}>
                       <IconButton
                         title=""
+                        accessibilityLabel="Offer fewer Get Out of Jail Free cards"
                         icon="minus"
                         onPress={() => setOfferCards(Math.max(0, offerCards - 1))}
                         size="small"
@@ -331,6 +347,7 @@ export const TradeModal: React.FC<Props> = ({
                       />
                       <IconButton
                         title=""
+                        accessibilityLabel="Offer more Get Out of Jail Free cards"
                         icon="plus"
                         onPress={() =>
                           setOfferCards(Math.min(initiator.getOutOfJailCards, offerCards + 1))
@@ -354,6 +371,7 @@ export const TradeModal: React.FC<Props> = ({
                       key={id}
                       onPress={() => toggleOfferProp(id)}
                       style={styles.checkRow}
+                      {...checkRowA11yProps(isChecked, tile?.name ?? id)}
                     >
                       <MaterialCommunityIcons
                         name={isChecked ? 'checkbox-marked' : 'checkbox-blank-outline'}
@@ -410,6 +428,7 @@ export const TradeModal: React.FC<Props> = ({
                     <View style={styles.stepper}>
                       <IconButton
                         title=""
+                        accessibilityLabel="Request fewer Get Out of Jail Free cards"
                         icon="minus"
                         onPress={() => setReqCards(Math.max(0, reqCards - 1))}
                         size="small"
@@ -419,6 +438,7 @@ export const TradeModal: React.FC<Props> = ({
                       />
                       <IconButton
                         title=""
+                        accessibilityLabel="Request more Get Out of Jail Free cards"
                         icon="plus"
                         onPress={() =>
                           setReqCards(Math.min(target.getOutOfJailCards, reqCards + 1))
@@ -442,6 +462,7 @@ export const TradeModal: React.FC<Props> = ({
                       key={id}
                       onPress={() => toggleReqProp(id)}
                       style={styles.checkRow}
+                      {...checkRowA11yProps(isChecked, tile?.name ?? id)}
                     >
                       <MaterialCommunityIcons
                         name={isChecked ? 'checkbox-marked' : 'checkbox-blank-outline'}

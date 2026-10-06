@@ -80,6 +80,9 @@ export const IconButton: React.FC<IconButtonProps> = ({
       ]}
       disabled={disabled}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={title || undefined}
+      aria-disabled={!!disabled}
       {...props}
     >
       <View style={styles.content}>
@@ -89,6 +92,9 @@ export const IconButton: React.FC<IconButtonProps> = ({
             size={getIconSize()}
             color={disabled ? theme.disabledText : textColor}
             style={title ? styles.icon : undefined}
+            // The title already names the button; the glyph would be read as a stray character.
+            // With no title the glyph is the only cue, so the caller must label the button.
+            aria-hidden={!!title}
           />
         )}
         <Text
