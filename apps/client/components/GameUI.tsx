@@ -21,6 +21,8 @@ interface GameUIProps {
   uiToastMessage: string | null;
   setUiToastMessage: (msg: string | null) => void;
   onLeaveGame: () => void;
+  /** Game-over "Back to Menu"; falls back to `onLeaveGame` when not given. */
+  onBackToMenu?: () => void;
   /** Hotseat only: return to player setup. Online has no equivalent. */
   onNewGame?: () => void;
   isHost?: boolean;
@@ -43,6 +45,7 @@ export const GameUI: React.FC<GameUIProps> = ({
   uiToastMessage,
   setUiToastMessage,
   onLeaveGame,
+  onBackToMenu,
   onNewGame,
   isMultiplayer = false,
   disconnectedPlayerIds = NO_PLAYERS,
@@ -245,7 +248,7 @@ export const GameUI: React.FC<GameUIProps> = ({
       onDeclareBankruptcy: handleDeclareBankruptcy,
       onShowLog: openLog,
       onRestart: handleRestart,
-      onBackToMenu: onLeaveGame,
+      onBackToMenu: onBackToMenu ?? onLeaveGame,
       onNewGame,
       onOpenPropertyManager: openPropertyManager,
       onOpenTrade: openTrade,
@@ -271,6 +274,7 @@ export const GameUI: React.FC<GameUIProps> = ({
       openLog,
       handleRestart,
       onLeaveGame,
+      onBackToMenu,
       onNewGame,
       openPropertyManager,
       openTrade,

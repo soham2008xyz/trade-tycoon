@@ -316,6 +316,11 @@
   (interface methods, function types), even with a `_` prefix. A new type with
   function members fails the gate; restructure so the type isn't needed (the
   first #306 attempt injected a storage interface and had to be undone).
+- Codacy (#325): it keys findings to line content. `OnlineGame` has always
+  been over its size (50 lines) and complexity (15) limits, so editing the
+  component's signature line re-reports both as "new" and fails the check,
+  though nothing got worse. The check isn't required on `master`. The lasting
+  fix is splitting `OnlineGame`.
 - Web link previews (#286): the client lives at
   `https://trade-tycoon.sohambanerjee.me`; `trade-tycoon.vercel.app` is someone
   else's app, so never use it as a fallback host. Put head tags only in the
