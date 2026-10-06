@@ -217,6 +217,11 @@ base image, `npm ci` + game-logic build in `install`, API + static web
 serve terminals on ports 3001 and 8081). Redis is optional for
 local dev — the server uses in-memory storage when `REDIS_URL` is unset.
 
+Claude Code cloud sessions get the Android SDK/NDK/emulator from
+`.claude/scripts/setup-android.sh`, run by the session-start hook. Native
+build steps, the Maven Central 429 workaround, and emulator limits (no KVM)
+live in `docs/ANDROID.md`.
+
 ### TypeScript 6 — `rootDir` is no longer inferred
 
 Both `apps/server/tsconfig.json` and `packages/game-logic/tsconfig.json`

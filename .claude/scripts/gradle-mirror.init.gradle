@@ -1,0 +1,42 @@
+// Gradle init script for Claude Code cloud sessions.
+//
+// Maven Central intermittently answers 429 to the shared egress IP, and Gradle
+// treats that as a hard failure instead of moving to the next repository, even
+// for artifacts Central doesn't host (it probes Central before falling through
+// to Google's repo). Google's Maven Central mirror isn't rate limited, so point
+// every Central repository at it, wherever the build or a library declares one.
+// Installed to $GRADLE_USER_HOME/init.d by .claude/scripts/setup-android.sh.
+
+def mirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
+def centralHosts = ['https://repo.maven.apache.org/maven2', 'https://repo1.maven.org/maven2']
+
+// `.all` also fires for repositories declared after this script runs.
+def redirectCentral = { repos ->
+  repos.all { repo ->
+    if (repo instanceof MavenArtifactRepository
+        && centralHosts.any { repo.url.toString().startsWith(it) }) {
+      repo.url = mirror
+    }
+  }
+}
+
+beforeSettings { settings ->
+  // Mirror first: the plugin portal 303-redirects Central-hosted artifacts to
+  // Central, so it must only see requests the mirror can't answer (portal-only
+  // plugins such as ktfmt). The settings' own repos are appended after this.
+  // Adding any repo disables Gradle's implicit portal default, so re-add it.
+  settings.pluginManagement.repositories {
+    maven { url = mirror }
+    gradlePluginPortal()
+  }
+  redirectCentral(settings.pluginManagement.repositories)
+}
+
+settingsEvaluated { settings ->
+  redirectCentral(settings.dependencyResolutionManagement.repositories)
+}
+
+allprojects {
+  redirectCentral(buildscript.repositories)
+  redirectCentral(repositories)
+}

@@ -374,3 +374,12 @@
   dev-client rebuild); Share uses RN `Share.share` and is hidden on web without
   `navigator.share`, because react-native-web rejects there. Details in
   `apps/client/AGENTS.md` "Lobby room code".
+- Android native builds in Claude Code cloud (verified): `expo prebuild` +
+  `./gradlew assembleDebug -PreactNativeArchitectures=x86_64` builds an 82 MB
+  APK in ~8 min cold. Maven Central 429s the shared egress IP and Gradle treats
+  that as fatal, so `.claude/scripts/gradle-mirror.init.gradle` rewrites Central
+  repos to Google's mirror. Gotchas: keep the mirror _before_ the plugin portal
+  (the portal 303s to Central), and re-add `gradlePluginPortal()` because any
+  explicit pluginManagement repo disables Gradle's implicit portal default.
+  `expo prebuild` edits `apps/client/package.json`; revert it. Details in
+  `docs/ANDROID.md`.
