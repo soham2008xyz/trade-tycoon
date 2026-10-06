@@ -81,6 +81,22 @@ export const createOnlineStyles = (theme: Theme) =>
     spacer: {
       height: 20,
     },
+    roomCodeRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 20,
+    },
+    // Read by screen readers, invisible and out of layout.
+    visuallyHidden: {
+      position: 'absolute',
+      width: 1,
+      height: 1,
+      overflow: 'hidden',
+      opacity: 0,
+    },
+    roomCodeButton: {
+      backgroundColor: theme.neutralButton,
+    },
     waitingText: {
       fontStyle: 'italic',
       color: theme.textSecondary,
