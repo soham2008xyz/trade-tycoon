@@ -41,9 +41,9 @@ A cold build takes about 8 minutes on 4 cores. Restricting
 The cloud egress IP is shared, and Maven Central rate-limits it. Gradle treats
 a 429 as a hard failure ("plugin not found", or a failure on an artifact
 Central doesn't even host). `.claude/scripts/gradle-mirror.init.gradle`
-(installed to `~/.gradle/init.d/`) points every Central repository at Google's
+(installed to `$GRADLE_USER_HOME/init.d/`, default `~/.gradle/init.d/`) points every Central repository at Google's
 Maven Central mirror and keeps the plugin portal as a fallback. If builds fail
-with 429 anyway, check that file is in `~/.gradle/init.d/`.
+with 429 anyway, check that file is in that `init.d/` directory.
 
 ## Emulator limits
 

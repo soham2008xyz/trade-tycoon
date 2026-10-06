@@ -389,3 +389,10 @@
   `libc` fields and dirties `package-lock.json`. The session-start hook runs
   `.claude/scripts/setup-node.sh` (Node `.nvmrc` major into `~/.node/v24`,
   PATH exported through `CLAUDE_ENV_FILE`) and then `npm ci`.
+- SessionStart fires on startup, resume, `/clear`, compaction and fork, not only
+  new sessions, and command hooks time out after 600 s by default. The cloud
+  hook therefore sets `"timeout": 1800` in `.claude/settings.json` and skips
+  `npm ci` unless `package-lock.json` or the Node version changed (stamp in
+  `node_modules/.claude-install-stamp`), since `npm ci` deletes `node_modules`.
+  Gradle reads init scripts from `$GRADLE_USER_HOME/init.d`, not always
+  `~/.gradle`.

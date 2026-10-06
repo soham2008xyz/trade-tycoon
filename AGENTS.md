@@ -224,7 +224,10 @@ live in `docs/ANDROID.md`.
 The hook first installs the Node major from `.nvmrc` (24, with npm 11) via
 `.claude/scripts/setup-node.sh` and puts it on `PATH` for the whole session,
 because the image's Node 22 / npm 10 rejects the npm 11 lockfile, and then
-runs `npm ci`. The same hook starts a local Redis via `.claude/scripts/start-redis.sh`
+runs `npm ci` (skipped when `node_modules` already matches the lockfile and
+Node version, because SessionStart also fires on resume, `/clear` and
+compaction). The hook has a 30-minute timeout for the cold Android download.
+The same hook starts a local Redis via `.claude/scripts/start-redis.sh`
 (the server's Redis tests and the pre-commit hook need it on port 6379). It
 does not set `REDIS_URL`, so the dev server stays on in-memory storage.
 

@@ -23,7 +23,19 @@ fi
 
 # `npm ci` installs exactly what package-lock.json says and never rewrites it
 # (`npm install` under npm 10 stripped "libc" fields and dirtied the tree).
-"${npm_ci[@]}"
+#
+# SessionStart also fires on resume, /clear, compaction and fork, and `npm ci`
+# deletes node_modules first, so reinstalling every time would interrupt active
+# work and fail on a package.json edit the lockfile doesn't reflect yet. Only
+# install when the lockfile or Node version changed since the last install.
+stamp_file="node_modules/.claude-install-stamp"
+stamp="$(sha256sum package-lock.json | cut -d' ' -f1) node $(node --version)"
+if [ "$(cat "$stamp_file" 2>/dev/null || true)" != "$stamp" ]; then
+  "${npm_ci[@]}"
+  echo "$stamp" > "$stamp_file"
+else
+  echo "npm ci skipped: node_modules already matches package-lock.json"
+fi
 
 # apps/client and apps/server depend on the built packages/game-logic output
 # (dist/), so it must be built before lint/test/type-check will work there.

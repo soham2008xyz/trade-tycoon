@@ -5,7 +5,7 @@
 // for artifacts Central doesn't host (it probes Central before falling through
 // to Google's repo). Google's Maven Central mirror isn't rate limited, so point
 // every Central repository at it, wherever the build or a library declares one.
-// Installed to $GRADLE_USER_HOME/init.d by .claude/scripts/setup-android.sh.
+// Installed to ${GRADLE_USER_HOME:-~/.gradle}/init.d by .claude/scripts/setup-android.sh.
 
 def mirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
 def centralHosts = ['https://repo.maven.apache.org/maven2', 'https://repo1.maven.org/maven2']

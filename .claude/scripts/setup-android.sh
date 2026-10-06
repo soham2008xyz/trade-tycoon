@@ -75,8 +75,11 @@ fi
 
 # 4. Gradle init script: prefer Google's Maven Central mirror, because Central
 # answers 429 to the shared egress IP and Gradle reports that as "not found".
-mkdir -p "$HOME/.gradle/init.d"
-cp "$SCRIPT_DIR/gradle-mirror.init.gradle" "$HOME/.gradle/init.d/maven-mirror.gradle"
+# Gradle reads init scripts from $GRADLE_USER_HOME/init.d, which differs from
+# ~/.gradle when an environment relocates its Gradle caches.
+GRADLE_INIT_DIR="${GRADLE_USER_HOME:-$HOME/.gradle}/init.d"
+mkdir -p "$GRADLE_INIT_DIR"
+cp "$SCRIPT_DIR/gradle-mirror.init.gradle" "$GRADLE_INIT_DIR/maven-mirror.gradle"
 
 # 5. Export env for the rest of the session (Gradle and Expo read ANDROID_HOME).
 if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
