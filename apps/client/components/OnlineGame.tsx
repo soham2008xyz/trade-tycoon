@@ -94,7 +94,8 @@ const OnlineSession: React.FC<SessionProps> = ({ serverUrl, onBack, onMainMenu, 
     return <OnlineLobby room={room} actions={actions} busy={guard.busy} />;
   }
 
-  if (step === 'game' && gameState) {
+  // Every other step returned above, so only the game state can be missing.
+  if (gameState) {
     return <OnlineGameScreen state={gameState} room={room} actions={actions} />;
   }
 

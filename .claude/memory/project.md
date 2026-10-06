@@ -328,9 +328,11 @@
   so it flags `LobbyState | null`-style unions as redundant; wrap them in a
   generic alias (`Nullable<T>`) instead. It also lacks the `react-hooks`
   plugin, so an `eslint-disable … react-hooks/…` line is itself a finding, and
-  `if (cancelled)` after an `await` reads as always false (so does
-  `{ cancelled: false }`); use an `AbortController` and check
-  `signal.aborted`, and a ref for values a run-once effect captures.
+  a second `if (cancelled) return;` after an `await` reads as always false,
+  because narrowing from the first check survives the `await` (a property
+  like `signal.aborted` too). Read the flag through a call
+  (`const isCancelled = () => cancelled`), and use a ref for values a run-once
+  effect captures.
 - Web link previews (#286): the client lives at
   `https://trade-tycoon.sohambanerjee.me`; `trade-tycoon.vercel.app` is someone
   else's app, so never use it as a fallback host. Put head tags only in the
