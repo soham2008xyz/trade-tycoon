@@ -383,3 +383,9 @@
   explicit pluginManagement repo disables Gradle's implicit portal default.
   `expo prebuild` edits `apps/client/package.json`; revert it. Details in
   `docs/ANDROID.md`.
+- Claude Code cloud sessions: the image has Node 22 / npm 10, but the lockfile
+  is npm 11 (Node 24, `.nvmrc`, CI). `npm ci` under npm 10 fails with "lock
+  file's @react-native/\* does not satisfy", and `npm install` under it strips
+  `libc` fields and dirties `package-lock.json`. The session-start hook runs
+  `.claude/scripts/setup-node.sh` (Node `.nvmrc` major into `~/.node/v24`,
+  PATH exported through `CLAUDE_ENV_FILE`) and then `npm ci`.

@@ -8,11 +8,22 @@ fi
 
 cd "$CLAUDE_PROJECT_DIR"
 
+# Use the Node pinned in .nvmrc (24, same as CI) instead of the image's Node 22.
+# The lockfile is written by npm 11, which Node 24 bundles; the image's npm 10
+# rejects it as out of sync. setup-node.sh also exports PATH for the rest of the
+# session via CLAUDE_ENV_FILE, so lint, tests and Gradle's `node` calls match.
+if NODE_BIN_DIR="$(bash "$CLAUDE_PROJECT_DIR/.claude/scripts/setup-node.sh")"; then
+  export PATH="$NODE_BIN_DIR:$PATH"
+  npm_ci=(npm ci)
+else
+  # Download failed: keep going on the image's Node, but run npm 11 for the install.
+  echo "warning: Node setup failed; falling back to the image's Node" >&2
+  npm_ci=(npx --yes npm@11 ci)
+fi
+
 # `npm ci` installs exactly what package-lock.json says and never rewrites it
-# (`npm install` here stripped "libc" fields and dirtied the tree every
-# session). The lockfile comes from npm 11 (Node 24, see .nvmrc and CI), and
-# the container's npm 10 rejects it as out of sync, so run npm 11 explicitly.
-npx --yes npm@11 ci
+# (`npm install` under npm 10 stripped "libc" fields and dirtied the tree).
+"${npm_ci[@]}"
 
 # apps/client and apps/server depend on the built packages/game-logic output
 # (dist/), so it must be built before lint/test/type-check will work there.
