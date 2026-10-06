@@ -12,8 +12,8 @@
 #
 # Idempotent: when the major is already installed it makes no network calls.
 # Also appends a PATH export to $CLAUDE_ENV_FILE so every later command in the
-# session sees it. Can be pasted into the cloud environment's Setup script so
-# the download is cached in the environment instead of repeating per session.
+# session sees it. Don't call it from the cloud environment's Setup script:
+# that runs outside the repo, and this script reads .nvmrc next to itself.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

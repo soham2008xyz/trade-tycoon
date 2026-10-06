@@ -16,9 +16,10 @@ Bump these together with the Expo SDK (check
 `node_modules/react-native/gradle/libs.versions.toml`). Set
 `ANDROID_SKIP_EMULATOR=1` to skip the emulator and its image (~2 GB).
 
-The first run downloads about 8 GB. To cache it in the environment instead of
-repeating it each session, add `bash .claude/scripts/setup-android.sh` to the
-environment's Setup script (cloud environment menu, then Edit).
+The first run downloads about 8 GB. Don't move this into the cloud
+environment's Setup script: that script runs outside the repo, so the path
+doesn't resolve, and the environment is only cached when setup finishes in
+about five minutes, which this download would overrun.
 
 ## Build a debug APK
 

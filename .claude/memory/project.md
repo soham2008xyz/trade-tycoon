@@ -396,3 +396,9 @@
   `node_modules/.claude-install-stamp`), since `npm ci` deletes `node_modules`.
   Gradle reads init scripts from `$GRADLE_USER_HOME/init.d`, not always
   `~/.gradle`.
+- The cloud environment's Setup script (claude.ai environment settings) runs
+  before Claude Code launches and not from the repo root, so a relative call
+  like `bash .claude/scripts/setup-node.sh` fails with exit 127. The repo
+  scripts read files beside themselves, so pasting them in fails too. Keep
+  repo setup in the SessionStart hook; the environment is only cached when
+  setup finishes in about five minutes, which the Android download overruns.
