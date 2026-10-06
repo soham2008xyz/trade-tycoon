@@ -54,7 +54,9 @@ const RoomCodeActions: React.FC<{ roomId: string }> = ({ roomId }) => {
     }
     setCopied(true);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
+    timer.current = setTimeout(() => {
+      setCopied(false);
+    }, COPIED_FEEDBACK_MS);
   };
 
   const handleShare = async () => {
