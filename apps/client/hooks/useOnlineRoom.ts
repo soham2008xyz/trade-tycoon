@@ -22,11 +22,14 @@ import { useTransientError } from './useTransientError';
 export type OnlineMode = 'create' | 'join' | 'resume';
 export type OnlineStep = 'connect' | 'lobby' | 'game' | 'resuming';
 type Setter<T> = Dispatch<SetStateAction<T>>;
+// Generic so call sites name no `X | null` union: Codacy can't resolve the
+// game-logic types, reads them as `any` and flags such unions as redundant.
+type Nullable<T> = T | null;
 type ShowError = ReturnType<typeof useTransientError>['setTransientError'];
 
 interface RoomSetters {
-  setLobbyState: Setter<LobbyState | null>;
-  setGameState: Setter<GameState | null>;
+  setLobbyState: Setter<Nullable<LobbyState>>;
+  setGameState: Setter<Nullable<GameState>>;
   setStep: Setter<OnlineStep>;
   setRoomId: Setter<string>;
   setPlayerId: Setter<string | null>;
@@ -43,51 +46,59 @@ function useResumeSession(
   onBack: () => void,
   room: RoomSetters
 ) {
+  // Captured once: the effect below runs exactly once per mount, with the
+  // `onBack` of the first render, and the parent passes a new closure on
+  // every render.
+  const onBackRef = useRef(onBack);
+  const { setLobbyState, setGameState, setStep, setRoomId, setPlayerId, setToken } = room;
+
   useEffect(() => {
     if (!resume) return;
-    let cancelled = false;
+    // An object, not a `let`: the cleanup flips it while the async body is
+    // awaiting, which static analysis can't see through a plain boolean.
+    const run = { cancelled: false };
+    const goBack = onBackRef.current;
     void (async () => {
       const session = await readStoredSession();
-      if (cancelled) return;
+      if (run.cancelled) return;
       if (!session) {
-        onBack();
+        goBack();
         return;
       }
       const result = await reconnectToRoom(serverUrl, session.roomId, session.token);
-      if (cancelled) return;
+      if (run.cancelled) return;
       if (!result.ok) {
         if (result.status === 0) {
           // Network error: we don't know if the session is still valid —
           // leave the stored session alone and bounce so the user can retry.
           console.error('Resume failed:', result.error);
-          onBack();
+          goBack();
           return;
         }
         // 404 session_expired, or any other failure — drop the session and exit.
         // Awaited so the menu we return to doesn't read it back (#258).
         await clearStoredSession();
-        onBack();
+        goBack();
         return;
       }
       const body = result.data;
-      room.setLobbyState(body.lobby);
-      room.setRoomId(session.roomId);
-      room.setPlayerId(session.playerId);
-      room.setToken(session.token);
+      setLobbyState(body.lobby);
+      setRoomId(session.roomId);
+      setPlayerId(session.playerId);
+      setToken(session.token);
       if (body.gameState) {
-        room.setGameState(body.gameState);
-        room.setStep('game');
+        setGameState(body.gameState);
+        setStep('game');
       } else {
-        room.setStep('lobby');
+        setStep('lobby');
       }
     })();
     return () => {
-      cancelled = true;
+      run.cancelled = true;
     };
-    // The resume mode is constant for the lifetime of this mount; eslint can't
-    // see that, but we deliberately want this to run exactly once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // `resume` and `serverUrl` are fixed for the lifetime of this mount and
+    // the setters are stable, so this runs exactly once.
+  }, [resume, serverUrl, setLobbyState, setGameState, setStep, setRoomId, setPlayerId, setToken]);
 }
 
 interface RoomSyncOptions {
@@ -200,8 +211,8 @@ function useRoomSync(options: RoomSyncOptions) {
  */
 export function useOnlineRoom(serverUrl: string, initialMode: OnlineMode, onBack: () => void) {
   const { error, setTransientError } = useTransientError();
-  const [lobbyState, setLobbyState] = useState<LobbyState | null>(null);
-  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [lobbyState, setLobbyState] = useState<Nullable<LobbyState>>(null);
+  const [gameState, setGameState] = useState<Nullable<GameState>>(null);
   // `playerId` is the public id (safe to render, sent to other players in
   // broadcasts). `token` is the private credential sent on every authenticated
   // request — it must never be rendered or logged.

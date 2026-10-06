@@ -324,6 +324,12 @@
   to clear it. Codacy's numbers come from lizard and match it exactly:
   `uvx lizard -T nloc=50 -C 15 -w <files>` (nested arrows are scored on their
   own, and "lines of code" is NLOC, not span).
+  Codacy can't resolve `@trade-tycoon/game-logic` types (reads them as `any`),
+  so it flags `LobbyState | null`-style unions as redundant; wrap them in a
+  generic alias (`Nullable<T>`) instead. It also lacks the `react-hooks`
+  plugin, so an `eslint-disable … react-hooks/…` line is itself a finding, and
+  `if (cancelled)` after an `await` reads as always false; use
+  `{ cancelled: false }` and a ref for values a run-once effect captures.
 - Web link previews (#286): the client lives at
   `https://trade-tycoon.sohambanerjee.me`; `trade-tycoon.vercel.app` is someone
   else's app, so never use it as a fallback host. Put head tags only in the
