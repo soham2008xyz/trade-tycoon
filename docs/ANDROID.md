@@ -48,12 +48,27 @@ with 429 anyway, check that file is in `~/.gradle/init.d/`.
 ## Emulator limits
 
 Cloud containers have no `/dev/kvm` and expose no CPU virtualization, so the
-emulator runs in slow software mode (`-accel off`). See the status note below
-for what was measured.
+emulator can only run in software mode (`-accel off`, single-threaded). The
+AVD and system image install fine; running them is the problem. Measured on a
+4-core container with the API 36 x86_64 image:
+
+- Boot completes after about 22 minutes ("Boot completed in 1320942 ms").
+- Right after boot the guest load average reached about 32, and the `package`
+  service disappeared (`Can't find service: package`) because `system_server`
+  restarted under load. `adb install` of the debug APK failed after 7.5 minutes
+  with a broken pipe.
+
+So the emulator is not usable for installing or running the app here. Use the
+cloud environment to build (it verifies the native toolchain, see above), and
+run the app on a KVM-capable machine. GitHub-hosted Ubuntu runners have KVM, so
+a CI job with `reactivecircus/android-emulator-runner` is the way to get
+runtime checks. To skip the unused download, set `ANDROID_SKIP_EMULATOR=1`.
+
+For a machine that does have KVM, the same AVD works:
 
 ```bash
 emulator -avd tt_api36 -no-window -no-audio -no-metrics -no-snapshot \
-  -accel off -gpu swiftshader_indirect &
+  -gpu swiftshader_indirect &
 adb wait-for-device
 adb install -r apps/client/android/app/build/outputs/apk/debug/app-debug.apk
 ```
