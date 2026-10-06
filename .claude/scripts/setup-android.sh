@@ -3,10 +3,10 @@
 # build tools, emulator + a system image, and an AVD. Idempotent: every step
 # is skipped when its output already exists, so re-runs are fast.
 #
-# Called from .claude/hooks/session-start.sh. It can also be pasted into the
-# cloud environment's Setup script (`bash .claude/scripts/setup-android.sh`)
-# so the ~8 GB download lands in the cached environment image instead of
-# repeating each session.
+# Called from .claude/hooks/session-start.sh. Don't call it from the cloud
+# environment's Setup script: that runs outside the repo (this script copies
+# gradle-mirror.init.gradle from beside itself), and the ~8 GB download would
+# overrun the ~5-minute limit for caching the environment anyway.
 #
 # Versions track what Expo SDK 57 / React Native 0.86 generate (see
 # node_modules/react-native/gradle/libs.versions.toml). Bump them together
