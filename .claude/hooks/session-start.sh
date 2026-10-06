@@ -8,7 +8,11 @@ fi
 
 cd "$CLAUDE_PROJECT_DIR"
 
-npm install
+# `npm ci` installs exactly what package-lock.json says and never rewrites it
+# (`npm install` here stripped "libc" fields and dirtied the tree every
+# session). The lockfile comes from npm 11 (Node 24, see .nvmrc and CI), and
+# the container's npm 10 rejects it as out of sync, so run npm 11 explicitly.
+npx --yes npm@11 ci
 
 # apps/client and apps/server depend on the built packages/game-logic output
 # (dist/), so it must be built before lint/test/type-check will work there.
