@@ -20,9 +20,9 @@ interface TileLabelInput {
  * Sighted players read owner from a colour dot, buildings from small boxes and
  * mortgage from a striped overlay, and on narrow boards the tile name is not
  * drawn at all. None of that reaches VoiceOver, so the label spells it out.
- * Only streets, railroads and utilities can be owned; the rest read as just
- * their name. (Tax tiles also carry a `price` — the amount due — so the type,
- * not the price, decides.)
+ * Only streets, railroads and utilities can be owned. Tax tiles also carry a
+ * `price` (the amount due) that is drawn on the tile, so it is read out, but
+ * they never get ownership wording: the type decides that, not the price.
  */
 export const getTileAccessibilityLabel = ({
   tile,
@@ -31,10 +31,8 @@ export const getTileAccessibilityLabel = ({
   isMortgaged = false,
 }: TileLabelInput): string => {
   const parts = [tile.name];
-  if (OWNABLE_TYPES.has(tile.type) && tile.price !== undefined) {
-    parts.push(`$${tile.price}`);
-    parts.push(ownerName ? `owned by ${ownerName}` : 'unowned');
-  }
+  if (tile.price !== undefined) parts.push(`$${tile.price}`);
+  if (OWNABLE_TYPES.has(tile.type)) parts.push(ownerName ? `owned by ${ownerName}` : 'unowned');
   if (houseCount === HOTEL_COUNT) {
     parts.push('hotel');
   } else if (houseCount > 0) {

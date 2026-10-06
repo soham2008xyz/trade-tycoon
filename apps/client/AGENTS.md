@@ -342,9 +342,15 @@ that sighted players read visually needs text. Build that text in a pure
 tax tiles are not ownable even though they have a `price`), `dice-labels.ts`
 and `held-cards.ts`, then pass it as `accessibilityLabel`.
 
-- `IconButton` labels itself from `title` and hides its glyph; `CloseButton`
-  defaults to "Close"; `Toast` announces its message on mount. Put new
-  defaults before `{...props}` so callers can override.
+- `IconButton` labels itself from `title` and hides its glyph; with an empty
+  `title` the glyph stays visible to readers, so pass `accessibilityLabel`
+  (the Get Out of Jail Free steppers do). `CloseButton` defaults to "Close".
+  `Toast` calls `announceForAccessibility` (native) and has `role="alert"`
+  (web, where that call does nothing). Put new defaults before `{...props}` so
+  callers can override.
+- **Toggle rows on web stay `role="button"`.** react-native-web fires Space
+  only for buttons, not for `role="checkbox"`, so `TradeModal`'s property rows
+  use `aria-pressed` on web and a checkbox with `aria-checked` on native.
 - **Use `aria-checked` / `aria-disabled`, not `accessibilityState`.** The web
   build does not turn `accessibilityState` into ARIA attributes, so the state
   would exist on native only. `aria-hidden` is the cross-platform way to hide

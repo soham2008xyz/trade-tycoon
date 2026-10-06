@@ -16,9 +16,9 @@ describe('getTileAccessibilityLabel', () => {
     expect(getTileAccessibilityLabel({ tile: street })).toBe('Boardwalk, $400, unowned');
   });
 
-  it('does not call a tax tile unowned', () => {
+  it('reads the amount on a tax tile but never calls it unowned', () => {
     const tax: Tile = { id: 'income_tax', index: 4, name: 'Income Tax', type: 'tax', price: 200 };
-    expect(getTileAccessibilityLabel({ tile: tax })).toBe('Income Tax');
+    expect(getTileAccessibilityLabel({ tile: tax })).toBe('Income Tax, $200');
   });
 
   it('omits the price and owner for a tile that cannot be bought', () => {

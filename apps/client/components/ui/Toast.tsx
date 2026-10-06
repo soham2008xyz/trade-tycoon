@@ -70,7 +70,12 @@ export const Toast: React.FC<ToastProps> = ({ message, onDismiss, duration = 300
   }, [message, duration, handleDismiss, fadeAnim]);
 
   return (
-    <Animated.View style={[styles.container, { top: insets.top + TOP_MARGIN, opacity: fadeAnim }]}>
+    // `announceForAccessibility` is a no-op in react-native-web, so the alert
+    // role is what makes web screen readers read the message.
+    <Animated.View
+      role="alert"
+      style={[styles.container, { top: insets.top + TOP_MARGIN, opacity: fadeAnim }]}
+    >
       <TouchableOpacity
         onPress={handleDismiss}
         activeOpacity={0.8}
