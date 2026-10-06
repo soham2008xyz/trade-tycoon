@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
 import { GameUI } from './GameUI';
+import { ConnectionBanner, ConnectionStatusProvider } from './ui/ConnectionBanner';
 import { IconButton } from './ui/IconButton';
 import { KeyboardAwareScreen } from './ui/KeyboardAwareScreen';
 import { LobbyState, GameState, GameAction, limitPlayerNameInput } from '@trade-tycoon/game-logic';
@@ -55,6 +56,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   // Players the server reports as unheard-from. Arrives out-of-band from room
   // state (its own SSE event / poll field), so it is kept in its own state.
   const [disconnectedPlayerIds, setDisconnectedPlayerIds] = useState<string[]>([]);
+  // False while the sync engine can't reach the server; drives the offline banner.
+  const [connected, setConnected] = useState(true);
   const [roomId, setRoomId] = useState<string>('');
   const [playerName, setPlayerName] = useState('');
   const [inputRoomId, setInputRoomId] = useState('');
@@ -199,6 +202,12 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       },
       onGameState: setGameState,
       onPresence: setDisconnectedPlayerIds,
+      onConnected: () => {
+        setConnected(true);
+      },
+      onDisconnected: () => {
+        setConnected(false);
+      },
       onSessionExpired: () => {
         setTransientError('Session expired');
         // The server answered 404 session_expired, so the stored session is
@@ -457,60 +466,65 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     const isHost = lobbyState?.players.find((p) => p.id === playerId)?.isHost;
 
     return (
-      <View style={styles.container}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Room: {roomId}</Text>
-          <Text style={styles.subtitle}>Players:</Text>
-          {lobbyState?.players.map((p) => (
-            <View key={p.id} style={styles.playerRow}>
-              <View style={[styles.colorDot, { backgroundColor: p.color }]} />
-              <Text style={styles.playerText}>
-                {p.name} {p.isHost ? '(Host)' : ''} {p.id === playerId ? '(You)' : ''}
-              </Text>
-            </View>
-          ))}
+      <ConnectionStatusProvider connected={connected}>
+        <View style={styles.container}>
+          <View style={styles.card}>
+            <Text style={styles.title}>Room: {roomId}</Text>
+            <Text style={styles.subtitle}>Players:</Text>
+            {lobbyState?.players.map((p) => (
+              <View key={p.id} style={styles.playerRow}>
+                <View style={[styles.colorDot, { backgroundColor: p.color }]} />
+                <Text style={styles.playerText}>
+                  {p.name} {p.isHost ? '(Host)' : ''} {p.id === playerId ? '(You)' : ''}
+                </Text>
+              </View>
+            ))}
 
-          <View style={styles.spacer} />
+            <View style={styles.spacer} />
 
-          {isHost ? (
+            {isHost ? (
+              <IconButton
+                title="Start Game"
+                icon="play"
+                onPress={handleStartGame}
+                style={styles.button}
+                disabled={busy || !lobbyState || lobbyState.players.length < 2}
+              />
+            ) : (
+              <Text style={styles.waitingText}>Waiting for host to start...</Text>
+            )}
+
+            {error && <Text style={styles.error}>{error}</Text>}
+
             <IconButton
-              title="Start Game"
-              icon="play"
-              onPress={handleStartGame}
-              style={styles.button}
-              disabled={busy || !lobbyState || lobbyState.players.length < 2}
+              title="Leave"
+              icon="close"
+              onPress={handleLeave}
+              style={styles.secondaryButton}
             />
-          ) : (
-            <Text style={styles.waitingText}>Waiting for host to start...</Text>
-          )}
-
-          {error && <Text style={styles.error}>{error}</Text>}
-
-          <IconButton
-            title="Leave"
-            icon="close"
-            onPress={handleLeave}
-            style={styles.secondaryButton}
-          />
+          </View>
+          <ConnectionBanner floating />
         </View>
-      </View>
+      </ConnectionStatusProvider>
     );
   }
 
   if (step === 'game' && gameState) {
     return (
-      <GameUI
-        state={gameState}
-        currentPlayerId={playerId || ''}
-        onDispatch={handleGameDispatch}
-        uiToastMessage={uiToastMessage ?? error}
-        setUiToastMessage={setUiToastMessage}
-        onLeaveGame={handleLeave}
-        isMultiplayer={true}
-        disconnectedPlayerIds={disconnectedPlayerIds}
-        hostId={lobbyState?.players.find((p) => p.isHost)?.id}
-        onRemovePlayer={handleRemovePlayer}
-      />
+      <ConnectionStatusProvider connected={connected}>
+        <GameUI
+          state={gameState}
+          currentPlayerId={playerId || ''}
+          onDispatch={handleGameDispatch}
+          uiToastMessage={uiToastMessage ?? error}
+          setUiToastMessage={setUiToastMessage}
+          onLeaveGame={handleLeave}
+          isMultiplayer={true}
+          disconnectedPlayerIds={disconnectedPlayerIds}
+          hostId={lobbyState?.players.find((p) => p.isHost)?.id}
+          onRemovePlayer={handleRemovePlayer}
+        />
+      </ConnectionStatusProvider>
     );
   }
 

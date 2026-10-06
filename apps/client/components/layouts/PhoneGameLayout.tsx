@@ -3,6 +3,7 @@ import { LayoutChangeEvent, ScrollView, StyleSheet, View, useWindowDimensions } 
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Board } from '../Board';
+import { ConnectionBanner } from '../ui/ConnectionBanner';
 import { getSideBySideBoardArea, isSideBySide } from '../board-size';
 import { Peek } from '../StatusPanel/Peek';
 import { Expanded } from '../StatusPanel/Expanded';
@@ -95,6 +96,7 @@ export const PhoneGameLayout: React.FC<Props> = (props) => {
           },
         ]}
       >
+        <ConnectionBanner />
         <View style={styles.boardArea} onLayout={handleBoardLayout}>
           <Board
             players={props.state.players}
