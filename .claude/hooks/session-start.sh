@@ -18,3 +18,8 @@ npm run build --workspace=packages/game-logic
 # download hiccup shouldn't block the JS/TS workflow above. See docs/ANDROID.md.
 bash "$CLAUDE_PROJECT_DIR/.claude/scripts/setup-android.sh" \
   || echo "warning: Android setup failed; native builds unavailable this session" >&2
+
+# Local Redis for apps/server's Redis tests, which the pre-commit hook runs.
+# Non-fatal for the same reason as above. Doesn't set REDIS_URL.
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/start-redis.sh" \
+  || echo "warning: Redis failed to start; server Redis tests will fail" >&2

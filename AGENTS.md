@@ -221,6 +221,9 @@ Claude Code cloud sessions get the Android SDK/NDK/emulator from
 `.claude/scripts/setup-android.sh`, run by the session-start hook. Native
 build steps, the Maven Central 429 workaround, and emulator limits (no KVM)
 live in `docs/ANDROID.md`.
+The same hook starts a local Redis via `.claude/scripts/start-redis.sh`
+(the server's Redis tests and the pre-commit hook need it on port 6379). It
+does not set `REDIS_URL`, so the dev server stays on in-memory storage.
 
 ### TypeScript 6 — `rootDir` is no longer inferred
 
