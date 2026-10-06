@@ -56,6 +56,7 @@ function renderCurrentScreen(
             : 'resume'
       }
       onBack={() => setCurrentScreen('multiplayer-menu')}
+      onMainMenu={() => setCurrentScreen('new-game')}
     />
   );
 }

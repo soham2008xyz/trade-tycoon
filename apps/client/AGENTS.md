@@ -130,9 +130,13 @@ set, and `Peek` / `TabletCenter` swap their turn UI for `GameOverCard`
 `canStartNewGame` in `multiplayer-gating.ts`). Trade buttons and the
 manage/trade modals aren't driven by `buttons`, so `Expanded`,
 `TabletCenter` and `GameUI` gate them on game over explicitly — gate any
-new post-win-inert surface the same way. The card is in-tree, not a
-`Modal`: the win usually follows a `CustomAlert` (a `Modal`) closing, and a
-second `Modal` presented mid-dismiss can fail to show on iOS.
+new post-win-inert surface the same way. The card's "Back to Menu" goes to
+the main menu in both modes: online wires it through `GameUI`'s
+`onBackToMenu` (→ `OnlineGame`'s `onMainMenu`), separate from mid-game
+leave (`onLeaveGame`), which still returns to the multiplayer menu. The
+card is in-tree, not a `Modal`: the win usually follows a `CustomAlert`
+(a `Modal`) closing, and a second `Modal` presented mid-dismiss can fail
+to show on iOS.
 
 ## Room sync (SSE + native polling)
 

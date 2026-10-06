@@ -33,11 +33,14 @@ const SERVER_URL = getOnlineServerUrl({
 });
 
 interface OnlineGameProps {
+  /** Back to the multiplayer menu (form back buttons, lobby/mid-game leave). */
   onBack: () => void;
+  /** Back to the main menu, from the game-over card. */
+  onMainMenu: () => void;
   initialMode: 'create' | 'join' | 'resume';
 }
 
-export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) => {
+export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, onMainMenu, initialMode }) => {
   const theme = useTheme();
   const styles = createStyles(theme);
   const [lobbyState, setLobbyState] = useState<LobbyState | null>(null);
@@ -332,22 +335,32 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
     [roomId, token, setTransientError]
   );
 
-  const handleLeave = useCallback(async () => {
-    // Stop the stream/poll before the leave POST so its own lobby_update
-    // (or a poll racing it) can't resurrect state we're abandoning.
-    syncHandleRef.current?.stop();
-    syncHandleRef.current = null;
+  const leaveRoom = useCallback(
+    async (then: () => void) => {
+      // Stop the stream/poll before the leave POST so its own lobby_update
+      // (or a poll racing it) can't resurrect state we're abandoning.
+      syncHandleRef.current?.stop();
+      syncHandleRef.current = null;
 
-    if (roomId && token && SERVER_URL !== null) {
-      const result = await apiLeaveRoom(SERVER_URL, roomId, token);
-      if (!result.ok) {
-        console.error('Leave request failed:', result.error);
+      if (roomId && token && SERVER_URL !== null) {
+        const result = await apiLeaveRoom(SERVER_URL, roomId, token);
+        if (!result.ok) {
+          console.error('Leave request failed:', result.error);
+        }
       }
-    }
 
-    await clearStoredSession();
-    onBack();
-  }, [roomId, token, onBack]);
+      await clearStoredSession();
+      then();
+    },
+    [roomId, token]
+  );
+
+  const handleLeave = useCallback(() => leaveRoom(onBack), [leaveRoom, onBack]);
+
+  // A finished game can't be restarted from its room (see `canStartNewGame`),
+  // so the game-over card's "Back to Menu" goes all the way to the main menu,
+  // matching hotseat, instead of the multiplayer menu (#324).
+  const handleBackToMainMenu = useCallback(() => leaveRoom(onMainMenu), [leaveRoom, onMainMenu]);
 
   /**
    * Persist the session for future resume, then bring the joined-room
@@ -519,6 +532,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
           uiToastMessage={uiToastMessage ?? error}
           setUiToastMessage={setUiToastMessage}
           onLeaveGame={handleLeave}
+          onBackToMenu={handleBackToMainMenu}
           isMultiplayer={true}
           disconnectedPlayerIds={disconnectedPlayerIds}
           hostId={lobbyState?.players.find((p) => p.isHost)?.id}
