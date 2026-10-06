@@ -81,6 +81,14 @@ export const createOnlineStyles = (theme: Theme) =>
     spacer: {
       height: 20,
     },
+    roomCodeRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 20,
+    },
+    roomCodeButton: {
+      backgroundColor: theme.neutralButton,
+    },
     waitingText: {
       fontStyle: 'italic',
       color: theme.textSecondary,

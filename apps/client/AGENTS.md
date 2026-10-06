@@ -230,6 +230,16 @@ opt-in design is what's correct; the test in
 `apps/server/src/routes/rooms.test.ts` covers the
 `session_expired` path that backstops the client.
 
+## Lobby room code (#319)
+
+`OnlineLobby` shows Copy (`expo-clipboard`) and Share (`Share.share`) beside
+the room code. The share text (`online-room-share.ts`) holds the public code
+only, never the token. `Share.share` rejects on react-native-web without the
+Web Share API, so the button is hidden there. `expo-clipboard` is a native
+module: rebuild the dev client (`expo run:android` / `expo run:ios`) after
+pulling this, or a JS reload fails with a missing `ExpoClipboard` module.
+Not yet run on a device or emulator.
+
 ## Platform guards
 
 - `localStorage` is **web-only**. Always wrap reads/writes in

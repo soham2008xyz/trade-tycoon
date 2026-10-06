@@ -103,6 +103,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 - [x] **Create Room**: Any player can create a new game room and becomes the host. A unique room ID is generated.
 - [x] **Join Room**: Players join via room ID. Up to 8 players supported.
 - [x] **Lobby State**: Before the game starts, all connected players are shown in a lobby with name, colour, ready status, and host flag.
+- [x] **Copy / Share Room Code**: The lobby has a Copy button (`expo-clipboard`) and a Share button (`Share.share`, shown on web only when the browser has the Web Share API) so the host needn't read out or retype the code (#319).
 - [x] **Ready Flow**: Each player marks themselves ready; the host can start the game once all players are ready.
 - [x] **Host Privileges**: Only the host can start the game.
 

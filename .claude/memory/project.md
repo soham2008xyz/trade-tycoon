@@ -370,3 +370,7 @@
   `aria-checked` / `aria-disabled` / `aria-hidden` props (they also work on
   native). Tax tiles carry a `price` but are not ownable, so owner text keys on
   tile type. Details in `apps/client/AGENTS.md` "Accessibility (#256)".
+- Lobby room code (#319): Copy uses `expo-clipboard` (native module, needs a
+  dev-client rebuild); Share uses RN `Share.share` and is hidden on web without
+  `navigator.share`, because react-native-web rejects there. Details in
+  `apps/client/AGENTS.md` "Lobby room code".
