@@ -5,7 +5,7 @@
   `FLUSHALL`, and run test files in sequence so the shared database cannot be
   cleared underneath another suite. Production and test ioredis 6 clients set
   `protocol: 2` to retain the existing RESP2 wire behavior.
-- Online multiplayer leave is server-authoritative: `OnlineGame.handleLeave`
+- Online multiplayer leave is server-authoritative: `handleLeave` (`useRoomActions`)
   must POST `/api/rooms/:id/leave` before returning to the menu, otherwise the
   departed player remains in the room snapshot and their board marker stays
   visible for other clients.

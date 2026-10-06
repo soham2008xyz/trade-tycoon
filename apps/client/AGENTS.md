@@ -162,8 +162,8 @@ callbacks onto React state in a `useEffect` keyed on `[roomId, token]`.
   as an SSE `presence` event, or as `disconnectedPlayerIds` on every poll
   snapshot. It never moves `version`, so the poll compares it separately —
   a presence-only change must still reach `onPresence` and keeps the fast
-  cadence for one more poll. `OnlineGame` holds it in its own state and
-  passes it, plus `hostId`, to `GameUI`, which resolves which players the
+  cadence for one more poll. `useRoomSync` holds it in its own state and
+  `OnlineGame` passes it, plus `hostId`, to `GameUI`, which resolves which players the
   local user may remove through `canRemovePlayer` and hands the panels
   plain id lists (`disconnectedPlayerIds`, `removablePlayerIds`).
 - The auction modal covers the status panel, so `AuctionModal` renders its
