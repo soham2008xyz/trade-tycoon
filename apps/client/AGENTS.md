@@ -169,7 +169,7 @@ state in a `useEffect` keyed on `[roomId, token]`.
   good with no event to act on. `startRoomSync` therefore asks
   `/reconnect` once `readyState` is CLOSED and calls `onSessionExpired` on
   a 404.
-- Connection state (#313): `onConnectionChange(connected)` reports the
+- Connection state (#313): `onConnected()` / `onDisconnected()` report the
   first result a sync sees, then only changes. The first is always reported
   because the sync effect can re-run while the React state still says
   "lost". SSE: `error` means lost, `open` means back. Poll: `status === 0`

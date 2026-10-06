@@ -42,13 +42,19 @@ const lobby = (version: number): LobbyState => ({
 
 const gameState = { currentPlayerId: 'p1' } as unknown as GameState;
 
-const callbacks = () => ({
-  onLobbyState: vi.fn(),
-  onGameState: vi.fn(),
-  onPresence: vi.fn(),
-  onSessionExpired: vi.fn(),
-  onConnectionChange: vi.fn(),
-});
+const callbacks = () => {
+  // One mock records both directions in order, which the tests assert on.
+  const onConnectionChange = vi.fn();
+  return {
+    onLobbyState: vi.fn(),
+    onGameState: vi.fn(),
+    onPresence: vi.fn(),
+    onSessionExpired: vi.fn(),
+    onConnected: () => onConnectionChange(true),
+    onDisconnected: () => onConnectionChange(false),
+    onConnectionChange,
+  };
+};
 
 describe('startRoomSync (sse)', () => {
   const startSse = (overrides: Partial<RoomSyncOptions> = {}) => {

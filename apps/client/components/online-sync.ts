@@ -52,14 +52,16 @@ export interface RoomSyncOptions {
   /** Poll transport only: the server reported the session gone (404). */
   onSessionExpired: () => void;
   /**
-   * Whether the server is reachable. Called with the first result a sync
-   * observes, then only when the answer changes. The first is always reported
-   * because the caller may start a new sync (the effect re-runs) while its own
-   * state still says "lost". Any HTTP answer (even an error status) counts as
-   * reachable; `false` means the request or the stream failed at the network
+   * Connection state, as two callbacks (no parameters, so no unused-name lint
+   * hit). Together they report the first result a sync observes, then only
+   * changes. The first is always reported because the caller may start a new
+   * sync (the effect re-runs) while its own state still says "lost". Any HTTP
+   * answer (even an error status) counts as reachable (`onConnected`);
+   * `onDisconnected` means the request or the stream failed at the network
    * level, so the screen may be out of date.
    */
-  onConnectionChange: (_connected: boolean) => void;
+  onConnected: () => void;
+  onDisconnected: () => void;
   /** Test injectable; defaults to `new EventSource(url)`. */
   createEventSource?: (_url: string) => EventSourceLike;
   /** Test injectable; defaults to online-api's `reconnectToRoom`. */
@@ -91,7 +93,8 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
     onGameState,
     onPresence,
     onSessionExpired,
-    onConnectionChange,
+    onConnected,
+    onDisconnected,
     createEventSource = defaultCreateEventSource,
     fetchSnapshot = reconnectToRoom,
   } = options;
@@ -101,7 +104,8 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
   const reportConnection = (next: boolean) => {
     if (stopped || next === connected) return;
     connected = next;
-    onConnectionChange(next);
+    if (next) onConnected();
+    else onDisconnected();
   };
 
   if (transport === 'sse') {
