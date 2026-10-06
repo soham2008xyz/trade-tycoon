@@ -6,7 +6,7 @@ import { reconnectToRoom } from './online-api';
  * keeps a client's lobby/game state in step with the server. Extracted from
  * `OnlineGame.tsx` so the sync behavior (version skipping, poll backoff,
  * session expiry, event parsing) is unit-testable in the node environment —
- * the component keeps only a thin `useEffect` that forwards callbacks into
+ * `hooks/useOnlineRoom.ts` keeps only a thin `useEffect` that forwards callbacks into
  * React state. The EventSource factory and snapshot fetcher are injectable
  * for the same reason.
  */
