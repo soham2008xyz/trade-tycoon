@@ -169,6 +169,12 @@ state in a `useEffect` keyed on `[roomId, token]`.
   good with no event to act on. `startRoomSync` therefore asks
   `/reconnect` once `readyState` is CLOSED and calls `onSessionExpired` on
   a 404.
+- Connection state (#313): `onConnectionChange(connected)` fires only on a
+  change and starts out connected. SSE: `error` means lost, `open` means
+  back. Poll: `status === 0` means lost, any other answer (even a 5xx)
+  means the server is reachable. `OnlineGame` shows `ConnectionBanner`
+  (bottom, touch-transparent, `role="alert"` plus an announcement) while
+  it is false.
 - Being removed is judged by `wasRemovedFromRoom` on the **lobby** roster,
   never `gameState.players`: a bankrupt player leaves the game roster but
   is still in the room.

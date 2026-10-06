@@ -47,6 +47,7 @@ const callbacks = () => ({
   onGameState: vi.fn(),
   onPresence: vi.fn(),
   onSessionExpired: vi.fn(),
+  onConnectionChange: vi.fn(),
 });
 
 describe('startRoomSync (sse)', () => {
@@ -176,6 +177,35 @@ describe('startRoomSync (sse)', () => {
       await Promise.resolve();
 
       expect(onSessionExpired).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('connection state', () => {
+    it('reports lost on a stream error and restored on reopen, once per change', () => {
+      const { source, onConnectionChange } = startSse();
+
+      source.emit('open', {});
+      expect(onConnectionChange).not.toHaveBeenCalled(); // starts out connected
+
+      source.readyState = 0;
+      source.emit('error', {});
+      source.emit('error', {}); // browser retries; repeat errors stay quiet
+      expect(onConnectionChange).toHaveBeenCalledTimes(1);
+      expect(onConnectionChange).toHaveBeenLastCalledWith(false);
+
+      source.readyState = 1;
+      source.emit('open', {});
+      expect(onConnectionChange).toHaveBeenCalledTimes(2);
+      expect(onConnectionChange).toHaveBeenLastCalledWith(true);
+    });
+
+    it('stays quiet after stop()', () => {
+      const { source, handle, onConnectionChange } = startSse();
+
+      handle.stop();
+      source.emit('error', {});
+
+      expect(onConnectionChange).not.toHaveBeenCalled();
     });
   });
 
@@ -362,6 +392,58 @@ describe('startRoomSync (poll)', () => {
     await vi.advanceTimersByTimeAsync(MIN_POLL_MS);
     expect(onLobbyState).toHaveBeenCalledWith(lobby(1));
     warnSpy.mockRestore();
+  });
+
+  describe('connection state', () => {
+    const networkDown = { ok: false as const, status: 0, error: 'network down' };
+
+    it('reports lost on a network failure and restored on the next good poll', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const fetchSnapshot = vi
+        .fn()
+        .mockResolvedValueOnce(snapshot(1))
+        .mockResolvedValueOnce(networkDown)
+        .mockResolvedValueOnce(networkDown)
+        .mockResolvedValue(snapshot(1));
+      const { onConnectionChange } = startPoll(fetchSnapshot);
+
+      await vi.advanceTimersByTimeAsync(0); // first poll ok: still connected, no call
+      expect(onConnectionChange).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(MIN_POLL_MS); // network down
+      await vi.advanceTimersByTimeAsync(MIN_POLL_MS); // still down: no repeat call
+      expect(onConnectionChange).toHaveBeenCalledTimes(1);
+      expect(onConnectionChange).toHaveBeenLastCalledWith(false);
+
+      await vi.advanceTimersByTimeAsync(MIN_POLL_MS); // server back, same version
+      expect(onConnectionChange).toHaveBeenCalledTimes(2);
+      expect(onConnectionChange).toHaveBeenLastCalledWith(true);
+    });
+
+    it('treats a server error status as reachable', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const fetchSnapshot = vi
+        .fn()
+        .mockResolvedValue({ ok: false as const, status: 503, error: 'unavailable' });
+      const { onConnectionChange } = startPoll(fetchSnapshot);
+
+      await vi.advanceTimersByTimeAsync(MIN_POLL_MS * 2);
+
+      expect(onConnectionChange).not.toHaveBeenCalled();
+    });
+
+    it('stays quiet when the first poll fails and stop() has been called', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      let resolveFetch: (value: unknown) => void = () => {};
+      const fetchSnapshot = vi.fn().mockReturnValue(new Promise((r) => (resolveFetch = r)));
+      const { handle, onConnectionChange } = startPoll(fetchSnapshot);
+
+      handle.stop();
+      resolveFetch(networkDown);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(onConnectionChange).not.toHaveBeenCalled();
+    });
   });
 
   it('stop() cancels the pending poll', async () => {

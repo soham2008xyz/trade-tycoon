@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
 import { GameUI } from './GameUI';
+import { ConnectionBanner } from './ui/ConnectionBanner';
 import { IconButton } from './ui/IconButton';
 import { KeyboardAwareScreen } from './ui/KeyboardAwareScreen';
 import { LobbyState, GameState, GameAction, limitPlayerNameInput } from '@trade-tycoon/game-logic';
@@ -55,6 +56,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
   // Players the server reports as unheard-from. Arrives out-of-band from room
   // state (its own SSE event / poll field), so it is kept in its own state.
   const [disconnectedPlayerIds, setDisconnectedPlayerIds] = useState<string[]>([]);
+  // False while the sync engine can't reach the server; drives the offline banner.
+  const [connected, setConnected] = useState(true);
   const [roomId, setRoomId] = useState<string>('');
   const [playerName, setPlayerName] = useState('');
   const [inputRoomId, setInputRoomId] = useState('');
@@ -199,6 +202,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       },
       onGameState: setGameState,
       onPresence: setDisconnectedPlayerIds,
+      onConnectionChange: setConnected,
       onSessionExpired: () => {
         setTransientError('Session expired');
         // The server answered 404 session_expired, so the stored session is
@@ -493,24 +497,28 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
             style={styles.secondaryButton}
           />
         </View>
+        {!connected && <ConnectionBanner />}
       </View>
     );
   }
 
   if (step === 'game' && gameState) {
     return (
-      <GameUI
-        state={gameState}
-        currentPlayerId={playerId || ''}
-        onDispatch={handleGameDispatch}
-        uiToastMessage={uiToastMessage ?? error}
-        setUiToastMessage={setUiToastMessage}
-        onLeaveGame={handleLeave}
-        isMultiplayer={true}
-        disconnectedPlayerIds={disconnectedPlayerIds}
-        hostId={lobbyState?.players.find((p) => p.isHost)?.id}
-        onRemovePlayer={handleRemovePlayer}
-      />
+      <View style={styles.fill}>
+        <GameUI
+          state={gameState}
+          currentPlayerId={playerId || ''}
+          onDispatch={handleGameDispatch}
+          uiToastMessage={uiToastMessage ?? error}
+          setUiToastMessage={setUiToastMessage}
+          onLeaveGame={handleLeave}
+          isMultiplayer={true}
+          disconnectedPlayerIds={disconnectedPlayerIds}
+          hostId={lobbyState?.players.find((p) => p.isHost)?.id}
+          onRemovePlayer={handleRemovePlayer}
+        />
+        {!connected && <ConnectionBanner />}
+      </View>
     );
   }
 
@@ -519,6 +527,9 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
+    fill: {
+      flex: 1,
+    },
     container: {
       flex: 1,
       justifyContent: 'center',

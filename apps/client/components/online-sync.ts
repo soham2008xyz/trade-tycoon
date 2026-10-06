@@ -51,6 +51,14 @@ export interface RoomSyncOptions {
   onPresence: (_disconnectedPlayerIds: string[]) => void;
   /** Poll transport only: the server reported the session gone (404). */
   onSessionExpired: () => void;
+  /**
+   * Whether the server is reachable. Called only when the answer changes, and
+   * never before the first change: a fresh sync is assumed connected. Any
+   * HTTP answer (even an error status) counts as reachable; `false` means the
+   * request or the stream failed at the network level, so the screen may be
+   * out of date.
+   */
+  onConnectionChange: (_connected: boolean) => void;
   /** Test injectable; defaults to `new EventSource(url)`. */
   createEventSource?: (_url: string) => EventSourceLike;
   /** Test injectable; defaults to online-api's `reconnectToRoom`. */
@@ -82,12 +90,20 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
     onGameState,
     onPresence,
     onSessionExpired,
+    onConnectionChange,
     createEventSource = defaultCreateEventSource,
     fetchSnapshot = reconnectToRoom,
   } = options;
 
+  let stopped = false;
+  let connected = true;
+  const reportConnection = (next: boolean) => {
+    if (stopped || next === connected) return;
+    connected = next;
+    onConnectionChange(next);
+  };
+
   if (transport === 'sse') {
-    let stopped = false;
     let verifying = false;
     // EventSource cannot set headers, so the token travels in the query
     // string (the server accepts this tradeoff for the events route only).
@@ -95,6 +111,10 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
       roomId
     )}/events?token=${encodeURIComponent(token)}`;
     const source = createEventSource(url);
+
+    // The browser reconnects quietly after a drop, so `error` is the only sign
+    // the view is going stale and `open` the only sign it is live again.
+    source.addEventListener('open', () => reportConnection(true));
 
     source.addEventListener('lobby_update', (event) => {
       try {
@@ -117,6 +137,7 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
     // event we could act on, so the player would sit on a stale screen. Once
     // it is CLOSED, ask `/reconnect` (whose 404 means the session is gone).
     source.addEventListener('error', () => {
+      reportConnection(false);
       if (source.readyState !== EVENT_SOURCE_CLOSED || verifying || stopped) return;
       verifying = true;
       void fetchSnapshot(serverUrl, roomId, token)
@@ -151,7 +172,6 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
   // nothing changed; the server's `lobby.version` (bumped on every successful
   // write) lets us detect "nothing changed" cheaply, skip the callbacks, and
   // back off the poll interval while idle.
-  let stopped = false;
   let syncInFlight = false;
   let lastSeenVersion: number | undefined;
   // The server lists ids in lobby order, so a joined string is a stable key.
@@ -173,6 +193,9 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
     try {
       const result = await fetchSnapshot(serverUrl, roomId, token);
       if (stopped) return;
+      // Status 0 is the network-level failure; any other answer (even a 5xx)
+      // means the server is there.
+      reportConnection(result.ok || result.status !== 0);
       if (!result.ok) {
         if (result.status === 404) {
           // Session gone for good — polling again would just repeat the 404.
