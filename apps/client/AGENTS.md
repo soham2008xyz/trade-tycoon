@@ -334,6 +334,26 @@ and needs no `useMemo`.
   unchecked. A dev build older than #258 crashes on launch with a missing
   `ExpoSecureStore` module; reinstall a newer build rather than debugging it.
 
+## Accessibility (#256)
+
+Screen readers get nothing from colour, icons or an absent label, so meaning
+that sighted players read visually needs text. Build that text in a pure
+`.ts` helper with a test, as with `tile-labels.ts` (owner, houses, mortgage;
+tax tiles are not ownable even though they have a `price`), `dice-labels.ts`
+and `held-cards.ts`, then pass it as `accessibilityLabel`.
+
+- `IconButton` labels itself from `title` and hides its glyph; `CloseButton`
+  defaults to "Close"; `Toast` announces its message on mount. Put new
+  defaults before `{...props}` so callers can override.
+- **Use `aria-checked` / `aria-disabled`, not `accessibilityState`.** The web
+  build does not turn `accessibilityState` into ARIA attributes, so the state
+  would exist on native only. `aria-hidden` is the cross-platform way to hide
+  a decorative icon.
+- Check on web with `document.querySelectorAll('[role=button]')` and read
+  `aria-label` (react-native-web maps role and label). Verified that way; not
+  yet run with VoiceOver on a device (the simulator has no VoiceOver, use
+  Accessibility Inspector).
+
 ## Test command
 
 ```sh

@@ -354,6 +354,9 @@ export const TradeModal: React.FC<Props> = ({
                       key={id}
                       onPress={() => toggleOfferProp(id)}
                       style={styles.checkRow}
+                      accessibilityRole="checkbox"
+                      aria-checked={isChecked}
+                      accessibilityLabel={tile?.name ?? id}
                     >
                       <MaterialCommunityIcons
                         name={isChecked ? 'checkbox-marked' : 'checkbox-blank-outline'}
@@ -442,6 +445,9 @@ export const TradeModal: React.FC<Props> = ({
                       key={id}
                       onPress={() => toggleReqProp(id)}
                       style={styles.checkRow}
+                      accessibilityRole="checkbox"
+                      aria-checked={isChecked}
+                      accessibilityLabel={tile?.name ?? id}
                     >
                       <MaterialCommunityIcons
                         name={isChecked ? 'checkbox-marked' : 'checkbox-blank-outline'}

@@ -341,3 +341,7 @@
   tiles are game-semantic and stay light on purpose. `app/+html.tsx` replaces
   the generated web document, so keep its `ScrollViewStyleReset`. Details are
   in `apps/client/AGENTS.md` ("Theming").
+- Client accessibility: react-native-web ignores `accessibilityState`, so use
+  `aria-checked` / `aria-disabled` / `aria-hidden` props (they also work on
+  native). Tax tiles carry a `price` but are not ownable, so owner text keys on
+  tile type. Details in `apps/client/AGENTS.md` "Accessibility (#256)".

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getDiceAccessibilityLabel } from './dice-labels';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -94,7 +95,13 @@ export const Dice: React.FC<DiceProps> = ({
   isRolling = false,
 }) => {
   return (
-    <View style={styles.container}>
+    // One label for the pair: the two icons are decorative on their own.
+    <View
+      style={styles.container}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={getDiceAccessibilityLabel(value1, value2, isRolling)}
+    >
       <Die value={value1} size={size} color={color} isRolling={isRolling} />
       <Die value={value2} size={size} color={color} isRolling={isRolling} />
     </View>

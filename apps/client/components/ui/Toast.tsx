@@ -1,5 +1,12 @@
 import React, { useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  AccessibilityInfo,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
@@ -46,6 +53,9 @@ export const Toast: React.FC<ToastProps> = ({ message, onDismiss, duration = 300
   }, [fadeAnim]);
 
   useEffect(() => {
+    // The toast is the only place rejections ("can't afford it", online 409s)
+    // surface, and a screen reader doesn't notice a view that appears on its own.
+    AccessibilityInfo.announceForAccessibility(message);
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 300,
@@ -61,7 +71,12 @@ export const Toast: React.FC<ToastProps> = ({ message, onDismiss, duration = 300
 
   return (
     <Animated.View style={[styles.container, { top: insets.top + TOP_MARGIN, opacity: fadeAnim }]}>
-      <TouchableOpacity onPress={handleDismiss} activeOpacity={0.8}>
+      <TouchableOpacity
+        onPress={handleDismiss}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityHint="Dismisses this message"
+      >
         <View style={styles.content}>
           <Text style={styles.text}>{message}</Text>
         </View>
