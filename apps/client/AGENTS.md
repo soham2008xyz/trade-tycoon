@@ -22,6 +22,7 @@ components/
   multiplayer-gating.test.ts  vitest tests for the predicates
   held-cards.ts               Pure formatter for the GOOJ-card badge (NO React)
   ui/                         Primitives (IconButton, Toast, …)
+  online/                     OnlineGame's connect, lobby and message screens
 hooks/                        Custom hooks
 constants/                    Color tables and the like
 scripts/                      Build-time PWA / asset generation
@@ -144,8 +145,10 @@ Online state arrives via `GET /api/rooms/:id/events?token=...` on web
 (SSE) or a version-aware poll on native (no `EventSource`). The
 transport logic lives in `components/online-sync.ts`
 (`startRoomSync`), a framework-free module unit-tested in the node
-environment — `OnlineGame.tsx` only wires its callbacks onto React
-state in a `useEffect` keyed on `[roomId, token]`.
+environment — `useRoomSync` in `hooks/useOnlineRoom.ts` only wires its
+callbacks onto React state in a `useEffect` keyed on `[roomId, token]`.
+`OnlineGame.tsx` only picks the screen; room state lives in
+`useOnlineRoom` and the lobby/game requests in `hooks/useRoomActions.ts`.
 
 - SSE: `addEventListener('lobby_update', ...)` /
   `addEventListener('game_state_update', ...)`, not the generic
@@ -189,9 +192,9 @@ state in a `useEffect` keyed on `[roomId, token]`.
 - Being removed is judged by `wasRemovedFromRoom` on the **lobby** roster,
   never `gameState.players`: a bankrupt player leaves the game roster but
   is still in the room.
-- `startRoomSync` returns a `{ stop() }` handle; `OnlineGame` keeps it
-  in a ref and calls `stop()` both on effect cleanup and in
-  `handleLeave` (before the `/api/rooms/:id/leave` POST, so the
+- `startRoomSync` returns a `{ stop() }` handle; `useRoomSync` keeps it
+  in a ref and calls `stop()` both on effect cleanup and, through
+  `stopSync`, in `handleLeave` (before the `/api/rooms/:id/leave` POST, so the
   route's own broadcast can't resurrect state being abandoned).
 
 Adding a new sync case (a new event type, a new poll response field)
@@ -233,7 +236,7 @@ opt-in design is what's correct; the test in
   `if (Platform.OS === 'web') { ... }`. The online session is the one
   thing stored on native too, via `session-storage.tsx` (see "Resume
   is opt-in" above).
-- `EventSource` is web-only. `OnlineGame.tsx` guards on
+- `EventSource` is web-only. `hooks/useOnlineRoom.ts` guards on
   `typeof EventSource === 'undefined'` before subscribing. Native
   multiplayer uses a reconnect-polling fallback instead, via
   `components/online-platform.ts`, so lobby/game state still refreshes

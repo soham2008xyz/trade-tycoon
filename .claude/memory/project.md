@@ -316,11 +316,14 @@
   (interface methods, function types), even with a `_` prefix. A new type with
   function members fails the gate; restructure so the type isn't needed (the
   first #306 attempt injected a storage interface and had to be undone).
-- Codacy (#325): it keys findings to line content. `OnlineGame` has always
-  been over its size (50 lines) and complexity (15) limits, so editing the
-  component's signature line re-reports both as "new" and fails the check,
-  though nothing got worse. The check isn't required on `master`. The lasting
-  fix is splitting `OnlineGame`.
+- Codacy (#325): it keys findings to line content, so editing the signature
+  line of a function already over its size (50 lines) or complexity (15)
+  limits re-reports both as "new" and fails the check, though nothing got
+  worse. The check isn't required on `master`. `OnlineGame` was split into
+  `components/online/*` plus `hooks/useOnlineRoom.ts` / `useRoomActions.ts`
+  to clear it. Codacy's numbers come from lizard and match it exactly:
+  `uvx lizard -T nloc=50 -C 15 -w <files>` (nested arrows are scored on their
+  own, and "lines of code" is NLOC, not span).
 - Web link previews (#286): the client lives at
   `https://trade-tycoon.sohambanerjee.me`; `trade-tycoon.vercel.app` is someone
   else's app, so never use it as a fallback host. Put head tags only in the
