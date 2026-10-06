@@ -217,6 +217,20 @@ base image, `npm ci` + game-logic build in `install`, API + static web
 serve terminals on ports 3001 and 8081). Redis is optional for
 local dev — the server uses in-memory storage when `REDIS_URL` is unset.
 
+Claude Code cloud sessions get the Android SDK/NDK/emulator from
+`.claude/scripts/setup-android.sh`, run by the session-start hook. Native
+build steps, the Maven Central 429 workaround, and emulator limits (no KVM)
+live in `docs/ANDROID.md`.
+The hook first installs the Node major from `.nvmrc` (24, with npm 11) via
+`.claude/scripts/setup-node.sh` and puts it on `PATH` for the whole session,
+because the image's Node 22 / npm 10 rejects the npm 11 lockfile, and then
+runs `npm ci` (skipped when `node_modules` already matches the lockfile and
+Node version, because SessionStart also fires on resume, `/clear` and
+compaction). The hook has a 30-minute timeout for the cold Android download.
+The same hook starts a local Redis via `.claude/scripts/start-redis.sh`
+(the server's Redis tests and the pre-commit hook need it on port 6379). It
+does not set `REDIS_URL`, so the dev server stays on in-memory storage.
+
 ### TypeScript 6 — `rootDir` is no longer inferred
 
 Both `apps/server/tsconfig.json` and `packages/game-logic/tsconfig.json`

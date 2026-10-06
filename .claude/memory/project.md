@@ -374,3 +374,25 @@
   dev-client rebuild); Share uses RN `Share.share` and is hidden on web without
   `navigator.share`, because react-native-web rejects there. Details in
   `apps/client/AGENTS.md` "Lobby room code".
+- Android native builds in Claude Code cloud (verified): `expo prebuild` +
+  `./gradlew assembleDebug -PreactNativeArchitectures=x86_64` builds an 82 MB
+  APK in ~8 min cold. Maven Central 429s the shared egress IP and Gradle treats
+  that as fatal, so `.claude/scripts/gradle-mirror.init.gradle` rewrites Central
+  repos to Google's mirror. Gotchas: keep the mirror _before_ the plugin portal
+  (the portal 303s to Central), and re-add `gradlePluginPortal()` because any
+  explicit pluginManagement repo disables Gradle's implicit portal default.
+  `expo prebuild` edits `apps/client/package.json`; revert it. Details in
+  `docs/ANDROID.md`.
+- Claude Code cloud sessions: the image has Node 22 / npm 10, but the lockfile
+  is npm 11 (Node 24, `.nvmrc`, CI). `npm ci` under npm 10 fails with "lock
+  file's @react-native/\* does not satisfy", and `npm install` under it strips
+  `libc` fields and dirties `package-lock.json`. The session-start hook runs
+  `.claude/scripts/setup-node.sh` (Node `.nvmrc` major into `~/.node/v24`,
+  PATH exported through `CLAUDE_ENV_FILE`) and then `npm ci`.
+- SessionStart fires on startup, resume, `/clear`, compaction and fork, not only
+  new sessions, and command hooks time out after 600 s by default. The cloud
+  hook therefore sets `"timeout": 1800` in `.claude/settings.json` and skips
+  `npm ci` unless `package-lock.json` or the Node version changed (stamp in
+  `node_modules/.claude-install-stamp`), since `npm ci` deletes `node_modules`.
+  Gradle reads init scripts from `$GRADLE_USER_HOME/init.d`, not always
+  `~/.gradle`.
