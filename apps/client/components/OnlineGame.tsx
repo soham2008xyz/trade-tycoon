@@ -202,8 +202,12 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onBack, initialMode }) =
       },
       onGameState: setGameState,
       onPresence: setDisconnectedPlayerIds,
-      onConnected: () => setConnected(true),
-      onDisconnected: () => setConnected(false),
+      onConnected: () => {
+        setConnected(true);
+      },
+      onDisconnected: () => {
+        setConnected(false);
+      },
       onSessionExpired: () => {
         setTransientError('Session expired');
         // The server answered 404 session_expired, so the stored session is

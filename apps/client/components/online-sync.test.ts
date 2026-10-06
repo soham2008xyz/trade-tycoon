@@ -50,8 +50,12 @@ const callbacks = () => {
     onGameState: vi.fn(),
     onPresence: vi.fn(),
     onSessionExpired: vi.fn(),
-    onConnected: () => onConnectionChange(true),
-    onDisconnected: () => onConnectionChange(false),
+    onConnected: () => {
+      onConnectionChange(true);
+    },
+    onDisconnected: () => {
+      onConnectionChange(false);
+    },
     onConnectionChange,
   };
 };
