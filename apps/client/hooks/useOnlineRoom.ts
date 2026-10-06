@@ -54,19 +54,20 @@ function useResumeSession(
 
   useEffect(() => {
     if (!resume) return;
-    // An object, not a `let`: the cleanup flips it while the async body is
-    // awaiting, which static analysis can't see through a plain boolean.
-    const run = { cancelled: false };
+    // An abort signal, not a `let cancelled`: the cleanup flips it while the
+    // async body is awaiting, which static analysis can't see through a
+    // boolean it watched being set to false.
+    const run = new AbortController();
     const goBack = onBackRef.current;
     void (async () => {
       const session = await readStoredSession();
-      if (run.cancelled) return;
+      if (run.signal.aborted) return;
       if (!session) {
         goBack();
         return;
       }
       const result = await reconnectToRoom(serverUrl, session.roomId, session.token);
-      if (run.cancelled) return;
+      if (run.signal.aborted) return;
       if (!result.ok) {
         if (result.status === 0) {
           // Network error: we don't know if the session is still valid —
@@ -94,7 +95,7 @@ function useResumeSession(
       }
     })();
     return () => {
-      run.cancelled = true;
+      run.abort();
     };
     // `resume` and `serverUrl` are fixed for the lifetime of this mount and
     // the setters are stable, so this runs exactly once.
