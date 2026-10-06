@@ -114,7 +114,9 @@ export function startRoomSync(options: RoomSyncOptions): RoomSyncHandle {
 
     // The browser reconnects quietly after a drop, so `error` is the only sign
     // the view is going stale and `open` the only sign it is live again.
-    source.addEventListener('open', () => reportConnection(true));
+    source.addEventListener('open', () => {
+      reportConnection(true);
+    });
 
     source.addEventListener('lobby_update', (event) => {
       try {
