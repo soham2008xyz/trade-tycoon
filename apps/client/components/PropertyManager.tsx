@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import {
   Player,
   BOARD,
@@ -15,6 +15,7 @@ import { CloseButton } from './ui/CloseButton';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { useGameLayout } from '../hooks/useGameLayout';
 import { GROUP_COLORS, GROUP_DISPLAY_NAMES } from '../constants';
+import { textColorOn } from '../constants/contrast';
 import { useTheme } from '../hooks/useTheme';
 import type { Theme } from '../constants/theme';
 import { buildLabel, sellLabel } from './building-labels';
@@ -226,16 +227,12 @@ const GroupSection: React.FC<GroupSectionProps> = ({
   const totalCount = groupTiles.length;
   const displayName = groupDisplayNameMap.get(group) ?? group.toUpperCase();
   const groupHasHouses = groupTiles.some((t) => (housesByTile.get(t.id) ?? 0) > 0);
+  const headerColor = groupColorMap.get(group) ?? theme.borderStrong;
 
   return (
     <View style={styles.groupContainer}>
-      <View
-        style={[
-          styles.groupHeader,
-          { backgroundColor: groupColorMap.get(group) ?? theme.borderStrong },
-        ]}
-      >
-        <Text style={styles.groupTitle}>
+      <View style={[styles.groupHeader, { backgroundColor: headerColor }]}>
+        <Text style={[styles.groupTitle, { color: textColorOn(headerColor) }]}>
           {displayName} ({ownedCount}/{totalCount} properties owned)
         </Text>
       </View>
@@ -411,18 +408,8 @@ const createStyles = (theme: Theme) =>
       padding: 5,
     },
     groupTitle: {
-      color: theme.onAccent,
       fontWeight: 'bold',
       textAlign: 'center',
-      ...Platform.select({
-        web: {
-          textShadow: '0px 0px 2px rgba(0,0,0,0.5)',
-        },
-        default: {
-          textShadowColor: 'rgba(0,0,0,0.5)',
-          textShadowRadius: 2,
-        },
-      }),
     },
     propertyRow: {
       flexDirection: 'row',

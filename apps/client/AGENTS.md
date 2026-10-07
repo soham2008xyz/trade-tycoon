@@ -359,6 +359,10 @@ and needs no `useMemo`.
   `PlayerToken` and `Dice`. The board stays light in dark mode. Text drawn on
   the felt must keep a fixed dark colour; the tablet panels that sit over it
   use the `panelScrim` token so themed text stays readable.
+- **Text on a group colour** (Manage modal headers, tile info banner) takes
+  `textColorOn(fill)` from `constants/contrast.ts`, never a fixed white or a
+  hand-kept list of dark groups. `contrast.test.ts` checks every
+  `GROUP_COLORS` entry at 4.5:1; the helper parses `#rrggbb` only.
 - **Modals** call `useTheme()` themselves. A `Modal` is a separate native
   root, but `useColorScheme` reads the system value, so no provider is needed.
 - **Things that default to white:** the `@gorhom/bottom-sheet` background and
