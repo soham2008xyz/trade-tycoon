@@ -4,9 +4,10 @@ import {
   Player,
   BOARD,
   Tile,
-  ownsCompleteGroup,
+  getBuildBlocker,
   getPropertiesInGroup,
   getUnmortgageCost,
+  validateEvenSell,
   PropertyGroup,
 } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
@@ -39,21 +40,26 @@ interface Props {
   visible: boolean;
   player: Player;
   onClose: () => void;
+  /** Toasts to draw above the modal while it is open (see `FullScreenModalShell`). */
+  overlay?: React.ReactNode;
   onBuild: PropertyAction;
   onSell: PropertyAction;
   onMortgage: PropertyAction;
   onUnmortgage: PropertyAction;
 }
 
-/** Build/Sell pair shown for unmortgaged streets only. */
+/**
+ * Build/Sell pair shown for unmortgaged streets only. Each button is enabled
+ * only when the reducer would accept the action (#323): Build asks the same
+ * `getBuildBlocker` the reducer uses, Sell the same even-sell rule.
+ */
 const HouseControls: React.FC<{
   tile: Tile;
   player: Player;
   houses: number;
-  hasCompleteGroup: boolean;
   onBuild: PropertyAction;
   onSell: PropertyAction;
-}> = ({ tile, player, houses, hasCompleteGroup, onBuild, onSell }) => {
+}> = ({ tile, player, houses, onBuild, onSell }) => {
   const theme = useTheme();
   const houseCost = tile.houseCost || 0;
   return (
@@ -62,7 +68,7 @@ const HouseControls: React.FC<{
         title={buildLabel(houses, houseCost)}
         icon="home-plus"
         onPress={() => onBuild(tile.id)}
-        disabled={player.money < houseCost || houses >= 5 || !hasCompleteGroup}
+        disabled={getBuildBlocker(player, tile.id) !== null}
         size="small"
       />
       <IconButton
@@ -70,7 +76,7 @@ const HouseControls: React.FC<{
         icon="home-minus"
         onPress={() => onSell(tile.id)}
         color={theme.warning}
-        disabled={houses <= 0}
+        disabled={houses <= 0 || !validateEvenSell(player, tile.id)}
         size="small"
       />
     </>
@@ -118,7 +124,6 @@ interface PropertyRowProps {
   tile: Tile;
   player: Player;
   houses: number;
-  hasCompleteGroup: boolean;
   groupHasHouses: boolean;
   onBuild: PropertyAction;
   onSell: PropertyAction;
@@ -137,7 +142,6 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   tile,
   player,
   houses,
-  hasCompleteGroup,
   groupHasHouses,
   onBuild,
   onSell,
@@ -166,7 +170,6 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
             tile={tile}
             player={player}
             houses={houses}
-            hasCompleteGroup={hasCompleteGroup}
             onBuild={onBuild}
             onSell={onSell}
           />
@@ -201,8 +204,7 @@ interface GroupSectionProps {
 
 /**
  * Renders one color-group header plus its property rows. Computes the
- * once-per-group derived flags (complete-group ownership, any-houses-in-group)
- * and passes them down to each row.
+ * once-per-group any-houses-in-group flag and passes it down to each row.
  */
 const GroupSection: React.FC<GroupSectionProps> = ({
   group,
@@ -222,7 +224,6 @@ const GroupSection: React.FC<GroupSectionProps> = ({
   // for both the total count and the any-houses-in-group check.
   const groupTiles = getPropertiesInGroup(group as PropertyGroup) ?? [];
   const totalCount = groupTiles.length;
-  const hasCompleteGroup = ownsCompleteGroup(player, group as PropertyGroup);
   const displayName = groupDisplayNameMap.get(group) ?? group.toUpperCase();
   const groupHasHouses = groupTiles.some((t) => (housesByTile.get(t.id) ?? 0) > 0);
 
@@ -244,7 +245,6 @@ const GroupSection: React.FC<GroupSectionProps> = ({
           tile={tile}
           player={player}
           houses={housesByTile.get(tile.id) ?? 0}
-          hasCompleteGroup={hasCompleteGroup}
           groupHasHouses={groupHasHouses}
           onBuild={onBuild}
           onSell={onSell}
@@ -260,6 +260,7 @@ export const PropertyManager: React.FC<Props> = ({
   visible,
   player,
   onClose,
+  overlay,
   onBuild,
   onSell,
   onMortgage,
@@ -298,7 +299,12 @@ export const PropertyManager: React.FC<Props> = ({
   const housesByTile = new Map(Object.entries(player.houses));
 
   return (
-    <FullScreenModalShell visible={visible} onClose={onClose} title="Manage Properties">
+    <FullScreenModalShell
+      visible={visible}
+      onClose={onClose}
+      title="Manage Properties"
+      overlay={overlay}
+    >
       <View style={isPhone ? styles.phoneOverlay : styles.modalOverlay}>
         <View style={isPhone ? styles.phoneContent : styles.modalContent}>
           {!isPhone && (

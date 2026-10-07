@@ -48,8 +48,8 @@ interface Props {
  */
 export const ConnectionBanner: React.FC<Props> = ({ floating = false }) => {
   const connected = useContext(ConnectionStatusContext);
-  // The context, not `useSafeAreaInsets`: a transparent tablet modal has no
-  // provider above it, and the hook throws there.
+  // The context, not `useSafeAreaInsets`, which throws when no provider is
+  // above it (the tablet modal had none before #323).
   const insets = useContext(SafeAreaInsetsContext);
   const styles = createStyles(useTheme());
   if (connected) return null;

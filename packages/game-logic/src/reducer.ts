@@ -23,10 +23,10 @@ import {
   swapJailCards,
 } from './jail-cards';
 import {
+  getBuildBlocker,
   getMortgageInterest,
   getUnmortgageCost,
   ownsCompleteGroup,
-  validateEvenBuild,
   validateEvenSell,
 } from './helpers';
 
@@ -1399,36 +1399,12 @@ const reduceGameActionUnbounded = (
       const player = state.players[playerIndex];
       const tile = BOARD.find((t) => t.id === action.propertyId);
 
-      if (!tile || !tile.houseCost || !tile.group)
-        return { ...state, errorMessage: 'Cannot build on this property.' };
+      const buildBlocker = getBuildBlocker(player, action.propertyId);
+      if (buildBlocker) return { ...state, errorMessage: buildBlocker };
+      // Unreachable (getBuildBlocker rejects tiles without a house cost); it narrows `tile`.
+      if (!tile?.houseCost) return state;
 
-      // Ownership
-      if (!player.properties.includes(action.propertyId))
-        return { ...state, errorMessage: 'You do not own this property.' };
-
-      // Complete Group
-      if (!ownsCompleteGroup(player, tile.group))
-        return { ...state, errorMessage: 'You must own the complete color group to build.' };
-
-      // No mortgaged property in the group (standard Monopoly rule)
-      const groupTileIds = BOARD.filter((t) => t.group === tile.group).map((t) => t.id);
-      const groupHasMortgage = groupTileIds.some((id) => player.mortgaged.includes(id));
-      if (groupHasMortgage)
-        return {
-          ...state,
-          errorMessage: 'Cannot build: a property in this color group is mortgaged.',
-        };
-
-      // Max Houses
       const currentHouses = player.houses[action.propertyId] || 0;
-      if (currentHouses >= 5) return { ...state, errorMessage: 'Max buildings reached.' };
-
-      // Funds
-      if (player.money < tile.houseCost) return { ...state, errorMessage: 'Insufficient funds.' };
-
-      // Even Build Rule
-      if (!validateEvenBuild(player, action.propertyId))
-        return { ...state, errorMessage: 'You must build evenly across the color group.' };
 
       // Execute
       const newHouses = { ...player.houses, [action.propertyId]: currentHouses + 1 };

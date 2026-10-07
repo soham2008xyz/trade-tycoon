@@ -402,3 +402,12 @@
   scripts read files beside themselves, so pasting them in fails too. Keep
   repo setup in the SessionStart hook; the environment is only cached when
   setup finishes in about five minutes, which the Android download overruns.
+- A `Modal` hides anything rendered beside it, including the `GameUI` toasts
+  (#323: an online 409 from Manage was invisible). Surfaces that need feedback
+  while a modal is open must draw it inside the modal (`FullScreenModalShell`'s
+  `overlay`). When a UI control mirrors a reducer rule, export the rule from
+  game-logic and call it from both sides (`getBuildBlocker`) rather than
+  re-deriving it in the component; the Build button had drifted from the
+  reducer's even-build and mortgaged-set checks.
+- Running `expo lint` from the repo root (instead of `apps/client`) writes a
+  template `eslint.config.js` at the root. Delete it; it isn't tracked.
