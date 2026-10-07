@@ -26,6 +26,9 @@ interface SectionProps {
   styles: Styles;
 }
 
+// A Map, not GROUP_COLORS[tile.group], to avoid a generic object injection sink.
+const groupColorMap = new Map(Object.entries(GROUP_COLORS));
+
 const STREET_RENT_LABELS = [
   'Rent',
   'With 1 House',
@@ -181,7 +184,7 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose, 
   if (!tile || !visible) return null;
 
   // Six-digit fallback: `textColorOn` parses #rrggbb only.
-  const color = (tile.group && GROUP_COLORS[tile.group]) || '#eeeeee';
+  const color = groupColorMap.get(tile.group ?? '') ?? '#eeeeee';
   const textColor = textColorOn(color);
 
   return (
