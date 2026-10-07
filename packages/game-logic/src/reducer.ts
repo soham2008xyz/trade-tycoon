@@ -808,7 +808,9 @@ const reduceGameActionUnbounded = (
           newPlayer.money += collected.total;
         }
 
-        const effectMsg = `Chance: ${card.text}`;
+        // Card texts are bare phrases with no trailing punctuation; add the full
+        // stop so a following rent/tax sentence doesn't run into the card text.
+        const effectMsg = `Chance: ${card.text}.`;
         toastMessage = toastMessage ? `${toastMessage} ${effectMsg}` : effectMsg;
 
         if (sentToJail) {
@@ -847,7 +849,7 @@ const reduceGameActionUnbounded = (
           newPlayer.money += collected.total;
         }
 
-        const effectMsg = `Community Chest: ${card.text}`;
+        const effectMsg = `Community Chest: ${card.text}.`;
         toastMessage = toastMessage ? `${toastMessage} ${effectMsg}` : effectMsg;
 
         if (sentToJail) {
@@ -924,7 +926,8 @@ const reduceGameActionUnbounded = (
           }
 
           // If property is mortgaged, rent is 0
-          if (owner.mortgaged.includes(targetTile.id)) {
+          const isMortgaged = owner.mortgaged.includes(targetTile.id);
+          if (isMortgaged) {
             rent = 0;
           }
 
@@ -939,7 +942,9 @@ const reduceGameActionUnbounded = (
           const newOwner = { ...owner, money: owner.money + rent };
           newPlayers[ownerIndex] = newOwner;
 
-          const msg = `Paid $${rent} rent to ${owner.name}.`;
+          const msg = isMortgaged
+            ? `No rent due: ${targetTile.name} is mortgaged by ${owner.name}.`
+            : `Paid $${rent} rent to ${owner.name}.`;
           toastMessage = toastMessage ? `${toastMessage} ${msg}` : msg;
         }
       }

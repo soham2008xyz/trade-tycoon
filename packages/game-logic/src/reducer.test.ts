@@ -554,6 +554,23 @@ describe('Game Reducer', () => {
 
       expect(newState.players[0].money).toBe(1500); // No change
     });
+
+    it('logs that no rent is due instead of "Paid $0 rent" on a mortgaged property', () => {
+      rentState.players[1].properties = ['mediterranean'];
+      rentState.players[1].mortgaged = ['mediterranean'];
+
+      const newState = gameReducer(rentState, {
+        type: 'ROLL_DICE',
+        playerId: 'p1',
+        die1: 1,
+        die2: 0,
+      });
+
+      expect(newState.toastMessage).not.toMatch(/Paid \$0 rent/);
+      expect(newState.toastMessage).toBe(
+        'No rent due: Mediterranean Avenue is mortgaged by Player 2.'
+      );
+    });
   });
 
   describe('BUILD_HOUSE', () => {
@@ -957,6 +974,11 @@ describe('Game Reducer', () => {
       // Boardwalk Rent: 50
       expect(newState.players[0].money).toBe(1450); // 1500 - 50
       expect(newState.players[1].money).toBe(1550); // 1500 + 50
+      // Card text carries no trailing punctuation, so the log must add a full
+      // stop before the rent sentence follows.
+      expect(newState.toastMessage).toBe(
+        'Chance: Advance to Boardwalk. Paid $50 rent to Player 2.'
+      );
 
       randomSpy.mockRestore();
     });
@@ -1433,6 +1455,9 @@ describe('Game Reducer', () => {
 
       expect(newState.players[0].position).toBe(2);
       expect(newState.players[0].money).toBe(1700); // 1500 + 200
+      expect(newState.toastMessage).toBe(
+        'Community Chest: Bank error in your favor. Collect $200.'
+      );
 
       randomSpy.mockRestore();
     });
