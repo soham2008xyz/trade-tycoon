@@ -74,8 +74,12 @@ export const Toast: React.FC<ToastProps> = ({ message, onDismiss, duration = 300
   return (
     // `announceForAccessibility` is a no-op in react-native-web, so the alert
     // role is what makes web screen readers read the message.
+    // `box-none`: the container is a full-width strip, so without it the empty
+    // space beside the pill would swallow taps on whatever sits under it, such
+    // as the Manage screen's close button (#323).
     <Animated.View
       role="alert"
+      pointerEvents="box-none"
       style={[styles.container, { top: (insets?.top ?? 0) + TOP_MARGIN, opacity: fadeAnim }]}
     >
       <TouchableOpacity
