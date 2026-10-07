@@ -10,6 +10,7 @@ import {
 } from '@trade-tycoon/game-logic';
 import { validateSetupPlayers } from './game-setup-validation';
 import { useTheme } from '../hooks/useTheme';
+import { useAndroidBack } from '../hooks/useAndroidBack';
 import type { Theme } from '../constants/theme';
 
 interface PlayerConfig {
@@ -31,6 +32,7 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
     { name: 'Player 2', color: PLAYER_COLORS[1] },
   ]);
   const [error, setError] = useState<string | null>(null);
+  useAndroidBack(onBack);
 
   const handlePlayerCountChange = (count: number) => {
     setPlayerCount(count);

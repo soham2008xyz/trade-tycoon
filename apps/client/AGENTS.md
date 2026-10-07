@@ -347,16 +347,24 @@ Not yet run on a device or emulator.
   row. If a row really must fade as one, give it
   `needsOffscreenAlphaCompositing`.
 
-- **Android Back on the board asks first** (#315). `GameUI` subscribes to
-  `hardwareBackPress` (Android only; react-native-web logs an error if you
-  subscribe) and always returns `true`: unconsumed, Back falls through to the
-  router, which has nothing to pop, and the app exits. Mid-game it shows the
-  Leave Game prompt; after a win it goes to the menu (`getBoardBackAction`
-  in `back-press.ts`). Open `Modal`s get Back first through `onRequestClose`,
-  so the listener only fires on the bare board. The phone `BottomSheet` is
-  not a `Modal`: Back with it expanded prompts rather than collapsing it.
-  Setup, menus and the lobby still exit on Back. Not yet run on Android (no
-  SDK on the dev Mac); checked by unit test, lint and type check only.
+- **Android Back goes back a screen, never out of the app** (#315). The
+  top-level screens are a state machine in `app/index.tsx`, not a router
+  stack, so an unconsumed `hardwareBackPress` falls through to the router,
+  which has nothing to pop, and the app exits. Every screen except the main
+  menu (`NewGameScreen`, which deliberately still exits) calls
+  `useAndroidBack(handler)` (`hooks/useAndroidBack.ts`): it subscribes once,
+  on Android only (react-native-web logs an error if you subscribe), keeps
+  the latest handler in a ref written in an effect, and returns `true` when
+  it has a handler (`undefined` lets Back fall through). Setup, the
+  multiplayer menu and the create/join forms call their `onBack`; "Resuming…"
+  backs out too (the resume effect cancels on unmount). The lobby shows a
+  Leave Room prompt, as its Leave button does. On the board it shows the
+  Leave Game prompt mid-game and goes to the menu after a win
+  (`getBoardBackAction` in `back-press.ts`). Open `Modal`s get Back first
+  through `onRequestClose`, so the listener only fires on the bare screen.
+  The phone `BottomSheet` is not a `Modal`: Back with it expanded prompts
+  rather than collapsing it. Not yet run on Android (no SDK on the dev Mac);
+  checked by unit test, lint and type check only.
 
 ## Theming (dark mode, #264)
 

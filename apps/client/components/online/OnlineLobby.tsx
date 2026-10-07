@@ -1,10 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Platform, Share, AccessibilityInfo } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import type { LobbyPlayer } from '@trade-tycoon/game-logic';
 import { ConnectionBanner, ConnectionStatusProvider } from '../ui/ConnectionBanner';
+import { CustomAlert } from '../ui/Alert';
 import { IconButton } from '../ui/IconButton';
 import { useTheme } from '../../hooks/useTheme';
+import { useAndroidBack } from '../../hooks/useAndroidBack';
 import type { useOnlineRoom } from '../../hooks/useOnlineRoom';
 import type { useRoomActions } from '../../hooks/useRoomActions';
 import { buildRoomShareMessage, COPIED_FEEDBACK_MS } from '../online-room-share';
@@ -111,6 +113,14 @@ export const OnlineLobby: React.FC<Props> = ({ room, actions, busy }) => {
   const { lobbyState, playerId, error } = room;
   const isHost = lobbyState?.players.find((p) => p.id === playerId)?.isHost;
   const canStart = !!lobbyState && lobbyState.players.length >= 2;
+  // Leave and Android Back both ask first, so one stray press doesn't drop the
+  // player from the room. While the prompt is up its Modal takes Back and just
+  // dismisses it.
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const askToLeave = useCallback(() => {
+    setConfirmLeave(true);
+  }, []);
+  useAndroidBack(askToLeave);
 
   return (
     <ConnectionStatusProvider connected={room.connected}>
@@ -142,11 +152,25 @@ export const OnlineLobby: React.FC<Props> = ({ room, actions, busy }) => {
           <IconButton
             title="Leave"
             icon="close"
-            onPress={actions.handleLeave}
+            onPress={askToLeave}
             style={styles.secondaryButton}
           />
         </View>
         <ConnectionBanner floating />
+        <CustomAlert
+          visible={confirmLeave}
+          options={{
+            title: 'Leave Room',
+            message: 'Are you sure you want to leave this room?',
+            buttons: [
+              { text: 'No', style: 'cancel' },
+              { text: 'Yes', onPress: actions.handleLeave },
+            ],
+          }}
+          onClose={() => {
+            setConfirmLeave(false);
+          }}
+        />
       </View>
     </ConnectionStatusProvider>
   );
