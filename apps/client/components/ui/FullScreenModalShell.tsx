@@ -106,9 +106,14 @@ export const FullScreenModalShell: React.FC<Props> = ({
       onRequestClose={dismiss}
       onDismiss={dismiss}
     >
-      {children}
-      <ConnectionBanner floating />
-      {overlay}
+      {/* Same reason as the phone branch: the Modal is its own native root, so
+          without this provider the floating banner and toasts get 0 insets
+          and can sit under an iPad's status bar. */}
+      <SafeAreaProvider>
+        {children}
+        <ConnectionBanner floating />
+        {overlay}
+      </SafeAreaProvider>
     </Modal>
   );
 };

@@ -126,9 +126,10 @@ Toasts render at the `GameUI` root, which a `Modal` covers completely. While
 Manage is open, `GameUI` passes them to `PropertyManager` instead, and the shell
 draws them through its `overlay` prop (#323). Render them in one place only:
 two copies would announce twice and, in hotseat, dispatch the dismiss twice.
-Another modal that needs toasts would take the same `overlay` route. `Toast`
-reads insets from `SafeAreaInsetsContext`, as `ConnectionBanner` does, because
-`useSafeAreaInsets` throws inside the transparent tablet modal. Manage's Build
+Another modal that needs toasts would take the same `overlay` route. The
+shell wraps both branches in a `SafeAreaProvider`, so toasts and the floating
+banner get real insets on iPad too. Moving toasts remounts them; `Toast`
+remembers its last announcement so the remount isn't read aloud again. Manage's Build
 button is disabled from `getBuildBlocker` (game-logic), the same check the
 reducer runs, so the button and the server can't disagree. Verified in the web
 build at phone and wide widths; not re-run on Android or iOS.

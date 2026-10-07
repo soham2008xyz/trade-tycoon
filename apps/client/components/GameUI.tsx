@@ -231,7 +231,9 @@ export const GameUI: React.FC<GameUIProps> = ({
   // rejection would be hidden behind the modal (#323). They render in exactly
   // one place: two copies would announce twice and, in hotseat, dispatch the
   // dismiss twice. Moving between the two remounts the toast, restarting its
-  // timer; that only happens when the modal opens or closes.
+  // timer (it is not announced again; see `Toast`); that only happens when the
+  // modal opens or closes.
+  const propertyManagerVisible = !!myPlayer && showPropertyManager && !isGameOver;
   const toasts = (
     <>
       {gameFeedback && gameFeedback.message !== dismissedFeedback && (
@@ -249,8 +251,6 @@ export const GameUI: React.FC<GameUIProps> = ({
       )}
     </>
   );
-  const propertyManagerVisible = !!myPlayer && showPropertyManager && !isGameOver;
-
   const openLog = React.useCallback(() => setLogVisible(true), []);
   const openPropertyManager = React.useCallback(() => setShowPropertyManager(true), []);
   const openTrade = React.useCallback((target: string) => setTradeTargetId(target), []);
