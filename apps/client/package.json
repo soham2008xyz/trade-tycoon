@@ -54,7 +54,7 @@
     "eslint": "^9.39.2",
     "eslint-config-expo": "~57.0.2",
     "serve": "^14.2.5",
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "typescript": "^6.0.3",
     "vitest": "^5.0.0",
     "workbox-build": "^7.4.0"
