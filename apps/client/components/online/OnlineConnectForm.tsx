@@ -6,6 +6,7 @@ import { KeyboardAwareScreen } from '../ui/KeyboardAwareScreen';
 import { validateConnectForm } from '../online-form';
 import { createRoom as apiCreateRoom, joinRoom as apiJoinRoom } from '../online-api';
 import { useTheme } from '../../hooks/useTheme';
+import { useAndroidBack } from '../../hooks/useAndroidBack';
 import type { OnlineMode, useOnlineRoom } from '../../hooks/useOnlineRoom';
 import type { useRequestGuard } from '../../hooks/useRequestGuard';
 import { createOnlineStyles } from './online-styles';
@@ -96,6 +97,7 @@ export const OnlineConnectForm: React.FC<Props> = (props) => {
   const styles = createOnlineStyles(useTheme());
   const form = useConnectForm(props);
   const isCreate = mode === 'create';
+  useAndroidBack(onBack);
 
   return (
     <KeyboardAwareScreen style={styles.container}>

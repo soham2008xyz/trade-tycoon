@@ -74,6 +74,9 @@ const OnlineSession: React.FC<SessionProps> = ({ serverUrl, onBack, onMainMenu, 
       <OnlineMessage
         title="Resuming…"
         message="Reconnecting to your last room. If it can't be found we'll send you back."
+        // The resume effect cancels on unmount, so backing out mid-request is
+        // safe; the stored session stays for the menu's Resume button.
+        onHardwareBack={onBack}
       />
     );
   }

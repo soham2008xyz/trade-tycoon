@@ -4,6 +4,7 @@ import { IconButton } from './ui/IconButton';
 import type { StoredSession } from './online-session';
 import { readStoredSession } from './session-storage';
 import { useTheme } from '../hooks/useTheme';
+import { useAndroidBack } from '../hooks/useAndroidBack';
 import type { Theme } from '../constants/theme';
 
 interface Props {
@@ -20,6 +21,7 @@ export const MultiplayerMenuScreen: React.FC<Props> = ({
   onResumeGame,
 }) => {
   const styles = createStyles(useTheme());
+  useAndroidBack(onBack);
   // Session detection runs once on mount. If the user navigates away and
   // comes back the menu remounts, so this stays fresh. The read is async
   // (native storage is the keychain/keystore), so the Resume button appears
