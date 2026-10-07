@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Tile, Player } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { GROUP_COLORS } from '../constants';
+import { textColorOn } from '../constants/contrast';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { useGameLayout } from '../hooks/useGameLayout';
 import { useTheme } from '../hooks/useTheme';
@@ -25,8 +26,8 @@ interface SectionProps {
   styles: Styles;
 }
 
-// Light banner text on the dark group colours, dark text on the rest.
-const DARK_GROUPS = ['brown', 'dark_blue', 'railroad'];
+// A Map, not GROUP_COLORS[tile.group], to avoid a generic object injection sink.
+const groupColorMap = new Map(Object.entries(GROUP_COLORS));
 
 const STREET_RENT_LABELS = [
   'Rent',
@@ -182,8 +183,9 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose, 
   // table) would still reconcile on every parent re-render. Cheap early-exit.
   if (!tile || !visible) return null;
 
-  const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
-  const textColor = DARK_GROUPS.includes(tile.group || '') ? '#fff' : '#000';
+  // Six-digit fallback: `textColorOn` parses #rrggbb only.
+  const color = groupColorMap.get(tile.group ?? '') ?? '#eeeeee';
+  const textColor = textColorOn(color);
 
   return (
     <FullScreenModalShell visible={visible} onClose={onClose} title={tile.name} overlay={overlay}>
