@@ -366,6 +366,24 @@ Not yet run on a device or emulator.
   rather than collapsing it. Not yet run on Android (no SDK on the dev Mac);
   checked by unit test, lint and type check only.
 
+## Analytics (#334)
+
+`components/analytics.ts` wraps GA4 for the web build. Every call is a no-op
+unless `EXPO_PUBLIC_GA_MEASUREMENT_ID` holds a valid `G-…` ID **and**
+`document` exists. Checking `window` is not enough, because React Native defines a
+global `window` too. gtag loads on the first `trackPageView` / `trackEvent`,
+because child effects run before the root layout's. Page views are virtual:
+`app/index.tsx` sends one per `Screen` from `pageViewFor`. Each one also
+`set`s the page, so later events are attributed to that screen. `config` sets
+`send_page_view: false` so the landing screen isn't counted twice. Send
+events only after the request succeeds, and never pass names, room codes or the
+session token as params. Read the env var as the literal
+`process.env.EXPO_PUBLIC_GA_MEASUREMENT_ID`, because Expo only inlines that exact
+form. Metro caches the inlined value, so a local `expo export` after changing it
+needs `--clear`. Verified in the web export: with an ID, gtag.js loaded and
+`/g/collect` hits went out for page views and `start_local_game`; without one,
+there was no script, no `dataLayer` and no console errors.
+
 ## Theming (dark mode, #264)
 
 Colours for the UI chrome come from the tokens in `constants/theme.ts`

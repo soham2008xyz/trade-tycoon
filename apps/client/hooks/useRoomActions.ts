@@ -7,6 +7,7 @@ import {
   removePlayer as apiRemovePlayer,
 } from '../components/online-api';
 import { clearStoredSession } from '../components/session-storage';
+import { analytics } from '../components/analytics';
 import type { useOnlineRoom } from './useOnlineRoom';
 import type { useRequestGuard } from './useRequestGuard';
 
@@ -31,6 +32,8 @@ export function useRoomActions(options: RoomActionsOptions) {
       const result = await apiStartGame(serverUrl, roomId, token);
       if (!result.ok) {
         setTransientError(result.error);
+      } else {
+        analytics.trackEvent('start_online_game');
       }
       // The actual transition to step='game' happens via the SSE stream when
       // it delivers the lobby_update with status='game'.

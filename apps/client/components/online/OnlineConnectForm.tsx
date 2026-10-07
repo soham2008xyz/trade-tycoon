@@ -4,6 +4,7 @@ import { limitPlayerNameInput } from '@trade-tycoon/game-logic';
 import { IconButton } from '../ui/IconButton';
 import { KeyboardAwareScreen } from '../ui/KeyboardAwareScreen';
 import { validateConnectForm } from '../online-form';
+import { analytics } from '../analytics';
 import { createRoom as apiCreateRoom, joinRoom as apiJoinRoom } from '../online-api';
 import { useTheme } from '../../hooks/useTheme';
 import { useAndroidBack } from '../../hooks/useAndroidBack';
@@ -38,6 +39,7 @@ function useConnectForm({ mode, serverUrl, room, guard }: Props) {
         setTransientError(result.error);
         return;
       }
+      analytics.trackEvent('create_room');
       await enterLobby(result.data);
     });
   };
@@ -55,6 +57,7 @@ function useConnectForm({ mode, serverUrl, room, guard }: Props) {
       }
       // Server already normalized the room id, but make sure we use the
       // exact value it returned for SSE / future requests.
+      analytics.trackEvent('join_room');
       await enterLobby({ ...result.data, roomId: result.data.roomId || targetRoomId });
     });
   };

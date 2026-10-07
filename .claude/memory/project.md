@@ -465,3 +465,14 @@
 - The React Compiler lint rule `react-hooks/refs` rejects writing
   `ref.current` during render, so the "latest handler in a ref" pattern must
   assign the ref inside a `useEffect` (see `GameUI`'s Back handler, #315).
+- `EXPO_PUBLIC_*` values are inlined into the client bundle at build time and
+  Metro caches the result: a local `expo export` after adding, changing or
+  removing one (e.g. `EXPO_PUBLIC_GA_MEASUREMENT_ID`) keeps the old value unless
+  run with `--clear`. Vercel builds start clean, so it only bites local checks
+  such as "the ID is absent when unset" (#334).
+- Codacy (#345) runs `security/detect-object-injection`: indexing a record
+  with a variable key (`PAGE_VIEWS[screen]`) is a high-severity finding, even
+  when the key is a closed string union. Use an exhaustive `switch` instead.
+  It also runs `@typescript-eslint/prefer-nullish-coalescing` on `||` in an
+  `if` condition (`if (a || !b) return;`), so split such a guard into two
+  separate `if` statements.

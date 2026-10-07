@@ -1,6 +1,7 @@
 import React, { useCallback, useReducer, useState } from 'react';
 import { GameUI } from './GameUI';
 import { GameSetup } from './GameSetup';
+import { analytics } from './analytics';
 import { createInitialState, gameReducer, GameAction } from '@trade-tycoon/game-logic';
 
 interface LocalGameProps {
@@ -19,6 +20,7 @@ export const LocalGame: React.FC<LocalGameProps> = ({ onBack }) => {
     }));
     dispatch({ type: 'RESET_GAME', players: playersWithIds });
     setIsSetup(false);
+    analytics.trackEvent('start_local_game', { player_count: players.length });
   };
 
   // Wrapper to log or handle specific local checks if needed
