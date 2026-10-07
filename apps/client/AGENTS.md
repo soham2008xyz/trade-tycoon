@@ -373,7 +373,8 @@ unless `EXPO_PUBLIC_GA_MEASUREMENT_ID` holds a valid `G-…` ID **and**
 `document` exists. Checking `window` is not enough, because React Native defines a
 global `window` too. gtag loads on the first `trackPageView` / `trackEvent`,
 because child effects run before the root layout's. Page views are virtual:
-`app/index.tsx` sends one per `Screen` from `PAGE_VIEWS`, and `config` sets
+`app/index.tsx` sends one per `Screen` from `PAGE_VIEWS`. Each one also
+`set`s the page, so later events are attributed to that screen. `config` sets
 `send_page_view: false` so the landing screen isn't counted twice. Send
 events only after the request succeeds, and never pass names, room codes or the
 session token as params. Read the env var as the literal

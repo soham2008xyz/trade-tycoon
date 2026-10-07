@@ -77,12 +77,10 @@ describe('createAnalytics', () => {
     a.init();
     a.trackPageView('/local-game', 'Local game');
     a.trackEvent('start_local_game', { player_count: 3 });
-    expect(calls().slice(-2)).toEqual([
-      [
-        'event',
-        'page_view',
-        { page_location: 'https://example.test/local-game', page_title: 'Local game' },
-      ],
+    const page = { page_location: 'https://example.test/local-game', page_title: 'Local game' };
+    expect(calls().slice(-3)).toEqual([
+      ['set', page],
+      ['event', 'page_view', page],
       ['event', 'start_local_game', { player_count: 3 }],
     ]);
   });
@@ -92,7 +90,7 @@ describe('createAnalytics', () => {
     const a = createAnalytics('G-TEST', () => win);
     a.trackPageView('/', 'Main menu');
     expect(scripts).toHaveLength(1);
-    expect(calls().map(([command]) => command)).toEqual(['js', 'config', 'event']);
+    expect(calls().map(([command]) => command)).toEqual(['js', 'config', 'set', 'event']);
   });
 });
 

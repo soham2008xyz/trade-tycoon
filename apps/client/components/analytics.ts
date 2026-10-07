@@ -94,10 +94,11 @@ export function createAnalytics(
     trackPageView(path, title) {
       const win = getWindow();
       if (!win) return;
-      gtag('event', 'page_view', {
-        page_location: `${win.location.origin}${path}`,
-        page_title: title,
-      });
+      const page = { page_location: `${win.location.origin}${path}`, page_title: title };
+      // The URL never changes, so without `set` GA would attribute every
+      // later event to the landing page instead of the screen it fired on.
+      gtag('set', page);
+      gtag('event', 'page_view', page);
     },
     trackEvent(name, params) {
       gtag('event', name, params ?? {});
