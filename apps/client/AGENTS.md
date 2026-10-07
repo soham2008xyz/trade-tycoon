@@ -347,6 +347,17 @@ Not yet run on a device or emulator.
   row. If a row really must fade as one, give it
   `needsOffscreenAlphaCompositing`.
 
+- **Android Back on the board asks first** (#315). `GameUI` subscribes to
+  `hardwareBackPress` (Android only; react-native-web logs an error if you
+  subscribe) and always returns `true`: unconsumed, Back falls through to the
+  router, which has nothing to pop, and the app exits. Mid-game it shows the
+  Leave Game prompt; after a win it goes to the menu (`getBoardBackAction`
+  in `back-press.ts`). Open `Modal`s get Back first through `onRequestClose`,
+  so the listener only fires on the bare board. The phone `BottomSheet` is
+  not a `Modal`: Back with it expanded prompts rather than collapsing it.
+  Setup, menus and the lobby still exit on Back. Not yet run on Android (no
+  SDK on the dev Mac); checked by unit test, lint and type check only.
+
 ## Theming (dark mode, #264)
 
 Colours for the UI chrome come from the tokens in `constants/theme.ts`
