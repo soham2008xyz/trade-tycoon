@@ -117,7 +117,9 @@ export const OnlineLobby: React.FC<Props> = ({ room, actions, busy }) => {
   // the player from it. While the prompt is up its Modal takes Back and just
   // dismisses it.
   const [confirmLeave, setConfirmLeave] = useState(false);
-  const askToLeave = useCallback(() => setConfirmLeave(true), []);
+  const askToLeave = useCallback(() => {
+    setConfirmLeave(true);
+  }, []);
   useAndroidBack(askToLeave);
 
   return (
@@ -165,7 +167,9 @@ export const OnlineLobby: React.FC<Props> = ({ room, actions, busy }) => {
               { text: 'Yes', onPress: actions.handleLeave },
             ],
           }}
-          onClose={() => setConfirmLeave(false)}
+          onClose={() => {
+            setConfirmLeave(false);
+          }}
         />
       </View>
     </ConnectionStatusProvider>
