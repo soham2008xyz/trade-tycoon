@@ -158,6 +158,32 @@ describe('getStatusPanelActions', () => {
       expect(b.rollAgain.visible).toBe(true);
     });
 
+    it('shows Manage in the roll phase, before the player rolls (#321)', () => {
+      expect(
+        getStatusPanelActions(baseState({ phase: 'roll' }), 'alice').buttons.manage.visible
+      ).toBe(true);
+
+      const jailed = baseState({
+        phase: 'roll',
+        players: [{ ...player('alice', 20, 10), isInJail: true }, player('bob', 1500)],
+      });
+      expect(getStatusPanelActions(jailed, 'alice').buttons.manage.visible).toBe(true);
+    });
+
+    it('hides Manage in the roll phase while a doubles re-roll is pending', () => {
+      const reroll = baseState({ phase: 'roll', doublesCount: 1 });
+      expect(getStatusPanelActions(reroll, 'alice').buttons.manage.visible).toBe(false);
+    });
+
+    it('hides Manage when it is someone else’s turn, in either phase', () => {
+      expect(
+        getStatusPanelActions(baseState({ phase: 'roll' }), 'bob').buttons.manage.visible
+      ).toBe(false);
+      expect(
+        getStatusPanelActions(baseState({ phase: 'action' }), 'bob').buttons.manage.visible
+      ).toBe(false);
+    });
+
     it('hides every action-phase button while a player token is animating', () => {
       const action = baseState({ phase: 'action' });
       const moving = getStatusPanelActions(action, 'alice', true).buttons;
@@ -170,6 +196,7 @@ describe('getStatusPanelActions', () => {
       // Roll-phase buttons are unaffected by token movement (the roll precedes any animation).
       const rollMoving = getStatusPanelActions(baseState({ phase: 'roll' }), 'alice', true).buttons;
       expect(rollMoving.roll.visible).toBe(true);
+      expect(rollMoving.manage.visible).toBe(false);
     });
 
     it('shows the waiting placeholder when it is someone else’s turn', () => {

@@ -87,6 +87,10 @@ function inAction(ctx: ActionContext): boolean {
 function inDoubles(ctx: ActionContext): boolean {
   return ctx.state.doublesCount > 0;
 }
+/** Either phase of my own turn, with no animation blocking input. */
+function inTurn(ctx: ActionContext): boolean {
+  return (inRoll(ctx) && !ctx.isTokenMoving) || inAction(ctx);
+}
 
 function rollButton(ctx: ActionContext): VisibleButton {
   return { visible: inRoll(ctx) };
@@ -110,8 +114,13 @@ function buyButton(ctx: ActionContext): BuyButton {
 function auctionButton(ctx: ActionContext): VisibleButton {
   return { visible: inAction(ctx) && ctx.propertyUnowned };
 }
+/**
+ * Manage shows before the roll as well as after it (#321), so a player can
+ * mortgage to afford the jail fine or build before moving. It stays hidden
+ * while a doubles re-roll is pending, where Roll Again takes its place.
+ */
 function manageButton(ctx: ActionContext): VisibleButton {
-  return { visible: inAction(ctx) && !inDoubles(ctx) };
+  return { visible: inTurn(ctx) && !inDoubles(ctx) };
 }
 function rollAgainButton(ctx: ActionContext): VisibleButton {
   return { visible: inAction(ctx) && inDoubles(ctx) };
@@ -164,7 +173,7 @@ function emptyButtons(): StatusPanelButtons {
  *   While true, action-phase buttons are hidden so the user can't dispatch
  *   a follow-up action before the previous one has visually settled. Roll-
  *   phase buttons (Roll Dice, Pay Fine, GOOJ) are unaffected because the
- *   roll precedes any animation.
+ *   roll precedes any animation; Manage is hidden in both phases.
  */
 export function getStatusPanelActions(
   state: GameState,
