@@ -358,7 +358,7 @@ Not yet run on a device or emulator.
   it has a handler (`undefined` lets Back fall through). Setup, the
   multiplayer menu and the create/join forms call their `onBack`; "Resuming…"
   backs out too (the resume effect cancels on unmount). The lobby shows a
-  Leave Room prompt (its Leave button does not). On the board it shows the
+  Leave Room prompt, as its Leave button does. On the board it shows the
   Leave Game prompt mid-game and goes to the menu after a win
   (`getBoardBackAction` in `back-press.ts`). Open `Modal`s get Back first
   through `onRequestClose`, so the listener only fires on the bare screen.

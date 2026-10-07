@@ -113,8 +113,8 @@ export const OnlineLobby: React.FC<Props> = ({ room, actions, busy }) => {
   const { lobbyState, playerId, error } = room;
   const isHost = lobbyState?.players.find((p) => p.id === playerId)?.isHost;
   const canStart = !!lobbyState && lobbyState.players.length >= 2;
-  // Android Back asks before leaving the room, so one stray press doesn't drop
-  // the player from it. While the prompt is up its Modal takes Back and just
+  // Leave and Android Back both ask first, so one stray press doesn't drop the
+  // player from the room. While the prompt is up its Modal takes Back and just
   // dismisses it.
   const [confirmLeave, setConfirmLeave] = useState(false);
   const askToLeave = useCallback(() => {
@@ -152,7 +152,7 @@ export const OnlineLobby: React.FC<Props> = ({ room, actions, busy }) => {
           <IconButton
             title="Leave"
             icon="close"
-            onPress={actions.handleLeave}
+            onPress={askToLeave}
             style={styles.secondaryButton}
           />
         </View>
