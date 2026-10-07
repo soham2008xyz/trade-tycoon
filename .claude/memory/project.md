@@ -445,3 +445,6 @@
   for this reason; the rule is in `apps/client/AGENTS.md` (Platform guards).
   No Android SDK on the user's Mac (2026-10-07), so Android fixes can only be
   checked on web or iOS locally.
+- The React Compiler lint rule `react-hooks/refs` rejects writing
+  `ref.current` during render, so the "latest handler in a ref" pattern must
+  assign the ref inside a `useEffect` (see `GameUI`'s Back handler, #315).

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { BackHandler, Platform, StyleSheet, View } from 'react-native';
 import { GameState, GameAction, BOARD, TradeOffer } from '@trade-tycoon/game-logic';
 import { Toast } from './ui/Toast';
 import { CustomAlert, AlertOptions } from './ui/Alert';
@@ -14,6 +14,7 @@ import { useGameLayout } from '../hooks/useGameLayout';
 import { getGameFeedback } from './game-feedback';
 import { canRemovePlayer } from './multiplayer-gating';
 import { getToastHost } from './toast-host';
+import { getBoardBackAction } from './back-press';
 
 interface GameUIProps {
   state: GameState;
@@ -170,6 +171,34 @@ export const GameUI: React.FC<GameUIProps> = ({
       { text: 'Yes', onPress: onLeaveGame },
     ]);
   }, [onLeaveGame, showAlert]);
+
+  // Android hardware Back on the board (#315). Without a listener the event
+  // falls through to the router, which has nothing to pop, so the app exits
+  // and a hotseat game is lost. Open modals (Log, Trade, Manage, tile info,
+  // the alert itself) take Back first through `onRequestClose`, so this only
+  // fires on the bare board. Both branches return `true` to consume it.
+  // The latest handlers live in a ref so the listener subscribes once:
+  // `onLeaveGame` is an inline arrow upstream, and re-subscribing on every
+  // render would reorder listeners. Android only: iOS has no Back button and
+  // react-native-web's BackHandler logs a console error when subscribed to.
+  const backPressRef = React.useRef(() => {});
+  React.useEffect(() => {
+    backPressRef.current = () => {
+      if (getBoardBackAction(isGameOver) === 'back-to-menu') {
+        (onBackToMenu ?? onLeaveGame)();
+      } else {
+        handleRestart();
+      }
+    };
+  }, [isGameOver, onBackToMenu, onLeaveGame, handleRestart]);
+  React.useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      backPressRef.current();
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
 
   // Which disconnected players the local user may remove, resolved once here so
   // the panels just render buttons for these ids (the rule lives in
