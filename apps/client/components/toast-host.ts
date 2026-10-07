@@ -16,6 +16,12 @@ export type OpenModals = Record<ToastHost, boolean>;
  * and an auction can start while the trade modal is open.
  */
 export const getToastHost = (open: OpenModals): ToastHost | null => {
-  const order: readonly ToastHost[] = ['auction', 'trade', 'manage', 'log', 'tile'];
-  return order.find((host) => open[host]) ?? null;
+  const topmostFirst: readonly [ToastHost, boolean][] = [
+    ['auction', open.auction],
+    ['trade', open.trade],
+    ['manage', open.manage],
+    ['log', open.log],
+    ['tile', open.tile],
+  ];
+  return topmostFirst.find(([, isOpen]) => isOpen)?.[0] ?? null;
 };
