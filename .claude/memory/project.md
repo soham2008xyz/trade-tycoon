@@ -426,3 +426,9 @@
   give each component a named props interface. Codacy's issue list for a PR
   is readable without a token at
   `app.codacy.com/api/v3/analysis/organizations/gh/soham2008xyz/repositories/trade-tycoon/pull-requests/<n>/issues?status=new`.
+- Group colours (#322): text drawn on a `GROUP_COLORS` fill must use
+  `textColorOn(fill)` (`apps/client/constants/contrast.ts`), not white plus a
+  text shadow. White was 1.4:1 on Light Blue and under 4.5:1 on Pink, Red,
+  Orange, Green and Utilities; `contrast.test.ts` pins every group at 4.5:1.
+  To land on a group for a hand check, temporarily pass `die1`/`die2` in
+  `GameUI.tsx`'s `handleRoll` (1+5 from GO is Oriental Avenue), then revert.
