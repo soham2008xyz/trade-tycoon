@@ -89,6 +89,19 @@
   the upstream mount-position fallback patch recorded in `patches/`. Fixed
   percentage snap points must also set `enableDynamicSizing={false}` so the
   sheet can mount before its content height has been measured.
+- Keep `react-native-reanimated` at 4.5.5 or later, even though Expo SDK 57
+  pins 4.5.1. It is in `expo.install.exclude` and the root `overrides`, so
+  `expo install --fix` will not move it back. In 4.5.1 the
+  settled-props sync dropped animated values before React received them
+  (upstream #9527). Each unmounted GestureDetector-wrapped view drove its view
+  counter negative, so after a few games the sync interval was stopped when
+  the bottom sheet settled. When the dice mounted, the interval's first tick
+  evicted the sheet's `translateY` without syncing it, and the next React
+  commit put the sheet back off-screen (#320). Symptom to recognise: the gorhom
+  logs and `onChange` say index 0, but the sheet's native views are not on
+  screen. Reproduce it in Expo Go on Android by playing about four short
+  local games in one session. The JS half of the fix runs on Expo Go's
+  4.5.1 native code; patch versions only need a matching major.minor.
 - `LobbyState.sessions` (private token → public playerId map) intentionally
   lives in `packages/game-logic`, not the server workspace, even though it's
   auth data rather than a game rule — it rides `LobbyState`'s existing CAS
