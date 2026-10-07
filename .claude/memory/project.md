@@ -426,6 +426,10 @@
   give each component a named props interface. Codacy's issue list for a PR
   is readable without a token at
   `app.codacy.com/api/v3/analysis/organizations/gh/soham2008xyz/repositories/trade-tycoon/pull-requests/<n>/issues?status=new`.
+- Codacy (#341) runs `@typescript-eslint/no-confusing-void-expression`,
+  which local lint does not. An arrow shorthand whose body is a void call
+  (`() => setX(true)`, `() => sub.remove()`, including effect cleanups and
+  inline `onPress`/`onClose` props) is a finding; give it a block body.
 - Group colours (#322): text drawn on a `GROUP_COLORS` fill must use
   `textColorOn(fill)` (`apps/client/constants/contrast.ts`), not white plus a
   text shadow. White was 1.4:1 on Light Blue and under 4.5:1 on Pink, Red,
