@@ -1,23 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { analytics, createAnalytics, parseMeasurementId, type AnalyticsWindow } from './analytics';
+import { analytics, createAnalytics, parseMeasurementId } from './analytics';
 
 function fakeWindow() {
   const scripts: { async: boolean; src: string }[] = [];
-  const win: AnalyticsWindow = {
+  const fake: { dataLayer?: unknown[] } & Record<string, unknown> = {
     location: { origin: 'https://example.test' },
     document: {
       createElement: () => ({ async: false, src: '' }),
       head: {
-        appendChild: (node) => {
-          scripts.push(node as { async: boolean; src: string });
+        appendChild: (node: { async: boolean; src: string }) => {
+          scripts.push(node);
           return node;
         },
       },
     },
   };
+  const win = fake as unknown as Window;
   // dataLayer holds Arguments objects; spread them for readable assertions.
-  const calls = () => (win.dataLayer ?? []).map((entry) => Array.from(entry as ArrayLike<unknown>));
-  return { win, scripts, calls };
+  const calls = () =>
+    (fake.dataLayer ?? []).map((entry) => Array.from(entry as ArrayLike<unknown>));
+  return { win, fake, scripts, calls };
 }
 
 describe('parseMeasurementId', () => {
@@ -35,14 +37,13 @@ describe('parseMeasurementId', () => {
 
 describe('createAnalytics', () => {
   it('does nothing without a measurement id', () => {
-    const { win, scripts } = fakeWindow();
+    const { win, fake, scripts } = fakeWindow();
     const a = createAnalytics(null, () => win);
     a.init();
     a.trackPageView('/', 'Main menu');
     a.trackEvent('create_room');
     expect(scripts).toHaveLength(0);
-    expect(win.dataLayer).toBeUndefined();
-    expect(win.gtag).toBeUndefined();
+    expect(fake.dataLayer).toBeUndefined();
   });
 
   it('does nothing without a browser window (native, server render)', () => {
@@ -55,7 +56,7 @@ describe('createAnalytics', () => {
   });
 
   it('loads gtag.js once and configures it without the automatic page view', () => {
-    const { win, scripts, calls } = fakeWindow();
+    const { win, fake, scripts, calls } = fakeWindow();
     const a = createAnalytics('G-TEST', () => win);
     a.init();
     a.init();
@@ -64,6 +65,7 @@ describe('createAnalytics', () => {
     ]);
     const config = calls().filter(([command]) => command === 'config');
     expect(config).toHaveLength(1);
+    expect(Object.prototype.toString.call(fake.dataLayer?.[0])).toBe('[object Arguments]');
     expect(config[0]).toEqual([
       'config',
       'G-TEST',

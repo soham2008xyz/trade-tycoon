@@ -15,20 +15,28 @@ type Screen =
 
 // Screens are a state machine, not routes, so the URL never changes; each one
 // is reported to analytics as a virtual page (#334).
-const PAGE_VIEWS: Record<Screen, { path: string; title: string }> = {
-  'new-game': { path: '/', title: 'Main menu' },
-  'local-game': { path: '/local-game', title: 'Local game' },
-  'multiplayer-menu': { path: '/multiplayer', title: 'Multiplayer menu' },
-  'online-create': { path: '/online/create', title: 'Create room' },
-  'online-join': { path: '/online/join', title: 'Join room' },
-  'online-resume': { path: '/online/resume', title: 'Resume game' },
-};
+function pageViewFor(screen: Screen): { path: string; title: string } {
+  switch (screen) {
+    case 'new-game':
+      return { path: '/', title: 'Main menu' };
+    case 'local-game':
+      return { path: '/local-game', title: 'Local game' };
+    case 'multiplayer-menu':
+      return { path: '/multiplayer', title: 'Multiplayer menu' };
+    case 'online-create':
+      return { path: '/online/create', title: 'Create room' };
+    case 'online-join':
+      return { path: '/online/join', title: 'Join room' };
+    case 'online-resume':
+      return { path: '/online/resume', title: 'Resume game' };
+  }
+}
 
 export default function GameScreen() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('new-game');
 
   useEffect(() => {
-    const { path, title } = PAGE_VIEWS[currentScreen];
+    const { path, title } = pageViewFor(currentScreen);
     analytics.trackPageView(path, title);
   }, [currentScreen]);
 

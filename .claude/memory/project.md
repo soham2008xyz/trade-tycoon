@@ -470,3 +470,6 @@
   removing one (e.g. `EXPO_PUBLIC_GA_MEASUREMENT_ID`) keeps the old value unless
   run with `--clear`. Vercel builds start clean, so it only bites local checks
   such as "the ID is absent when unset" (#334).
+- Codacy (#345) runs `security/detect-object-injection`: indexing a record
+  with a variable key (`PAGE_VIEWS[screen]`) is a high-severity finding, even
+  when the key is a closed string union. Use an exhaustive `switch` instead.
