@@ -74,6 +74,9 @@ export const IconButton: React.FC<IconButtonProps> = ({
     <TouchableOpacity
       style={[
         styles.button,
+        // Disabled buttons are flat: on Android an elevation shadow shows through a
+        // fill that a dimmed ancestor has made translucent, as a box behind the label (#316).
+        !disabled && styles.raised,
         { backgroundColor: disabled ? theme.disabledFill : color },
         getPadding(),
         style,
@@ -116,6 +119,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  raised: {
     elevation: 2,
     boxShadow: '0px 2px 2px rgba(0,0,0,0.2)',
   },

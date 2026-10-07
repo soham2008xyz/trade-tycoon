@@ -339,6 +339,14 @@ Not yet run on a device or emulator.
   Trade money sliders count steps of `MONEY_STEP` with the last step at the
   exact balance (`trade-money.ts`).
 
+- **Don't fade a container of elevated views on Android** (#316). Android
+  applies a parent's `opacity` to each child separately (no offscreen
+  layer), so an `elevation` / `boxShadow` child shows its shadow through its
+  own now-translucent fill, as a box behind the label. `IconButton` drops its
+  shadow while disabled, and `AuctionModal` doesn't dim the off-turn controls
+  row. If a row really must fade as one, give it
+  `needsOffscreenAlphaCompositing`.
+
 ## Theming (dark mode, #264)
 
 Colours for the UI chrome come from the tokens in `constants/theme.ts`
