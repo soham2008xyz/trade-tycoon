@@ -45,6 +45,8 @@ interface Props {
     removablePlayerIds: readonly string[];
     onRemovePlayer: (targetPlayerId: string) => void;
   };
+  /** Toasts to draw above the modal while it is open (see `FullScreenModalShell`). */
+  overlay?: React.ReactNode;
 }
 
 // `shouldShowAuctionControls` lives in `./multiplayer-gating` so it can be
@@ -188,6 +190,7 @@ export const AuctionModal: React.FC<Props> = ({
   isMultiplayer = false,
   myPlayerId,
   presence,
+  overlay,
 }) => {
   const styles = createStyles(useTheme());
   if (!auction) return null;
@@ -200,7 +203,13 @@ export const AuctionModal: React.FC<Props> = ({
   const increments = [1, 10, 50, 100];
 
   return (
-    <FullScreenModalShell visible={visible} onClose={noopClose} title="Auction" showClose={false}>
+    <FullScreenModalShell
+      visible={visible}
+      onClose={noopClose}
+      title="Auction"
+      showClose={false}
+      overlay={overlay}
+    >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.header}>

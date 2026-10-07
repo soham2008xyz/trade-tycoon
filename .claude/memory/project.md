@@ -411,3 +411,9 @@
   reducer's even-build and mortgaged-set checks.
 - Running `expo lint` from the repo root (instead of `apps/client`) writes a
   template `eslint.config.js` at the root. Delete it; it isn't tracked.
+- Toasts in the browser pane: its screenshots can lag the page by seconds, so
+  a toast (3 s auto-dismiss) is often gone or mid-fade by the time one is
+  taken. To verify a toast's placement, temporarily raise `Toast`'s default
+  `duration` and expose `setUiToastMessage` on `globalThis` from `GameUI` to
+  fire one from `javascript_tool`. Count copies via the DOM (the pill's
+  `rgba(50, 50, 50, 0.9)` background), then revert both.

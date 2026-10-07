@@ -13,10 +13,12 @@ interface Props {
   tile: Tile | null;
   owner?: Player;
   onClose: () => void;
+  /** Toasts to draw above the modal while it is open (see `FullScreenModalShell`). */
+  overlay?: React.ReactNode;
 }
 
 // Descriptions for special tiles
-export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }) => {
+export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose, overlay }) => {
   // Hook must run before the early return below to keep hook order stable.
   const isPhone = useGameLayout() === 'phone';
   const styles = createStyles(useTheme());
@@ -108,7 +110,12 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
   };
 
   return (
-    <FullScreenModalShell visible={visible} onClose={onClose} title={tile?.name ?? 'Tile'}>
+    <FullScreenModalShell
+      visible={visible}
+      onClose={onClose}
+      title={tile?.name ?? 'Tile'}
+      overlay={overlay}
+    >
       <View style={isPhone ? styles.phoneContainer : styles.overlayContainer}>
         {!isPhone && <View style={styles.backdrop} onTouchEnd={onClose} />}
         <View style={isPhone ? styles.phoneContent : styles.modalContent}>

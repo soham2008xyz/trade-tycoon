@@ -12,9 +12,11 @@ interface Props {
   logs: string[];
   players: Player[];
   onClose: () => void;
+  /** Toasts to draw above the modal while it is open (see `FullScreenModalShell`). */
+  overlay?: React.ReactNode;
 }
 
-export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose }) => {
+export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose, overlay }) => {
   const styles = createStyles(useTheme());
   // On phone the shell already draws the title + close button and fills the
   // screen, so the legacy overlay chrome (grey backdrop, floating card, own
@@ -23,7 +25,7 @@ export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose }) =
   const isPhone = useGameLayout() === 'phone';
 
   return (
-    <FullScreenModalShell visible={visible} onClose={onClose} title="Game Log">
+    <FullScreenModalShell visible={visible} onClose={onClose} title="Game Log" overlay={overlay}>
       <View style={isPhone ? styles.phoneContainer : styles.modalContainer}>
         <View style={isPhone ? styles.phoneContent : styles.content}>
           {!isPhone && (

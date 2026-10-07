@@ -59,6 +59,8 @@ interface Props {
   onReject: (tradeId: string) => void;
   onCancel: (tradeId: string) => void;
   onClose: () => void;
+  /** Toasts to draw above the modal while it is open (see `FullScreenModalShell`). */
+  overlay?: React.ReactNode;
   /**
    * In online multiplayer the modal renders on every client involved in the
    * trade, so each client must only see the buttons it can actually act on:
@@ -85,6 +87,7 @@ export const TradeModal: React.FC<Props> = ({
   onReject,
   onCancel,
   onClose,
+  overlay,
   isMultiplayer = false,
 }) => {
   const theme = useTheme();
@@ -506,7 +509,7 @@ export const TradeModal: React.FC<Props> = ({
   };
 
   return (
-    <FullScreenModalShell visible={visible} onClose={onClose} title="Trade">
+    <FullScreenModalShell visible={visible} onClose={onClose} title="Trade" overlay={overlay}>
       <View style={isPhone ? styles.phoneOverlay : styles.modalOverlay}>{renderContent()}</View>
     </FullScreenModalShell>
   );

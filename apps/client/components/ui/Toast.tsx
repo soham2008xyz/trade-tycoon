@@ -20,9 +20,9 @@ interface ToastProps {
 // Breathing room between the status bar / Dynamic Island and the toast pill.
 const TOP_MARGIN = 8;
 
-// GameUI moves a visible toast into the Manage modal and back, which remounts
-// it. Remembering the last announcement lets that remount stay silent instead
-// of reading the same message to a screen-reader user twice.
+// GameUI moves a visible toast into whichever modal is on top and back, which
+// remounts it. Remembering the last announcement lets that remount stay silent
+// instead of reading the same message to a screen-reader user twice.
 let lastAnnouncement: { message: string; at: number } | null = null;
 
 const wasJustAnnounced = (message: string, withinMs: number): boolean =>
