@@ -473,3 +473,6 @@
 - Codacy (#345) runs `security/detect-object-injection`: indexing a record
   with a variable key (`PAGE_VIEWS[screen]`) is a high-severity finding, even
   when the key is a closed string union. Use an exhaustive `switch` instead.
+  It also runs `@typescript-eslint/prefer-nullish-coalescing` on `||` in an
+  `if` condition (`if (a || !b) return;`), so split such a guard into two
+  separate `if` statements.

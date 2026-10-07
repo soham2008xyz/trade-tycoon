@@ -42,7 +42,8 @@ export function createAnalytics(measurementId: string | null, getWindow: () => W
    * around it (a child's effect runs before its parent layout's).
    */
   function init() {
-    if (dataLayer || !measurementId) return;
+    if (dataLayer !== null) return;
+    if (!measurementId) return;
     const win: AnalyticsWindow | undefined = getWindow();
     if (!win) return;
 
