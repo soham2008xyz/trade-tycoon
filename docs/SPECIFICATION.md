@@ -137,6 +137,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 ## 9. Web
 
 - [x] **Link previews** (#286): The web export's index page carries a `description` tag plus Open Graph and Twitter card tags, so a shared link shows a title, blurb and a 1200x630 image (`public/og-image.png`, built by `npm run generate:og --workspace=apps/client` and committed). The tags use the absolute production host and render on web only. The not-found page carries no tags on purpose: nobody shares a 404 link, and tagging it would need a custom `+html.tsx` document.
+- [x] **Analytics** (#334): With `EXPO_PUBLIC_GA_MEASUREMENT_ID` set at build time, the web build loads Google Analytics 4 and sends a virtual page view per screen (the screens are a state machine, not routes) plus `start_local_game` (with `player_count`), `create_room`, `join_room` and `start_online_game`. Unset, nothing loads. No names, room codes or tokens are sent. Native apps send nothing. See `docs/DEPLOY.md`.
 
 ## 10. Appearance
 

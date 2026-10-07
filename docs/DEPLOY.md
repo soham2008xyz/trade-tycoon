@@ -55,9 +55,22 @@ Vercel auto-detects the Express app via the default export from
 
 In the client project's **Settings → Environment Variables**:
 
-| Name                     | Value                                          | Environments         |
-| ------------------------ | ---------------------------------------------- | -------------------- |
-| `EXPO_PUBLIC_SERVER_URL` | `https://trade-tycoon-server.sohambanerjee.me` | Production + Preview |
+| Name                            | Value                                          | Environments         |
+| ------------------------------- | ---------------------------------------------- | -------------------- |
+| `EXPO_PUBLIC_SERVER_URL`        | `https://trade-tycoon-server.sohambanerjee.me` | Production + Preview |
+| `EXPO_PUBLIC_GA_MEASUREMENT_ID` | GA4 web stream ID, e.g. `G-XXXXXXXXXX`         | Production           |
+
+`EXPO_PUBLIC_GA_MEASUREMENT_ID` is optional. When it is set, the web build loads
+Google Analytics 4 and records a page view per screen plus the
+`start_local_game`, `create_room`, `join_room` and `start_online_game` events.
+When it is unset or malformed (local dev, Preview), nothing loads and nothing is
+sent. Native apps never send analytics. Set it on Production only, so preview
+deploys don't skew the numbers. Like every `EXPO_PUBLIC_*` value it is inlined
+at build time: changing it needs a redeploy. GA4 doesn't log IP addresses, and
+the build turns off Google signals and ad personalisation. There is no consent
+banner. If you need one (e.g. for EU visitors), add Consent Mode before the
+`config` call in `apps/client/components/analytics.ts`, or switch to a cookieless
+tool such as Plausible.
 
 The client's production host is `https://trade-tycoon.sohambanerjee.me`. The
 web build's Open Graph and Twitter card tags (`og:url`, `og:image`,
