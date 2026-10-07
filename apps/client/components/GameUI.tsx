@@ -181,7 +181,7 @@ export const GameUI: React.FC<GameUIProps> = ({
   // `onLeaveGame` is an inline arrow upstream, and re-subscribing on every
   // render would reorder listeners. Android only: iOS has no Back button and
   // react-native-web's BackHandler logs a console error when subscribed to.
-  const backPressRef = React.useRef(() => {});
+  const backPressRef = React.useRef<(() => void) | null>(null);
   React.useEffect(() => {
     backPressRef.current = () => {
       if (getBoardBackAction(isGameOver) === 'back-to-menu') {
@@ -194,10 +194,12 @@ export const GameUI: React.FC<GameUIProps> = ({
   React.useEffect(() => {
     if (Platform.OS !== 'android') return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      backPressRef.current();
+      backPressRef.current?.();
       return true;
     });
-    return () => sub.remove();
+    return () => {
+      sub.remove();
+    };
   }, []);
 
   // Which disconnected players the local user may remove, resolved once here so
