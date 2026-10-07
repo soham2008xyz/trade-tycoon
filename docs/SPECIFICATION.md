@@ -42,6 +42,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
 - [x] **Building**:
   - [x] Build Houses (up to 4) on complete color sets.
   - [x] Build Hotels (after 4 houses).
+  - [x] **Even building** (#323): Manage enables Build only for a build the rules accept (complete, unmortgaged set; even across the set; affordable; below a hotel), and Sell only for an even sale. Rejection and build toasts show above the Manage screen.
   - [x] **Sell Buildings**: Sell houses/hotels back to the bank at half the purchase price. Hotels revert to 4 houses if house supply allows.
 - [x] **Mortgages**:
   - [x] **Action**: Mortgage owned property for 50% of its value during player's turn.

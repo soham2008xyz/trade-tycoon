@@ -20,6 +20,12 @@ interface Props {
    * Defaults to true.
    */
   showClose?: boolean;
+  /**
+   * Drawn on top of everything in the modal, e.g. the game's toasts. A
+   * `Modal` covers the whole app, so a toast rendered beside it can't be seen
+   * while it is open (#323).
+   */
+  overlay?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -39,6 +45,7 @@ export const FullScreenModalShell: React.FC<Props> = ({
   onClose,
   title,
   showClose = true,
+  overlay,
   children,
 }) => {
   const layout = useGameLayout();
@@ -76,6 +83,9 @@ export const FullScreenModalShell: React.FC<Props> = ({
             <ConnectionBanner />
             <View style={styles.phoneBody}>{children}</View>
           </SafeAreaView>
+          {/* Outside the SafeAreaView so an absolutely positioned overlay
+              offsets itself by this modal's insets, not twice. */}
+          {overlay}
         </SafeAreaProvider>
       </Modal>
     );
@@ -98,6 +108,7 @@ export const FullScreenModalShell: React.FC<Props> = ({
     >
       {children}
       <ConnectionBanner floating />
+      {overlay}
     </Modal>
   );
 };

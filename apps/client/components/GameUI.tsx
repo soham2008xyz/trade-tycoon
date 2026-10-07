@@ -226,6 +226,31 @@ export const GameUI: React.FC<GameUIProps> = ({
     setDismissedFeedback(null);
   }
 
+  // The feedback and UI toasts. A `Modal` covers the whole app, so while the
+  // Manage modal is open they render inside it instead of here, or a build
+  // rejection would be hidden behind the modal (#323). They render in exactly
+  // one place: two copies would announce twice and, in hotseat, dispatch the
+  // dismiss twice. Moving between the two remounts the toast, restarting its
+  // timer; that only happens when the modal opens or closes.
+  const toasts = (
+    <>
+      {gameFeedback && gameFeedback.message !== dismissedFeedback && (
+        <Toast
+          message={gameFeedback.message}
+          onDismiss={
+            isMultiplayer
+              ? () => setDismissedFeedback(gameFeedback.message)
+              : () => onDispatch({ type: gameFeedback.dismissAction })
+          }
+        />
+      )}
+      {uiToastMessage && (
+        <Toast message={uiToastMessage} onDismiss={() => setUiToastMessage(null)} />
+      )}
+    </>
+  );
+  const propertyManagerVisible = !!myPlayer && showPropertyManager && !isGameOver;
+
   const openLog = React.useCallback(() => setLogVisible(true), []);
   const openPropertyManager = React.useCallback(() => setShowPropertyManager(true), []);
   const openTrade = React.useCallback((target: string) => setTradeTargetId(target), []);
@@ -289,19 +314,7 @@ export const GameUI: React.FC<GameUIProps> = ({
         players={state.players}
         onClose={() => setLogVisible(false)}
       />
-      {gameFeedback && gameFeedback.message !== dismissedFeedback && (
-        <Toast
-          message={gameFeedback.message}
-          onDismiss={
-            isMultiplayer
-              ? () => setDismissedFeedback(gameFeedback.message)
-              : () => onDispatch({ type: gameFeedback.dismissAction })
-          }
-        />
-      )}
-      {uiToastMessage && (
-        <Toast message={uiToastMessage} onDismiss={() => setUiToastMessage(null)} />
-      )}
+      {!propertyManagerVisible && toasts}
       <CustomAlert
         visible={alertVisible}
         options={alertOptions}
@@ -360,9 +373,10 @@ export const GameUI: React.FC<GameUIProps> = ({
           different player's assets if the turn changes while it's open. */}
       {myPlayer && (
         <PropertyManager
-          visible={showPropertyManager && !isGameOver}
+          visible={propertyManagerVisible}
           player={myPlayer}
           onClose={() => setShowPropertyManager(false)}
+          overlay={propertyManagerVisible ? toasts : null}
           onBuild={handleBuild}
           onSell={handleSell}
           onMortgage={handleMortgage}

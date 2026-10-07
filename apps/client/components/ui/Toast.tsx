@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useContext } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   Animated,
   AccessibilityInfo,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
 
@@ -24,8 +24,10 @@ export const Toast: React.FC<ToastProps> = ({ message, onDismiss, duration = 300
   // Offset by the real top inset instead of a hard-coded guess: devices differ
   // (Dynamic Island ~59pt, notch ~47pt, Android varies) and web is 0, so a fixed
   // value either overlaps the island or leaves a dead gap. Applied inline so the
-  // StyleSheet below stays static.
-  const insets = useSafeAreaInsets();
+  // StyleSheet below stays static. Read through the context, not
+  // `useSafeAreaInsets`: a toast can render inside the transparent tablet
+  // modal, which has no provider above it, and the hook throws there.
+  const insets = useContext(SafeAreaInsetsContext);
   const theme = useTheme();
   const styles = createStyles(theme);
   const [fadeAnim] = React.useState(() => new Animated.Value(0));
@@ -74,7 +76,7 @@ export const Toast: React.FC<ToastProps> = ({ message, onDismiss, duration = 300
     // role is what makes web screen readers read the message.
     <Animated.View
       role="alert"
-      style={[styles.container, { top: insets.top + TOP_MARGIN, opacity: fadeAnim }]}
+      style={[styles.container, { top: (insets?.top ?? 0) + TOP_MARGIN, opacity: fadeAnim }]}
     >
       <TouchableOpacity
         onPress={handleDismiss}

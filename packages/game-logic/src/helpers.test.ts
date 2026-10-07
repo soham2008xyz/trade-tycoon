@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  getBuildBlocker,
   getPropertiesInGroup,
   getUnmortgageCost,
   ownsCompleteGroup,
@@ -121,6 +122,58 @@ describe('helpers', () => {
       expect(validateEvenSell(player, 'mediterranean')).toBe(true);
       expect(validateEvenSell(player, 'baltic')).toBe(true);
     });
+  });
+});
+
+describe('getBuildBlocker', () => {
+  // Owns the whole brown group (Mediterranean $50/house, Baltic $50/house).
+  const brownOwner = (overrides: Partial<Player> = {}): Player =>
+    createPlayer({ properties: ['mediterranean', 'baltic'], ...overrides });
+
+  it('allows an even build the player can afford', () => {
+    expect(getBuildBlocker(brownOwner(), 'mediterranean')).toBeNull();
+  });
+
+  it('rejects a build that would break the even-build rule (#323)', () => {
+    const player = brownOwner({ houses: { mediterranean: 1 } });
+
+    expect(getBuildBlocker(player, 'mediterranean')).toBe(
+      'You must build evenly across the color group.'
+    );
+    expect(getBuildBlocker(player, 'baltic')).toBeNull();
+  });
+
+  it('rejects tiles that cannot hold houses', () => {
+    expect(getBuildBlocker(brownOwner(), 'not-a-tile')).toBe('Cannot build on this property.');
+    expect(getBuildBlocker(brownOwner({ properties: ['reading_rr'] }), 'reading_rr')).toBe(
+      'Cannot build on this property.'
+    );
+  });
+
+  it('rejects a street the player does not own', () => {
+    expect(getBuildBlocker(createPlayer(), 'mediterranean')).toBe('You do not own this property.');
+  });
+
+  it('rejects an incomplete color group', () => {
+    expect(getBuildBlocker(createPlayer({ properties: ['mediterranean'] }), 'mediterranean')).toBe(
+      'You must own the complete color group to build.'
+    );
+  });
+
+  it('rejects a group with a mortgaged street', () => {
+    expect(getBuildBlocker(brownOwner({ mortgaged: ['baltic'] }), 'mediterranean')).toBe(
+      'Cannot build: a property in this color group is mortgaged.'
+    );
+  });
+
+  it('rejects a street that already has a hotel', () => {
+    const player = brownOwner({ houses: { mediterranean: 5, baltic: 5 } });
+
+    expect(getBuildBlocker(player, 'mediterranean')).toBe('Max buildings reached.');
+  });
+
+  it('rejects a build the player cannot afford', () => {
+    expect(getBuildBlocker(brownOwner({ money: 49 }), 'mediterranean')).toBe('Insufficient funds.');
   });
 });
 

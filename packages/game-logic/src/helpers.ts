@@ -82,3 +82,36 @@ export const validateEvenSell = (player: Player, propertyId: string): boolean =>
 
   return currentHouses === maxHouses;
 };
+
+/**
+ * Why `player` can't build on `propertyId` right now, as the user-facing
+ * message, or `null` if the build is allowed. Covers only the rules that
+ * depend on the player's own holdings; turn, phase and pending-double checks
+ * stay in the reducer. The reducer's `BUILD_HOUSE` case and the Manage
+ * screen's Build button both call this, so the button can't be enabled for a
+ * build the server will reject (#323).
+ */
+export const getBuildBlocker = (player: Player, propertyId: string): string | null => {
+  const tile = BOARD.find((t) => t.id === propertyId);
+  if (!tile || !tile.houseCost || !tile.group) return 'Cannot build on this property.';
+
+  if (!player.properties.includes(propertyId)) return 'You do not own this property.';
+
+  if (!ownsCompleteGroup(player, tile.group))
+    return 'You must own the complete color group to build.';
+
+  // No mortgaged property in the group (standard Monopoly rule)
+  const groupHasMortgage = getPropertiesInGroup(tile.group).some((t) =>
+    player.mortgaged.includes(t.id)
+  );
+  if (groupHasMortgage) return 'Cannot build: a property in this color group is mortgaged.';
+
+  if ((player.houses[propertyId] || 0) >= 5) return 'Max buildings reached.';
+
+  if (player.money < tile.houseCost) return 'Insufficient funds.';
+
+  if (!validateEvenBuild(player, propertyId))
+    return 'You must build evenly across the color group.';
+
+  return null;
+};
