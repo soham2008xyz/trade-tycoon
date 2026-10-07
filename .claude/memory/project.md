@@ -417,3 +417,12 @@
   `duration` and expose `setUiToastMessage` on `globalThis` from `GameUI` to
   fire one from `javascript_tool`. Count copies via the DOM (the pill's
   `rgba(50, 50, 50, 0.9)` background), then revert both.
+- Codacy (#336) blocks a PR on any new issue. Lizard size/complexity
+  findings (50 NLOC, 15 CCN) count as new when the PR edits a function's
+  first line, so adding a prop to an old, oversized component flags it. Check
+  locally with `uvx lizard -l typescript -C 15 -L 50 -w <files>`. Lizard
+  loses components typed `React.FC<{ ... }>` (an inline object generic) and
+  folds the following code, often `createStyles`, into the next function, so
+  give each component a named props interface. Codacy's issue list for a PR
+  is readable without a token at
+  `app.codacy.com/api/v3/analysis/organizations/gh/soham2008xyz/repositories/trade-tycoon/pull-requests/<n>/issues?status=new`.
