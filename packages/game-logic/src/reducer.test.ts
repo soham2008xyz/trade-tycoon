@@ -836,6 +836,76 @@ describe('Game Reducer', () => {
     });
   });
 
+  describe('Property management outside the action phase (#321)', () => {
+    type ManageType = 'BUILD_HOUSE' | 'SELL_HOUSE' | 'MORTGAGE_PROPERTY' | 'UNMORTGAGE_PROPERTY';
+
+    /** p1 owns the brown set, set up so `type` on Mediterranean is legal apart from the phase. */
+    const manageState = (type: ManageType, phase: GameState['phase']): GameState => {
+      const state = createInitialState();
+      const p1 = createPlayer('p1', 'Player 1');
+      const p2 = createPlayer('p2', 'Player 2');
+      p1.properties = ['mediterranean', 'baltic'];
+      if (type === 'SELL_HOUSE') p1.houses = { mediterranean: 1, baltic: 1 };
+      if (type === 'UNMORTGAGE_PROPERTY') p1.mortgaged = ['mediterranean'];
+      state.players = [p1, p2];
+      state.currentPlayerId = 'p1';
+      state.phase = phase;
+      return state;
+    };
+
+    const changed = (type: ManageType, state: GameState): boolean => {
+      const p1 = state.players[0];
+      if (type === 'BUILD_HOUSE') return p1.houses['mediterranean'] === 1;
+      if (type === 'SELL_HOUSE') return p1.houses['mediterranean'] === 0;
+      if (type === 'MORTGAGE_PROPERTY') return p1.mortgaged.includes('mediterranean');
+      return !p1.mortgaged.includes('mediterranean');
+    };
+
+    const types: ManageType[] = [
+      'BUILD_HOUSE',
+      'SELL_HOUSE',
+      'MORTGAGE_PROPERTY',
+      'UNMORTGAGE_PROPERTY',
+    ];
+
+    it.each(types)('allows %s in the roll phase, before the player rolls', (type) => {
+      const newState = gameReducer(manageState(type, 'roll'), {
+        type,
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(changed(type, newState)).toBe(true);
+      expect(newState.errorMessage).toBeUndefined();
+      expect(newState.phase).toBe('roll');
+    });
+
+    it.each(types)('rejects %s during an auction', (type) => {
+      const state = manageState(type, 'auction');
+      const newState = gameReducer(state, { type, playerId: 'p1', propertyId: 'mediterranean' });
+      expect(changed(type, newState)).toBe(false);
+      expect(newState.errorMessage).toMatch(/during an auction/);
+    });
+
+    it.each(types)('ignores %s from a player whose turn it is not', (type) => {
+      const state = manageState(type, 'roll');
+      state.players[1].properties = ['oriental'];
+      const newState = gameReducer(state, { type, playerId: 'p2', propertyId: 'oriental' });
+      expect(newState).toBe(state);
+    });
+
+    it('still rejects a roll-phase build while a doubles re-roll is pending', () => {
+      // CONTINUE_TURN puts the player back in the roll phase with doublesCount > 0.
+      const state = { ...manageState('BUILD_HOUSE', 'roll'), doublesCount: 1 };
+      const newState = gameReducer(state, {
+        type: 'BUILD_HOUSE',
+        playerId: 'p1',
+        propertyId: 'mediterranean',
+      });
+      expect(changed('BUILD_HOUSE', newState)).toBe(false);
+      expect(newState.errorMessage).toMatch(/pending double roll/);
+    });
+  });
+
   describe('Chance Logic', () => {
     let chanceState: GameState;
 

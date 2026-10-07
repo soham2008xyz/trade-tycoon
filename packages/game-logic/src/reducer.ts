@@ -544,6 +544,16 @@ const startAuction = (state: GameState, tile: Tile): GameState => ({
 });
 
 /** Log text for a roll, e.g. `Rolled 4 + 4 (doubles)`. */
+/**
+ * Whether the active player may build, sell, mortgage or unmortgage in this
+ * phase. Standard rules allow it at any point in your own turn, so the roll
+ * phase counts too (#321): a player can mortgage to afford the jail fine, or
+ * build before rolling. Only an open auction (and the unused 'end' phase)
+ * blocks it.
+ */
+const canManageInPhase = (phase: GameState['phase']): boolean =>
+  phase === 'roll' || phase === 'action';
+
 const describeRoll = (die1: number, die2: number): string =>
   `Rolled ${die1} + ${die2}${die1 === die2 ? ' (doubles)' : ''}`;
 
@@ -1390,8 +1400,8 @@ const reduceGameActionUnbounded = (
 
     case 'BUILD_HOUSE': {
       if (state.currentPlayerId !== action.playerId) return state;
-      if (state.phase !== 'action')
-        return { ...state, errorMessage: 'Can only build during action phase.' };
+      if (!canManageInPhase(state.phase))
+        return { ...state, errorMessage: "Can't build during an auction." };
       if (state.doublesCount > 0)
         return { ...state, errorMessage: 'Cannot build while you have a pending double roll.' };
 
@@ -1429,10 +1439,8 @@ const reduceGameActionUnbounded = (
 
     case 'SELL_HOUSE': {
       if (state.currentPlayerId !== action.playerId) return state;
-      if (state.phase !== 'action')
-        return { ...state, errorMessage: 'Can only sell during action phase.' };
-      // Standard rules allow selling at any time, but user said "build" during turn.
-      // Assuming sell is also restricted to turn for simplicity, or at least action phase.
+      if (!canManageInPhase(state.phase))
+        return { ...state, errorMessage: "Can't sell buildings during an auction." };
 
       const playerIndex = state.players.findIndex((p) => p.id === action.playerId);
       const player = state.players[playerIndex];
@@ -1478,8 +1486,8 @@ const reduceGameActionUnbounded = (
 
     case 'MORTGAGE_PROPERTY': {
       if (state.currentPlayerId !== action.playerId) return state;
-      if (state.phase !== 'action')
-        return { ...state, errorMessage: 'Can only mortgage during action phase.' };
+      if (!canManageInPhase(state.phase))
+        return { ...state, errorMessage: "Can't mortgage during an auction." };
 
       const playerIndex = state.players.findIndex((p) => p.id === action.playerId);
       const player = state.players[playerIndex];
@@ -1530,8 +1538,8 @@ const reduceGameActionUnbounded = (
 
     case 'UNMORTGAGE_PROPERTY': {
       if (state.currentPlayerId !== action.playerId) return state;
-      if (state.phase !== 'action')
-        return { ...state, errorMessage: 'Can only unmortgage during action phase.' };
+      if (!canManageInPhase(state.phase))
+        return { ...state, errorMessage: "Can't unmortgage during an auction." };
 
       const playerIndex = state.players.findIndex((p) => p.id === action.playerId);
       const player = state.players[playerIndex];

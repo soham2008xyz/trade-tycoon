@@ -432,3 +432,10 @@
   Orange, Green and Utilities; `contrast.test.ts` pins every group at 4.5:1.
   To land on a group for a hand check, temporarily pass `die1`/`die2` in
   `GameUI.tsx`'s `handleRoll` (1+5 from GO is Oriental Avenue), then revert.
+- Property management phases (#321): `BUILD_HOUSE`, `SELL_HOUSE`,
+  `MORTGAGE_PROPERTY` and `UNMORTGAGE_PROPERTY` share `canManageInPhase`
+  in `reducer.ts` (roll or action phase, never auction). The Manage button
+  gate in `useStatusPanelActions.ts` must stay in step with it, or the button
+  shows for actions the server answers with 409. `CONTINUE_TURN` returns to
+  the roll phase with `doublesCount > 0`, so "roll phase" does not mean "start
+  of turn"; check `doublesCount` when that matters.

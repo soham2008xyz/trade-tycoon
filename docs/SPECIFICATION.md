@@ -39,6 +39,7 @@ This document tracks the implementation status of features for the Trade Tycoon 
   - [x] Pay rent to owner upon landing.
   - [x] Double rent for complete color sets (unimproved).
   - [x] Railroad/Utility rent calculation logic.
+- [x] **When to manage** (#321): build, sell, mortgage and unmortgage are allowed at any point in your own turn, before or after the roll (for example, mortgage to afford the $50 jail fine). Manage shows in both phases. They are blocked during an auction, and Manage is hidden while a doubles re-roll is pending (building is also rejected then).
 - [x] **Building**:
   - [x] Build Houses (up to 4) on complete color sets.
   - [x] Build Hotels (after 4 houses).
