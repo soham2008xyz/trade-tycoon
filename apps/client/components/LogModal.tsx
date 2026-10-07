@@ -12,9 +12,37 @@ interface Props {
   logs: string[];
   players: Player[];
   onClose: () => void;
+  /** Toasts to draw above the modal while it is open (see `FullScreenModalShell`). */
+  overlay?: React.ReactNode;
 }
 
-export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose }) => {
+type Styles = ReturnType<typeof createStyles>;
+
+// Log lines start with "[Player name]"; tint the row with that player's colour.
+const getLogColor = (log: string, players: Player[]): string | undefined => {
+  const end = log.indexOf(']');
+  if (!log.startsWith('[') || end < 0) return undefined;
+  const name = log.slice(1, end);
+  return players.find((p) => p.name === name)?.color;
+};
+
+interface LogEntryProps {
+  log: string;
+  players: Player[];
+  styles: Styles;
+}
+
+const LogEntry: React.FC<LogEntryProps> = ({ log, players, styles }) => {
+  const color = getLogColor(log, players);
+  return (
+    <View style={styles.logItem}>
+      {color && <View style={[styles.playerColorIndicator, { backgroundColor: color }]} />}
+      <Text style={styles.logText}>{log}</Text>
+    </View>
+  );
+};
+
+export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose, overlay }) => {
   const styles = createStyles(useTheme());
   // On phone the shell already draws the title + close button and fills the
   // screen, so the legacy overlay chrome (grey backdrop, floating card, own
@@ -23,7 +51,7 @@ export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose }) =
   const isPhone = useGameLayout() === 'phone';
 
   return (
-    <FullScreenModalShell visible={visible} onClose={onClose} title="Game Log">
+    <FullScreenModalShell visible={visible} onClose={onClose} title="Game Log" overlay={overlay}>
       <View style={isPhone ? styles.phoneContainer : styles.modalContainer}>
         <View style={isPhone ? styles.phoneContent : styles.content}>
           {!isPhone && (
@@ -36,27 +64,12 @@ export const LogModal: React.FC<Props> = ({ visible, logs, players, onClose }) =
           )}
 
           <ScrollView style={isPhone ? undefined : styles.logList}>
-            {!logs || logs.length === 0 ? (
+            {logs.length === 0 ? (
               <Text style={styles.emptyText}>No logs yet.</Text>
             ) : (
-              logs.map((log, index) => {
-                const match = log.match(/^\[(.*?)\]/);
-                let color = 'transparent';
-                if (match) {
-                  const name = match[1];
-                  const player = players.find((p) => p.name === name);
-                  if (player) color = player.color;
-                }
-
-                return (
-                  <View key={index} style={styles.logItem}>
-                    {color !== 'transparent' && (
-                      <View style={[styles.playerColorIndicator, { backgroundColor: color }]} />
-                    )}
-                    <Text style={styles.logText}>{log}</Text>
-                  </View>
-                );
-              })
+              logs.map((log, index) => (
+                <LogEntry key={index} log={log} players={players} styles={styles} />
+              ))
             )}
           </ScrollView>
         </View>

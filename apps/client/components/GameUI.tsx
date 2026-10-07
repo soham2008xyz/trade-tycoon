@@ -13,6 +13,7 @@ import { PhoneGameLayout } from './layouts/PhoneGameLayout';
 import { useGameLayout } from '../hooks/useGameLayout';
 import { getGameFeedback } from './game-feedback';
 import { canRemovePlayer } from './multiplayer-gating';
+import { getToastHost } from './toast-host';
 
 interface GameUIProps {
   state: GameState;
@@ -226,14 +227,32 @@ export const GameUI: React.FC<GameUIProps> = ({
     setDismissedFeedback(null);
   }
 
-  // The feedback and UI toasts. A `Modal` covers the whole app, so while the
-  // Manage modal is open they render inside it instead of here, or a build
-  // rejection would be hidden behind the modal (#323). They render in exactly
-  // one place: two copies would announce twice and, in hotseat, dispatch the
-  // dismiss twice. Moving between the two remounts the toast, restarting its
-  // timer (it is not announced again; see `Toast`); that only happens when the
-  // modal opens or closes.
+  // The feedback and UI toasts. A `Modal` covers the whole app, so while one is
+  // open they render inside the topmost one instead of here, or a rejection
+  // (a build, an online 409 on a trade or bid) would be hidden behind it
+  // (#323). They render in exactly one place: two copies would announce twice
+  // and, in hotseat, dispatch the dismiss twice. Moving between places
+  // remounts the toast, restarting its timer (it is not announced again; see
+  // `Toast`); that only happens when a modal opens or closes.
+  //
+  // Each flag mirrors the modal's own mount guard as well as its `visible`, so
+  // the toasts are never handed to a modal that renders nothing.
   const propertyManagerVisible = !!myPlayer && showPropertyManager && !isGameOver;
+  const tradeVisible =
+    !!currentPlayer &&
+    !!selfId &&
+    !isGameOver &&
+    (!!tradeTargetId ||
+      (!!state.activeTrade &&
+        (state.activeTrade.initiatorId === selfId || state.activeTrade.targetPlayerId === selfId)));
+  const selectedTile = selectedTileId ? BOARD.find((t) => t.id === selectedTileId) || null : null;
+  const toastHost = getToastHost({
+    auction: state.phase === 'auction' && !!state.auction,
+    trade: tradeVisible,
+    manage: propertyManagerVisible,
+    log: logVisible,
+    tile: !!selectedTile,
+  });
   const toasts = (
     <>
       {gameFeedback && gameFeedback.message !== dismissedFeedback && (
@@ -313,8 +332,9 @@ export const GameUI: React.FC<GameUIProps> = ({
         logs={state.logs}
         players={state.players}
         onClose={() => setLogVisible(false)}
+        overlay={toastHost === 'log' ? toasts : null}
       />
-      {!propertyManagerVisible && toasts}
+      {toastHost === null && toasts}
       <CustomAlert
         visible={alertVisible}
         options={alertOptions}
@@ -338,17 +358,12 @@ export const GameUI: React.FC<GameUIProps> = ({
         presence={
           onRemovePlayer ? { disconnectedPlayerIds, removablePlayerIds, onRemovePlayer } : undefined
         }
+        overlay={toastHost === 'auction' ? toasts : null}
       />
 
       {currentPlayer && selfId && (
         <TradeModal
-          visible={
-            !isGameOver &&
-            (!!tradeTargetId ||
-              (!!state.activeTrade &&
-                (state.activeTrade.initiatorId === selfId ||
-                  state.activeTrade.targetPlayerId === selfId)))
-          }
+          visible={tradeVisible}
           players={state.players}
           currentPlayerId={selfId}
           targetPlayerId={tradeTargetId || state.activeTrade?.targetPlayerId}
@@ -365,6 +380,7 @@ export const GameUI: React.FC<GameUIProps> = ({
             setTradeTargetId(undefined);
           }}
           onClose={() => setTradeTargetId(undefined)}
+          overlay={toastHost === 'trade' ? toasts : null}
         />
       )}
 
@@ -376,7 +392,7 @@ export const GameUI: React.FC<GameUIProps> = ({
           visible={propertyManagerVisible}
           player={myPlayer}
           onClose={() => setShowPropertyManager(false)}
-          overlay={propertyManagerVisible ? toasts : null}
+          overlay={toastHost === 'manage' ? toasts : null}
           onBuild={handleBuild}
           onSell={handleSell}
           onMortgage={handleMortgage}
@@ -386,9 +402,10 @@ export const GameUI: React.FC<GameUIProps> = ({
 
       <TileInfoModal
         visible={!!selectedTileId}
-        tile={selectedTileId ? BOARD.find((t) => t.id === selectedTileId) || null : null}
+        tile={selectedTile}
         owner={selectedTileId ? getOwner(selectedTileId) : undefined}
         onClose={() => setSelectedTileId(null)}
+        overlay={toastHost === 'tile' ? toasts : null}
       />
     </View>
   );

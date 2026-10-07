@@ -411,3 +411,18 @@
   reducer's even-build and mortgaged-set checks.
 - Running `expo lint` from the repo root (instead of `apps/client`) writes a
   template `eslint.config.js` at the root. Delete it; it isn't tracked.
+- Toasts in the browser pane: its screenshots can lag the page by seconds, so
+  a toast (3 s auto-dismiss) is often gone or mid-fade by the time one is
+  taken. To verify a toast's placement, temporarily raise `Toast`'s default
+  `duration` and expose `setUiToastMessage` on `globalThis` from `GameUI` to
+  fire one from `javascript_tool`. Count copies via the DOM (the pill's
+  `rgba(50, 50, 50, 0.9)` background), then revert both.
+- Codacy (#336) blocks a PR on any new issue. Lizard size/complexity
+  findings (50 NLOC, 15 CCN) count as new when the PR edits a function's
+  first line, so adding a prop to an old, oversized component flags it. Check
+  locally with `uvx lizard -l typescript -C 15 -L 50 -w <files>`. Lizard
+  loses components typed `React.FC<{ ... }>` (an inline object generic) and
+  folds the following code, often `createStyles`, into the next function, so
+  give each component a named props interface. Codacy's issue list for a PR
+  is readable without a token at
+  `app.codacy.com/api/v3/analysis/organizations/gh/soham2008xyz/repositories/trade-tycoon/pull-requests/<n>/issues?status=new`.

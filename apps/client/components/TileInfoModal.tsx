@@ -13,10 +13,166 @@ interface Props {
   tile: Tile | null;
   owner?: Player;
   onClose: () => void;
+  /** Toasts to draw above the modal while it is open (see `FullScreenModalShell`). */
+  overlay?: React.ReactNode;
 }
 
-// Descriptions for special tiles
-export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }) => {
+type Styles = ReturnType<typeof createStyles>;
+
+interface SectionProps {
+  tile: Tile;
+  owner?: Player;
+  styles: Styles;
+}
+
+// Light banner text on the dark group colours, dark text on the rest.
+const DARK_GROUPS = ['brown', 'dark_blue', 'railroad'];
+
+const STREET_RENT_LABELS = [
+  'Rent',
+  'With 1 House',
+  'With 2 Houses',
+  'With 3 Houses',
+  'With 4 Houses',
+  'With Hotel',
+];
+const RAILROAD_RENT_LABELS = ['1 Railroad', '2 Railroads', '3 Railroads', '4 Railroads'];
+
+interface StreetRentProps extends SectionProps {
+  rent: number[];
+}
+
+const StreetRent: React.FC<StreetRentProps> = ({ tile, owner, rent, styles }) => {
+  // The owner's current rent tier is highlighted; index 5 is the hotel.
+  const currentTier =
+    owner && !owner.mortgaged.includes(tile.id) ? owner.houses[tile.id] || 0 : null;
+  return (
+    <View style={styles.rentSection}>
+      {STREET_RENT_LABELS.map((label, index) => (
+        <View key={label} style={[styles.rentRow, currentTier === index && styles.activeRentRow]}>
+          <Text style={styles.rentLabel}>{label}</Text>
+          <Text style={styles.rentValue}>${rent.at(index)}</Text>
+        </View>
+      ))}
+      <Text style={styles.note}>
+        Rent is doubled on unimproved sites in that group if player owns all sites.
+      </Text>
+    </View>
+  );
+};
+
+interface RailroadRentProps {
+  rent: number[];
+  styles: Styles;
+}
+
+const RailroadRent: React.FC<RailroadRentProps> = ({ rent, styles }) => (
+  <View style={styles.rentSection}>
+    {rent.map((val, index) => (
+      <View key={index} style={styles.rentRow}>
+        <Text style={styles.rentLabel}>Rent if own {RAILROAD_RENT_LABELS.at(index)}</Text>
+        <Text style={styles.rentValue}>${val}</Text>
+      </View>
+    ))}
+  </View>
+);
+
+const RentDetails: React.FC<SectionProps> = ({ tile, owner, styles }) => {
+  if (tile.type === 'street' && tile.rent) {
+    return <StreetRent tile={tile} owner={owner} rent={tile.rent} styles={styles} />;
+  }
+  if (tile.type === 'railroad' && tile.rent) {
+    return <RailroadRent rent={tile.rent} styles={styles} />;
+  }
+  if (tile.type === 'utility') {
+    return (
+      <View style={styles.rentSection}>
+        <Text style={styles.text}>If one utility is owned, rent is 4x amount shown on dice.</Text>
+        <Text style={styles.text}>
+          If both utilities are owned, rent is 10x amount shown on dice.
+        </Text>
+      </View>
+    );
+  }
+  return null;
+};
+
+interface OwnerStatusProps extends SectionProps {
+  owner: Player;
+}
+
+const OwnerStatus: React.FC<OwnerStatusProps> = ({ tile, owner, styles }) => {
+  const isMortgaged = owner.mortgaged.includes(tile.id);
+  const houseCount = owner.houses[tile.id] || 0;
+  return (
+    <>
+      <Text style={styles.text}>Owned by: {owner.name}</Text>
+      {isMortgaged && <Text style={styles.mortgagedText}>MORTGAGED</Text>}
+      {tile.type === 'street' && !isMortgaged && (
+        <Text style={styles.text}>Houses: {houseCount === 5 ? 'Hotel' : houseCount}</Text>
+      )}
+    </>
+  );
+};
+
+// Price & status.
+const PriceSection: React.FC<SectionProps> = ({ tile, owner, styles }) => {
+  const isTax = tile.type === 'tax';
+  return (
+    <View style={styles.section}>
+      {tile.price && (
+        <View style={styles.row}>
+          <Text style={styles.text}>{isTax ? 'Tax Amount:' : 'Price:'}</Text>
+          <Text style={styles.text}>${tile.price}</Text>
+        </View>
+      )}
+      {owner ? (
+        <OwnerStatus tile={tile} owner={owner} styles={styles} />
+      ) : // "Unowned" only for buyable tiles: taxes have a price but can't be owned.
+      tile.price && !isTax ? (
+        <Text style={[styles.text, { fontStyle: 'italic', marginTop: 5 }]}>Unowned</Text>
+      ) : null}
+    </View>
+  );
+};
+
+interface CostsSectionProps {
+  tile: Tile;
+  styles: Styles;
+}
+
+const CostsSection: React.FC<CostsSectionProps> = ({ tile, styles }) => (
+  <View style={styles.section}>
+    {tile.houseCost && (
+      <View style={styles.row}>
+        <Text style={styles.text}>Cost of Houses/Hotels:</Text>
+        <Text style={styles.text}>${tile.houseCost} each</Text>
+      </View>
+    )}
+    {tile.mortgageValue && (
+      <View style={styles.row}>
+        <Text style={styles.text}>Mortgage Value:</Text>
+        <Text style={styles.text}>${tile.mortgageValue}</Text>
+      </View>
+    )}
+  </View>
+);
+
+const TileBody: React.FC<SectionProps> = ({ tile, owner, styles }) => (
+  <ScrollView style={styles.scrollContent}>
+    <PriceSection tile={tile} owner={owner} styles={styles} />
+    {/* Special tile description */}
+    {tile.description ? (
+      <View style={styles.section}>
+        <Text style={styles.descriptionText}>{tile.description}</Text>
+      </View>
+    ) : null}
+    <RentDetails tile={tile} owner={owner} styles={styles} />
+    <CostsSection tile={tile} styles={styles} />
+  </ScrollView>
+);
+
+export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose, overlay }) => {
   // Hook must run before the early return below to keep hook order stable.
   const isPhone = useGameLayout() === 'phone';
   const styles = createStyles(useTheme());
@@ -26,89 +182,11 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
   // table) would still reconcile on every parent re-render. Cheap early-exit.
   if (!tile || !visible) return null;
 
-  const isStreet = tile.type === 'street';
-  const isRailroad = tile.type === 'railroad';
-  const isUtility = tile.type === 'utility';
-  const isTax = tile.type === 'tax';
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
-  const textColor = ['brown', 'dark_blue', 'railroad'].includes(tile.group || '') ? '#fff' : '#000';
-
-  const houseCount = owner?.houses[tile.id] || 0;
-  const isMortgaged = owner?.mortgaged.includes(tile.id) || false;
-
-  const renderRentDetails = () => {
-    if (isStreet && tile.rent) {
-      const rents = [
-        { label: 'Rent', value: tile.rent[0] },
-        { label: 'With 1 House', value: tile.rent[1] },
-        { label: 'With 2 Houses', value: tile.rent[2] },
-        { label: 'With 3 Houses', value: tile.rent[3] },
-        { label: 'With 4 Houses', value: tile.rent[4] },
-        { label: 'With Hotel', value: tile.rent[5] },
-      ];
-
-      return (
-        <View style={styles.rentSection}>
-          {rents.map((r, index) => {
-            const isCurrent = !isMortgaged && houseCount === index && !!owner;
-            // index 5 is hotel (5 houses)
-
-            return (
-              <View key={index} style={[styles.rentRow, isCurrent && styles.activeRentRow]}>
-                <Text style={styles.rentLabel}>{r.label}</Text>
-                <Text style={styles.rentValue}>${r.value}</Text>
-              </View>
-            );
-          })}
-          <Text style={styles.note}>
-            Rent is doubled on unimproved sites in that group if player owns all sites.
-          </Text>
-        </View>
-      );
-    }
-
-    if (isRailroad && tile.rent) {
-      const rrLabels = ['1 Railroad', '2 Railroads', '3 Railroads', '4 Railroads'];
-      return (
-        <View style={styles.rentSection}>
-          {tile.rent.map((val, index) => (
-            <View key={index} style={styles.rentRow}>
-              <Text style={styles.rentLabel}>Rent if own {rrLabels[index]}</Text>
-              <Text style={styles.rentValue}>${val}</Text>
-            </View>
-          ))}
-        </View>
-      );
-    }
-
-    if (isUtility) {
-      return (
-        <View style={styles.rentSection}>
-          <Text style={styles.text}>If one utility is owned, rent is 4x amount shown on dice.</Text>
-          <Text style={styles.text}>
-            If both utilities are owned, rent is 10x amount shown on dice.
-          </Text>
-        </View>
-      );
-    }
-
-    return null;
-  };
-
-  const renderDescription = () => {
-    const desc = tile.description;
-    if (desc) {
-      return (
-        <View style={styles.section}>
-          <Text style={styles.descriptionText}>{desc}</Text>
-        </View>
-      );
-    }
-    return null;
-  };
+  const textColor = DARK_GROUPS.includes(tile.group || '') ? '#fff' : '#000';
 
   return (
-    <FullScreenModalShell visible={visible} onClose={onClose} title={tile?.name ?? 'Tile'}>
+    <FullScreenModalShell visible={visible} onClose={onClose} title={tile.name} overlay={overlay}>
       <View style={isPhone ? styles.phoneContainer : styles.overlayContainer}>
         {!isPhone && <View style={styles.backdrop} onTouchEnd={onClose} />}
         <View style={isPhone ? styles.phoneContent : styles.modalContent}>
@@ -122,59 +200,7 @@ export const TileInfoModal: React.FC<Props> = ({ visible, tile, owner, onClose }
             </View>
           )}
 
-          <ScrollView style={styles.scrollContent}>
-            {/* Price & Status */}
-            <View style={styles.section}>
-              {tile.price && (
-                <View style={styles.row}>
-                  {isTax ? (
-                    <Text style={styles.text}>Tax Amount:</Text>
-                  ) : (
-                    <Text style={styles.text}>Price:</Text>
-                  )}
-                  <Text style={styles.text}>${tile.price}</Text>
-                </View>
-              )}
-
-              {owner ? (
-                <>
-                  <Text style={styles.text}>Owned by: {owner.name}</Text>
-                  {isMortgaged && <Text style={styles.mortgagedText}>MORTGAGED</Text>}
-                  {isStreet && !isMortgaged && (
-                    <Text style={styles.text}>
-                      Houses: {houseCount === 5 ? 'Hotel' : houseCount}
-                    </Text>
-                  )}
-                </>
-              ) : // Show "Unowned" only if it's buyable (has price and NOT tax)
-              // Actually, taxes have price but aren't ownable.
-              tile.price && !isTax ? (
-                <Text style={[styles.text, { fontStyle: 'italic', marginTop: 5 }]}>Unowned</Text>
-              ) : null}
-            </View>
-
-            {/* Special Tile Description */}
-            {renderDescription()}
-
-            {/* Rent Details */}
-            {renderRentDetails()}
-
-            {/* Costs */}
-            <View style={styles.section}>
-              {tile.houseCost && (
-                <View style={styles.row}>
-                  <Text style={styles.text}>Cost of Houses/Hotels:</Text>
-                  <Text style={styles.text}>${tile.houseCost} each</Text>
-                </View>
-              )}
-              {tile.mortgageValue && (
-                <View style={styles.row}>
-                  <Text style={styles.text}>Mortgage Value:</Text>
-                  <Text style={styles.text}>${tile.mortgageValue}</Text>
-                </View>
-              )}
-            </View>
-          </ScrollView>
+          <TileBody tile={tile} owner={owner} styles={styles} />
 
           {!isPhone && (
             <View style={styles.footer}>
