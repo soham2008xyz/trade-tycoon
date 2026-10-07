@@ -148,7 +148,10 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
           />
         ))}
       {showControls && (
-        <View style={[styles.controls, !isTurn && styles.inactiveDim]}>
+        // Not dimmed: off-turn every button here is already disabled-grey, and on
+        // Android a parent opacity fades each child separately, so a dim row
+        // shows boxes behind the button labels (#316).
+        <View style={styles.controls}>
           <View style={styles.bidButtons}>
             {increments.map((inc) => {
               const bidAmount = currentBid + inc;

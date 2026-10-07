@@ -439,3 +439,9 @@
   shows for actions the server answers with 409. `CONTINUE_TURN` returns to
   the roll phase with `doublesCount > 0`, so "roll phase" does not mean "start
   of turn"; check `doublesCount` when that matters.
+- Android parent opacity (#316): `opacity` on a container fades each child
+  separately, so a child with `elevation` / `boxShadow` shows its shadow
+  through its own translucent fill as a box. Disabled `IconButton`s are flat
+  for this reason; the rule is in `apps/client/AGENTS.md` (Platform guards).
+  No Android SDK on the user's Mac (2026-10-07), so Android fixes can only be
+  checked on web or iOS locally.
