@@ -476,3 +476,9 @@
   It also runs `@typescript-eslint/prefer-nullish-coalescing` on `||` in an
   `if` condition (`if (a || !b) return;`), so split such a guard into two
   separate `if` statements.
+- Check anything drawn inside board tiles at the 320px minimum board
+  (`MIN_BOARD_SIZE`), not just a 375px phone: top/bottom tile content boxes
+  shrink to ~23x42 there, and the compact-tile glyphs (#318) first collided
+  with the 8px owner dot only at that size. Measuring with
+  `getBoundingClientRect` in the web build at a 320px viewport is enough to
+  catch it without owning a property.

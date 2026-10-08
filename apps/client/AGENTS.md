@@ -318,6 +318,19 @@ Not yet run on a device or emulator.
   menu screens don't scroll and are unreachable at
   `accessibility-extra-extra-extra-large`.
 
+- **Compact tiles swap the name for a type icon** (#318). Below
+  `COMPACT_TILE_THRESHOLD` edge tiles drop their name; non-street tiles draw
+  a MaterialCommunityIcons glyph instead (`tile-glyphs.ts`), streets keep
+  their colour bar. Icons are font glyphs, so they take the same
+  `maxFontSizeMultiplier` cap as tile text. `CompactTileGlyph` is a literal
+  union because the `.ts` file can't import `@expo/vector-icons`; a misspelt
+  name fails `tsc` at the `Tile.tsx` call site, but check new names against
+  `node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/MaterialCommunityIcons.json`
+  anyway. The glyph is 10px and the owner dot has `zIndex: 1`: on the
+  320px minimum board a 12px glyph reached the dot's corner on top/bottom
+  railroads and Water Works. Verified in the web build at 320px and 375px;
+  not re-run on Android or iOS.
+
 - **Tablet layout keeps controls put and tokens off the text** (#268).
   `TabletCenter` is top-aligned and gives each control a fixed slot (dice;
   decision zone for buy/auction, jail options and "waiting"; Manage; one
