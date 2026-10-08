@@ -32,7 +32,9 @@ const STRIPES = Array.from({ length: 40 });
 
 // Fixed, like the cream tile background: board colours don't theme.
 const GLYPH_COLOR = '#333';
-const GLYPH_SIZE = 12;
+// 10, not larger: on the smallest (320px) board a top/bottom tile's content
+// box is ~23x42, and a 12px glyph reached into the owner dot's corner.
+const GLYPH_SIZE = 10;
 
 // Tiles have fixed pixel dimensions set by the board layout, so OS text-size
 // scaling would break labels mid-word or clip prices. 1 disables scaling.
@@ -185,6 +187,9 @@ const styles = StyleSheet.create({
   },
   ownerIndicator: {
     position: 'absolute',
+    // Ownership must stay visible if a compact glyph ever reaches this corner;
+    // the mortgage overlay (zIndex 10) still covers both.
+    zIndex: 1,
     top: 2,
     right: 2,
     width: 8,
