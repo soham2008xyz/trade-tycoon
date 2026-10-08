@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "render": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "dotenv-cli@latest",
+        "-e",
+        ".env",
+        "--",
+        "sh",
+        "-c",
+        "exec npx -y mcp-remote@latest https://mcp.render.com/mcp --header \"Authorization: Bearer $RENDER_API_KEY\""
+      ]
+    }
+  }
+}
