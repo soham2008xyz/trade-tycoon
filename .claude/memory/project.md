@@ -495,3 +495,11 @@
   web/private services, not static sites, and Expo needs a full `https://`
   URL anyway. Render Key Value's internal URL works only from the same region,
   so the server and the Key Value instance must share a `region`.
+- Prettier reflows a markdown paragraph line that starts with `+ ` (or `- `)
+  into a list item. Wrapping "(static web client\n+ server + …)" turned the
+  AGENTS.md "Standby stack" paragraph into a stray bullet. Don't let a
+  wrapped line begin with `+`, `-` or `*` in prose.
+- The Render standby is kept awake by `keep-render-awake.yml` (GitHub Actions,
+  free on this public repo) rather than a Render cron job, which has a $1/month
+  minimum. Always-on uses up to 744 of the workspace's 750 free hours, so a
+  second free Render web service would get every free service suspended.

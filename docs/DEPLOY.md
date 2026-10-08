@@ -146,6 +146,10 @@ Validate edits locally with
 - **The server spins down** after 15 minutes without inbound requests. The
   next request waits roughly a minute while it boots. The client has no fetch
   timeout, so the first "Create room" just hangs until the server is up.
+  `.github/workflows/keep-render-awake.yml` pings `/api/health` every 10
+  minutes to prevent this. GitHub can delay scheduled runs, so the server
+  may still sleep occasionally. Run the workflow by hand from the Actions tab
+  to wake it.
 - **Key Value is not persisted.** A restart or maintenance wipes every room.
   Players with a stored session get `session_expired` on Resume and start
   over. Upgrading the instance to a paid plan also wipes it.
@@ -153,8 +157,11 @@ Validate edits locally with
   own subscriber connection (see `RedisEventBus`), so the instance's
   connection cap bounds concurrent web players.
 - **750 free instance hours per workspace per month**, shared by every free
-  web service in the workspace. If they run out, the server is suspended
-  until the next month.
+  web service in the workspace. If they run out, every free web service is
+  suspended until the next month. Kept awake, this server uses up to 744
+  hours (a 31-day month), so it fits only while it's the workspace's sole
+  free web service. Static sites don't count. Before adding a second free
+  web service, disable the keep-awake workflow.
 
 ### Verifying
 
