@@ -3,7 +3,7 @@ import request from 'supertest';
 import app from './index';
 
 describe('rate limiting behind a proxy', () => {
-  // Vercel and Render both terminate requests at a proxy, so the socket peer
+  // Vercel and Render both terminate requests at proxies, so the socket peer
   // is the proxy and the real client is in X-Forwarded-For. Without
   // `trust proxy`, every player shares the proxy's single rate-limit bucket.
   it('gives each forwarded client IP its own bucket', async () => {

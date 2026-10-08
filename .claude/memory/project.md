@@ -482,12 +482,14 @@
   with the 8px owner dot only at that size. Measuring with
   `getBoundingClientRect` in the web build at a 320px viewport is enough to
   catch it without owning a property.
-- The server sits behind exactly one proxy on both Vercel and Render, so
-  `index.ts` sets `trust proxy` to `1`. Before this, `req.ip` was the proxy
-  and every player shared one 120/min rate-limit bucket. Render's hop count
-  is assumed, not measured. Confirming it needs requests from two different
-  networks (`docs/DEPLOY.md` → "Render standby"). A spoofed header from one
-  machine only detects over-trusting, not a missing hop.
+- Proxy hop counts differ per host: Vercel has one, Render has several (3
+  per a community report). `trust proxy` comes from `TRUST_PROXY_HOPS`
+  (default 1; `render.yaml` sets Render's). Shipping `1` on Render made
+  `req.ip` an internal proxy address that changed per connection: plain
+  curls from one laptop landed in different rate-limit buckets. A single
+  machine can diagnose this: too low → plain calls jump between counts; too
+  high → a spoofed X-Forwarded-For starts a fresh count. Render keeps no
+  request logs on the free plan, so curl the `ratelimit-remaining` header.
 - `render.yaml` hardcodes the `onrender.com` URLs in `ALLOWED_ORIGINS` and
   `EXPO_PUBLIC_SERVER_URL`. Blueprint `fromService` exposes `host` only for
   web/private services, not static sites, and Expo needs a full `https://`

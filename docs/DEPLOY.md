@@ -162,22 +162,25 @@ Run the same curl checks as [Verifying a deploy](#verifying-a-deploy) against
 `https://trade-tycoon-server.onrender.com`, then open the web client and
 create a room.
 
-To confirm the `trust proxy` hop count behind Render's proxy, compare two
-networks. The free plan runs one instance with one in-memory limiter, so the
-counts are comparable:
+Render puts several proxies in front of the app, so `render.yaml` sets
+`TRUST_PROXY_HOPS` (default `1` is right for Vercel). To confirm the value,
+run this from one machine a few times within a minute, then repeat with
+`-H 'X-Forwarded-For: 9.9.9.1'` and `-H 'X-Forwarded-For: 9.9.9.2'`:
 
 ```bash
 curl -si https://trade-tycoon-server.onrender.com/api/rooms | grep -i ratelimit-remaining
 ```
 
-1. Run it a few times from your laptop. The count should fall (119, 118, …).
-2. Run it once from a different network, such as a phone hotspot. It should
-   start at 119 again. If it carries on from the laptop's count, everyone is
-   sharing one bucket: Render has more than one proxy hop and the setting is
-   too low.
-3. Run it from the laptop with `-H 'X-Forwarded-For: 1.2.3.4'`. It should
-   carry on from the laptop's count. If it starts at 119, the setting is too
-   high and clients can mint fresh buckets by spoofing the header.
+- **Correct:** every call, spoofed or not, counts down one shared sequence
+  (119, 118, 117, …).
+- **Too low:** plain calls jump between unrelated counts. `req.ip` is
+  whichever internal Render proxy handled the connection, so players share
+  per-proxy buckets. This is what `1` did on Render.
+- **Too high:** a spoofed header starts a fresh count at 119. Clients could
+  dodge the limit by faking the header.
+
+Change the value in `render.yaml`, not the dashboard: a Blueprint sync
+overwrites dashboard edits.
 
 ## Local development
 

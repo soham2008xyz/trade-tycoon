@@ -49,6 +49,11 @@ services:
           property: connectionString
       - key: ALLOWED_ORIGINS
         value: https://trade-tycoon-web.onrender.com
+      # Render puts several proxies in front of the app (Vercel has one). With
+      # the default of 1, req.ip was an internal proxy address and players
+      # shared rate-limit buckets. Measured value; re-check per docs/DEPLOY.md.
+      - key: TRUST_PROXY_HOPS
+        value: '3'
 
   - type: web
     name: trade-tycoon-web

@@ -12,6 +12,7 @@ import { RedisPresenceStore } from './presence/RedisPresenceStore';
 import { createRoomsRouter } from './routes/rooms';
 import { createEventsRouter } from './routes/events';
 import { errorHandler } from './middleware/errors';
+import { parseTrustProxyHops } from './trustProxy';
 import type { RoomStore } from './store/RoomStore';
 import type { EventBus } from './events/EventBus';
 import type { PresenceStore } from './presence/PresenceStore';
@@ -87,12 +88,9 @@ const configuredOrigins = process.env.ALLOWED_ORIGINS?.split(',')
 const allowedOrigins =
   configuredOrigins && configuredOrigins.length > 0 ? configuredOrigins : DEFAULT_DEV_ORIGINS;
 
-// Vercel and Render both put one proxy in front of the app, so the socket
-// peer is that proxy and the client IP is the last X-Forwarded-For entry.
-// Without this, `req.ip` is the proxy's address and every player shares one
-// rate-limit bucket. Trust exactly one hop: `true` would let a client spoof
-// its own bucket by sending its own X-Forwarded-For.
-app.set('trust proxy', 1);
+// The rate limiter keys on `req.ip`, which is only the client's address if
+// Express skips exactly the proxies in front of it. See trustProxy.ts.
+app.set('trust proxy', parseTrustProxyHops(process.env.TRUST_PROXY_HOPS));
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '64kb' }));
 

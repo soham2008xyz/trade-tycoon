@@ -16,6 +16,7 @@ workspace.
 src/
   index.ts                    Express app + buildBackends() wiring
   index.test.ts               trust proxy / per-IP rate-limit test
+  trustProxy.ts               TRUST_PROXY_HOPS parsing
   RoomManager.ts              Business logic — async, takes a RoomStore
   serialize.ts                Wire boundary: strips sessions/errorMessage
   middleware/
@@ -177,12 +178,14 @@ local dev but must be set explicitly in any deployed environment. See
 
 ## Proxies and rate limiting
 
-`index.ts` sets `app.set('trust proxy', 1)`. Vercel and Render each put one
-proxy in front of the app, so without it `req.ip` is the proxy's address
-and `express-rate-limit` puts every player in one shared bucket (native
-polling exhausts it fast). Keep the hop count at exactly 1: `true` trusts
-the whole X-Forwarded-For chain and lets a client mint a fresh bucket per
-request by spoofing the header. `index.test.ts` pins the per-IP behaviour.
+`index.ts` sets Express's `trust proxy` to a hop count from
+`TRUST_PROXY_HOPS` (parsed in `trustProxy.ts`, default `1`). Vercel has one
+proxy in front of the app; Render has several, so `render.yaml` sets it. If
+the count is too low, `req.ip` is an internal proxy address and
+`express-rate-limit` puts players into shared buckets (native polling
+exhausts them fast). If it's too high — or `true` — a client can mint a fresh
+bucket per request by spoofing X-Forwarded-For. `index.test.ts` pins the
+per-IP behaviour at the default; `docs/DEPLOY.md` has the live check.
 
 ## Vercel + ioredis gotchas
 
