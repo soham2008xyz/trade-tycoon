@@ -6,7 +6,8 @@
 #
 # The onrender.com URLs below are hardcoded because a static site can't read
 # another service's host through `fromService`. If Render assigns a suffixed
-# subdomain (name taken), update ALLOWED_ORIGINS and EXPO_PUBLIC_SERVER_URL.
+# subdomain (name taken), update ALLOWED_ORIGINS, EXPO_PUBLIC_SERVER_URL and
+# the ping URL in .github/workflows/keep-render-awake.yml.
 
 services:
   - type: keyvalue

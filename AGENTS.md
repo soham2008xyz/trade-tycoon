@@ -54,11 +54,12 @@ duplication is not.
 backends are pluggable: in-memory for tests/dev, Redis-backed when
 `REDIS_URL` is set. See `docs/DEPLOY.md` for the env-var reference.
 
-**Standby stack:** `render.yaml` deploys a separate copy (static web client
-
-- server + Render Key Value) on Render's free plans. It shares no state
-  with Vercel/Upstash, and native apps don't use it. Details and free-plan
-  limits are in `docs/DEPLOY.md` → "Render standby".
+**Standby stack:** `render.yaml` deploys a separate copy (static web
+client, server and Render Key Value) on Render's free plans. It shares no
+state with Vercel/Upstash, and native apps don't use it. A scheduled
+workflow (`.github/workflows/keep-render-awake.yml`) keeps the free server
+from spinning down. Details and free-plan limits are in `docs/DEPLOY.md` →
+"Render standby".
 
 **Key directives:**
 

@@ -482,8 +482,10 @@
   with the 8px owner dot only at that size. Measuring with
   `getBoundingClientRect` in the web build at a 320px viewport is enough to
   catch it without owning a property.
-- Proxy hop counts differ per host: Vercel has one, Render has several (3
-  per a community report). `trust proxy` comes from `TRUST_PROXY_HOPS`
+- Proxy hop counts differ per host: Vercel has one, Render has 3, measured
+  live on 2026-10-08. With 3, plain and spoofed requests (1 to 3 fake
+  X-Forwarded-For entries) all counted down one shared bucket, so 3 is
+  neither too low nor too high. `trust proxy` comes from `TRUST_PROXY_HOPS`
   (default 1; `render.yaml` sets Render's). Shipping `1` on Render made
   `req.ip` an internal proxy address that changed per connection: plain
   curls from one laptop landed in different rate-limit buckets. A single
@@ -495,3 +497,11 @@
   web/private services, not static sites, and Expo needs a full `https://`
   URL anyway. Render Key Value's internal URL works only from the same region,
   so the server and the Key Value instance must share a `region`.
+- Prettier reflows a markdown paragraph line that starts with `+` or `-`
+  followed by a space into a list item. Wrapping "(static web client\n+ server + …)" turned the
+  AGENTS.md "Standby stack" paragraph into a stray bullet. Don't let a
+  wrapped line begin with `+`, `-` or `*` in prose.
+- The Render standby is kept awake by `keep-render-awake.yml` (GitHub Actions,
+  free on this public repo) rather than a Render cron job, which has a $1/month
+  minimum. Always-on uses up to 744 of the workspace's 750 free hours, so a
+  second free Render web service would get every free service suspended.
