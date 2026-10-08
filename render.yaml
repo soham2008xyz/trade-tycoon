@@ -1,0 +1,72 @@
+# Render Blueprint — a self-contained standby stack (web client + API server +
+# Key Value) on Render's free plans. Production stays on Vercel + Upstash; this
+# stack shares no state with it, so rooms created here are only visible to
+# players on the Render web client. Native apps keep pointing at Vercel.
+# Setup, limits and verification: docs/DEPLOY.md → "Render standby".
+#
+# The onrender.com URLs below are hardcoded because a static site can't read
+# another service's host through `fromService`. If Render assigns a suffixed
+# subdomain (name taken), update ALLOWED_ORIGINS and EXPO_PUBLIC_SERVER_URL.
+
+services:
+  - type: keyvalue
+    name: trade-tycoon-kv
+    plan: free
+    region: singapore
+    # Empty allow list = no external access; only same-region Render services
+    # in this workspace can connect, over the internal URL.
+    ipAllowList: []
+    # Every key carries a 24h TTL that is refreshed on write, so under memory
+    # pressure this evicts the rooms that have been idle longest instead of
+    # failing every write (noeviction).
+    maxmemoryPolicy: volatile-ttl
+
+  - type: web
+    name: trade-tycoon-server
+    runtime: node
+    plan: free
+    # Must match the Key Value region: internal connections are same-region only.
+    region: singapore
+    # Repo root, not apps/server: the server depends on the game-logic
+    # workspace, and `npm ci` needs the root lockfile. Node 24 comes from .nvmrc.
+    buildCommand: npm ci && npm run build --workspace=apps/server
+    startCommand: node apps/server/dist/index.js
+    healthCheckPath: /api/health
+    buildFilter:
+      paths:
+        - apps/server/**
+        - packages/game-logic/**
+        - package.json
+        - package-lock.json
+        - .nvmrc
+        - patches/**
+        - render.yaml
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: trade-tycoon-kv
+          property: connectionString
+      - key: ALLOWED_ORIGINS
+        value: https://trade-tycoon-web.onrender.com
+
+  - type: web
+    name: trade-tycoon-web
+    runtime: static
+    # game-logic's package.json points at its gitignored dist/, so it must be
+    # built before Metro can resolve it.
+    buildCommand: npm ci && npm run build:game-logic && npm run export
+    staticPublishPath: apps/client/dist
+    buildFilter:
+      paths:
+        - apps/client/**
+        - packages/game-logic/**
+        - package.json
+        - package-lock.json
+        - .nvmrc
+        - patches/**
+        - render.yaml
+    envVars:
+      # Inlined at build time — changing it needs a redeploy.
+      - key: EXPO_PUBLIC_SERVER_URL
+        value: https://trade-tycoon-server.onrender.com
