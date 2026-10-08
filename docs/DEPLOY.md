@@ -132,7 +132,8 @@ and then the two stacks would also need to share one Redis.
    wired from the Key Value instance automatically.
 2. Once the services exist, check their `onrender.com` URLs. If Render
    suffixed a name because it was taken, fix `ALLOWED_ORIGINS` and
-   `EXPO_PUBLIC_SERVER_URL` in `render.yaml` and push.
+   `EXPO_PUBLIC_SERVER_URL` in `render.yaml`, and the ping URL in
+   `.github/workflows/keep-render-awake.yml`, then push.
    `EXPO_PUBLIC_SERVER_URL` is inlined when Metro transforms the code, and a
    warm Metro cache keeps the old value. After changing it, use **Manual
    Deploy → Clear build cache & deploy**. Locally, pass `--clear` to
@@ -149,7 +150,10 @@ Validate edits locally with
   `.github/workflows/keep-render-awake.yml` pings `/api/health` every 10
   minutes to prevent this. GitHub can delay scheduled runs, so the server
   may still sleep occasionally. Run the workflow by hand from the Actions tab
-  to wake it.
+  to wake it. GitHub also disables scheduled workflows in a public repo after
+  60 days without repository activity, and emails the repo owner first. If
+  that happens, the server goes back to sleeping when idle. Re-enable the
+  workflow from the Actions tab.
 - **Key Value is not persisted.** A restart or maintenance wipes every room.
   Players with a stored session get `session_expired` on Resume and start
   over. Upgrading the instance to a paid plan also wipes it.
