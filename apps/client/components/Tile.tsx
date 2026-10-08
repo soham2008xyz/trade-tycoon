@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle, Pressable } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tile as TileType, Player } from '@trade-tycoon/game-logic';
 import { GROUP_COLORS } from '../constants';
 import { getTileAccessibilityLabel } from './tile-labels';
+import { getCompactTileGlyph } from './tile-glyphs';
 
 interface Props {
   tile: TileType;
@@ -20,12 +22,17 @@ interface Props {
   /**
    * When true, edge tiles render without the name text. Used on narrow
    * boards (phone, narrow web window) where 33pt-wide tiles can't fit a
-   * readable label. Corners are unaffected.
+   * readable label. Non-street tiles draw a type icon in its place (#318),
+   * since they have no colour bar to identify them. Corners are unaffected.
    */
   compact?: boolean;
 }
 
 const STRIPES = Array.from({ length: 40 });
+
+// Fixed, like the cream tile background: board colours don't theme.
+const GLYPH_COLOR = '#333';
+const GLYPH_SIZE = 12;
 
 // Tiles have fixed pixel dimensions set by the board layout, so OS text-size
 // scaling would break labels mid-word or clip prices. 1 disables scaling.
@@ -111,6 +118,8 @@ const TileComponent: React.FC<Props> = ({
   const houseCount = owner?.houses[tile.id] || 0;
   const isMortgaged = owner?.mortgaged.includes(tile.id);
   const flexDirection = FLEX_DIRECTION_BY_ORIENTATION.get(orientation) ?? 'column';
+  const hideName = compact && orientation !== 'corner';
+  const glyph = hideName ? getCompactTileGlyph(tile) : null;
 
   return (
     <Pressable
@@ -133,7 +142,18 @@ const TileComponent: React.FC<Props> = ({
       {renderColorBar(isStreet, color, orientation, houseCount)}
       <View style={styles.content}>
         {owner && <View style={[styles.ownerIndicator, { backgroundColor: owner.color }]} />}
-        {!(compact && orientation !== 'corner') && (
+        {glyph && (
+          // The icon is a font glyph, so cap its scaling like the tile text.
+          // The Pressable's accessibilityLabel already names the tile.
+          <MaterialCommunityIcons
+            name={glyph}
+            size={GLYPH_SIZE}
+            color={GLYPH_COLOR}
+            maxFontSizeMultiplier={TILE_MAX_FONT_SCALE}
+            accessible={false}
+          />
+        )}
+        {!hideName && (
           <Text
             maxFontSizeMultiplier={TILE_MAX_FONT_SCALE}
             style={[styles.text, { fontSize: orientation === 'corner' ? 10 : 8 }]}
