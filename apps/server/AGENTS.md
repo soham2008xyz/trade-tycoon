@@ -15,6 +15,7 @@ workspace.
 ```text
 src/
   index.ts                    Express app + buildBackends() wiring
+  index.test.ts               trust proxy / per-IP rate-limit test
   RoomManager.ts              Business logic — async, takes a RoomStore
   serialize.ts                Wire boundary: strips sessions/errorMessage
   middleware/
@@ -173,6 +174,15 @@ to that list; unset falls back to a fixed localhost allowlist
 CodeQL flags a wildcard origin as overly permissive — this is fine for
 local dev but must be set explicitly in any deployed environment. See
 `docs/DEPLOY.md` for the env var table.
+
+## Proxies and rate limiting
+
+`index.ts` sets `app.set('trust proxy', 1)`. Vercel and Render each put one
+proxy in front of the app, so without it `req.ip` is the proxy's address
+and `express-rate-limit` puts every player in one shared bucket (native
+polling exhausts it fast). Keep the hop count at exactly 1: `true` trusts
+the whole X-Forwarded-For chain and lets a client mint a fresh bucket per
+request by spoofing the header. `index.test.ts` pins the per-IP behaviour.
 
 ## Vercel + ioredis gotchas
 

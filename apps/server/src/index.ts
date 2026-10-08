@@ -86,6 +86,13 @@ const configuredOrigins = process.env.ALLOWED_ORIGINS?.split(',')
   .filter(Boolean);
 const allowedOrigins =
   configuredOrigins && configuredOrigins.length > 0 ? configuredOrigins : DEFAULT_DEV_ORIGINS;
+
+// Vercel and Render both put one proxy in front of the app, so the socket
+// peer is that proxy and the client IP is the last X-Forwarded-For entry.
+// Without this, `req.ip` is the proxy's address and every player shares one
+// rate-limit bucket. Trust exactly one hop: `true` would let a client spoof
+// its own bucket by sending its own X-Forwarded-For.
+app.set('trust proxy', 1);
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '64kb' }));
 

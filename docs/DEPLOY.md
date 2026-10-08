@@ -2,6 +2,8 @@
 
 The two halves of Trade Tycoon are deployed separately. The client is a static
 Expo Web export; the server is a Node.js Express app. Both run on Vercel.
+A separate standby copy of both runs on Render's free plans — see
+[Render standby](#render-standby).
 
 ## Architecture quick recap
 
@@ -105,6 +107,78 @@ If the join returns `404` for a room you just created, Redis isn't wired up —
 the two requests hit different function instances and the second one had no
 state to look up. Check `REDIS_URL` is set.
 
+## Render standby
+
+`render.yaml` at the repo root is a Render Blueprint for a second,
+self-contained stack, all on free plans in the Singapore region:
+
+| Service               | Type                 | URL                                        |
+| --------------------- | -------------------- | ------------------------------------------ |
+| `trade-tycoon-web`    | Static site          | `https://trade-tycoon-web.onrender.com`    |
+| `trade-tycoon-server` | Node web service     | `https://trade-tycoon-server.onrender.com` |
+| `trade-tycoon-kv`     | Key Value (Valkey 8) | internal only (`ipAllowList: []`)          |
+
+It shares nothing with production. The Render web client talks only to the
+Render server, which stores rooms in Render Key Value instead of Upstash, so a
+room created on one stack can't be joined from the other. Native apps keep
+using the Vercel server. Moving them over would need a DNS cutover of
+`trade-tycoon-server.sohambanerjee.me` (a Cloudflare CNAME to Vercel today),
+and then the two stacks would also need to share one Redis.
+
+### Setting it up
+
+1. Render Dashboard → **New → Blueprint** → pick this repo, branch `master`.
+   Render reads `render.yaml` and creates all three services. `REDIS_URL` is
+   wired from the Key Value instance automatically.
+2. Once the services exist, check their `onrender.com` URLs. If Render
+   suffixed a name because it was taken, fix `ALLOWED_ORIGINS` and
+   `EXPO_PUBLIC_SERVER_URL` in `render.yaml` and push.
+   `EXPO_PUBLIC_SERVER_URL` is inlined when Metro transforms the code, and a
+   warm Metro cache keeps the old value. After changing it, use **Manual
+   Deploy → Clear build cache & deploy**. Locally, pass `--clear` to
+   `expo export`.
+
+Validate edits locally with
+`render blueprints validate render.yaml --workspace <workspace-id>`.
+
+### Free-plan limits
+
+- **The server spins down** after 15 minutes without inbound requests. The
+  next request waits roughly a minute while it boots. The client has no fetch
+  timeout, so the first "Create room" just hangs until the server is up.
+- **Key Value is not persisted.** A restart or maintenance wipes every room.
+  Players with a stored session get `session_expired` on Resume and start
+  over. Upgrading the instance to a paid plan also wipes it.
+- **Key Value connections are limited.** Each open web SSE stream holds its
+  own subscriber connection (see `RedisEventBus`), so the instance's
+  connection cap bounds concurrent web players.
+- **750 free instance hours per workspace per month**, shared by every free
+  web service in the workspace. If they run out, the server is suspended
+  until the next month.
+
+### Verifying
+
+Run the same curl checks as [Verifying a deploy](#verifying-a-deploy) against
+`https://trade-tycoon-server.onrender.com`, then open the web client and
+create a room.
+
+To confirm the `trust proxy` hop count behind Render's proxy, compare two
+networks. The free plan runs one instance with one in-memory limiter, so the
+counts are comparable:
+
+```bash
+curl -si https://trade-tycoon-server.onrender.com/api/rooms | grep -i ratelimit-remaining
+```
+
+1. Run it a few times from your laptop. The count should fall (119, 118, …).
+2. Run it once from a different network, such as a phone hotspot. It should
+   start at 119 again. If it carries on from the laptop's count, everyone is
+   sharing one bucket: Render has more than one proxy hop and the setting is
+   too low.
+3. Run it from the laptop with `-H 'X-Forwarded-For: 1.2.3.4'`. It should
+   carry on from the laptop's count. If it starts at 119, the setting is too
+   high and clients can mint fresh buckets by spoofing the header.
+
 ## Local development
 
 Start everything with the composite npm script:
@@ -131,8 +205,9 @@ HTTP 400. SSE is the supported push primitive; the browser's `EventSource`
 auto-reconnects on its own when the underlying function times out (~300s on
 Vercel), so users see continuous-ish push without WebSocket lifecycle code.
 
-If you ever move the server off Vercel onto a host with WebSocket support
-(Render, Fly.io, a VPS), the abstractions in `apps/server/src/store` and
+The Render standby could support WebSockets, but it runs the same SSE code so
+the two stacks stay identical. If you ever move the server off Vercel onto a
+host with WebSocket support (Render, Fly.io, a VPS), the abstractions in `apps/server/src/store` and
 `apps/server/src/events` are deliberately small enough to swap — a future
 `WebSocketEventBus` would slot in next to `RedisEventBus` with no client-side
 changes.
