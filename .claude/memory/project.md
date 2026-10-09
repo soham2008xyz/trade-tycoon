@@ -505,3 +505,14 @@
   free on this public repo) rather than a Render cron job, which has a $1/month
   minimum. Always-on uses up to 744 of the workspace's 750 free hours, so a
   second free Render web service would get every free service suspended.
+- An unset `ALLOWED_ORIGINS` on a deployed server only allows the localhost
+  origins, so the real web client fails CORS in the browser ("Access-Control-
+  Allow-Origin missing" on the preflight, status 204) while the server logs
+  nothing. This broke the custom-domain Vercel deploy on 2026-10-09. Diagnose
+  with `curl -si -X OPTIONS <server>/api/rooms -H "Origin: <client>" -H
+"Access-Control-Request-Method: POST"` and look for the header. The Vercel
+  server needs the custom domain and the client's `.vercel.app` URL, comma-
+  separated; the Render server has its own list in `render.yaml`. Env changes
+  apply only to a new deployment, so redeploy afterwards. `allowedOrigins.ts`
+  now returns a boot warning for this case on Vercel, Render and
+  `NODE_ENV=production`.

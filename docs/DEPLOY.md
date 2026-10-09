@@ -46,7 +46,8 @@ In the server project's **Settings → Environment Variables**:
 
 `ALLOWED_ORIGINS` falls back to known local-dev origins
 (`http://localhost:8081`, `http://localhost:19006`) when unset — always set
-it explicitly in any deployed environment.
+it explicitly in any deployed environment (the server logs a warning at boot
+when it is unset on Vercel or Render).
 
 Keep the existing build command (`npm run build`) and start command
 (auto-detected from the Express app). No `vercel.json` is required —

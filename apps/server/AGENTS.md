@@ -173,7 +173,10 @@ keep it close to the existing structure.
 to that list; unset falls back to a fixed localhost allowlist
 (`http://localhost:8081`, `http://localhost:19006`) rather than `*`, since
 CodeQL flags a wildcard origin as overly permissive — this is fine for
-local dev but must be set explicitly in any deployed environment. See
+local dev but must be set explicitly in any deployed environment. The
+resolution lives in `allowedOrigins.ts`, which returns a warning that
+`index.ts` logs at boot when it is unset on Vercel/Render/`NODE_ENV=production`
+(unset there means the real web client fails CORS). See
 `docs/DEPLOY.md` for the env var table.
 
 ## Proxies and rate limiting
