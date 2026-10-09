@@ -1,5 +1,15 @@
 # Trade Tycoon
 
+![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white)
+![Expo SDK 57](https://img.shields.io/badge/Expo-SDK%2057-000020?logo=expo&logoColor=white)
+![React Native](https://img.shields.io/badge/React%20Native-0.86-61DAFB?logo=react&logoColor=black)
+![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=black)
+![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
+![Upstash Redis](https://img.shields.io/badge/Upstash-Redis-FF6B4A?logo=redis&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-5-FCC72B?logo=vitest&logoColor=black)
+![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?logo=vercel&logoColor=white)
+
 A Monopoly-style trading game with offline single-player and online
 multiplayer. The web/mobile client is built with Expo (React Native) and the
 multiplayer server is a Node.js Express app that talks REST + Server-Sent
