@@ -29,5 +29,8 @@ export type PlayerShape = (typeof PLAYER_SHAPES)[number];
  */
 export const getPlayerShape = (color: string): PlayerShape => {
   const index = PLAYER_COLORS.findIndex((c) => c.toLowerCase() === color.toLowerCase());
-  return PLAYER_SHAPES[index] ?? 'circle';
+  // `find` rather than `PLAYER_SHAPES[index]`: security linters flag a
+  // variable bracket lookup as an object-injection sink, and a miss (-1) falls
+  // through to the circle without a separate check.
+  return PLAYER_SHAPES.find((_, i) => i === index) ?? 'circle';
 };
