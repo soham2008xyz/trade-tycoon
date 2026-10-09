@@ -516,3 +516,8 @@
   apply only to a new deployment, so redeploy afterwards. `allowedOrigins.ts`
   now returns a boot warning for this case on Vercel, Render and
   `NODE_ENV=production`.
+- Player identity is color **and** shape (#361). `getPlayerShape(color)` in
+  game-logic derives the shape from the palette index, so it needs no state or
+  server work and survives reconnects. The palette (8) and shape list (8) must
+  stay the same length; max players per room is 8. Render players with the
+  client's `PlayerMarker`, not a colored `View`.

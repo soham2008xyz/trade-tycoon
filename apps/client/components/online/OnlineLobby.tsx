@@ -11,6 +11,7 @@ import type { useOnlineRoom } from '../../hooks/useOnlineRoom';
 import type { useRoomActions } from '../../hooks/useRoomActions';
 import { buildRoomShareMessage, COPIED_FEEDBACK_MS } from '../online-room-share';
 import { createOnlineStyles } from './online-styles';
+import { PlayerMarker } from '../PlayerMarker';
 
 interface Props {
   room: ReturnType<typeof useOnlineRoom>;
@@ -22,7 +23,7 @@ const PlayerRow: React.FC<{ player: LobbyPlayer; isYou: boolean }> = ({ player, 
   const styles = createOnlineStyles(useTheme());
   return (
     <View style={styles.playerRow}>
-      <View style={[styles.colorDot, { backgroundColor: player.color }]} />
+      <PlayerMarker color={player.color} size={22} style={styles.colorDot} />
       <Text style={styles.playerText}>
         {player.name} {player.isHost ? '(Host)' : ''} {isYou ? '(You)' : ''}
       </Text>

@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Player } from '@trade-tycoon/game-logic';
 import { getPlayerTokenLabel } from './jail-status';
+import { BOARD_OUTLINE, PlayerMarker } from './PlayerMarker';
 import { getInterpolatedPoint, getTokenSize } from './token-position';
 
 interface Props {
@@ -87,18 +88,8 @@ const PlayerTokenComponent: React.FC<Props> = ({
       top: 0,
       width: tokenSize,
       height: tokenSize,
-      backgroundColor: player.color,
-      borderRadius: tokenSize / 2,
-      // A 2px ring would leave a tiny dot on phone-size tokens.
-      borderWidth: tokenSize < 14 ? 1.5 : 2,
-      borderColor: 'white',
       transform: [{ translateX: point.x - tokenSize / 2 }, { translateY: point.y - tokenSize / 2 }],
       zIndex: 100 + index,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      elevation: 5,
     };
   });
 
@@ -112,6 +103,14 @@ const PlayerTokenComponent: React.FC<Props> = ({
       pointerEvents="none"
       style={style}
     >
+      {/* The shape, not just the color, tells players apart (#361). It is
+          drawn here rather than in the animated style because the shape
+          changes with the player, not with the animation. */}
+      <PlayerMarker
+        color={player.color}
+        size={getTokenSize(boardSize)}
+        outlineColor={BOARD_OUTLINE}
+      />
       {player.isInJail && (
         <View style={styles.jailMarker}>
           <MaterialCommunityIcons name="lock" size={11} color="white" />

@@ -69,9 +69,6 @@ export const createOnlineStyles = (theme: Theme) =>
       borderBottomColor: theme.border,
     },
     colorDot: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
       marginRight: 10,
     },
     playerText: {

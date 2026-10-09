@@ -12,6 +12,7 @@ import { GameOverCard } from './GameOverCard';
 import type { StatusPanelProps } from './types';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
+import { PlayerMarker } from '../PlayerMarker';
 
 interface TurnInfoProps {
   player: Player;
@@ -31,7 +32,7 @@ function TurnInfo({ player, tileName, tileGroup, panel }: TurnInfoProps) {
     <View style={styles.gameInfo}>
       <View style={styles.currentPlayerInfo}>
         <Text style={styles.statusText}>Current: </Text>
-        <View style={[styles.playerColor, { backgroundColor: player.color }]} />
+        <PlayerMarker color={player.color} size={16} style={styles.playerColor} />
         <Text style={styles.statusText}>{player.name}</Text>
         <GOOJBadge count={player.getOutOfJailCards} />
       </View>
@@ -227,7 +228,7 @@ export function TurnPanel({ panel, actions }: TurnPanelProps) {
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    playerColor: { width: 12, height: 12, marginRight: 6, borderRadius: 2, flexShrink: 0 },
+    playerColor: { marginRight: 6 },
     gameInfo: { marginBottom: 15, alignItems: 'center', gap: 4 },
     currentPlayerInfo: {
       flexDirection: 'row',

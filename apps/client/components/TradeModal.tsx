@@ -13,6 +13,7 @@ import { moneyFromSlider, moneySliderMax, sliderFromMoney } from './trade-money'
 import { useTheme } from '../hooks/useTheme';
 import type { Theme } from '../constants/theme';
 import { formatMoney } from './format-money';
+import { PlayerMarker } from './PlayerMarker';
 
 export { canAcceptTrade, canCancelTrade };
 
@@ -184,22 +185,26 @@ export const TradeModal: React.FC<Props> = ({
         <View style={isPhone ? styles.phoneContent : styles.modalContent}>
           {!isPhone && <Text style={styles.title}>Trade Proposal</Text>}
           <View style={[styles.headerSubtitle, styles.nameRow, { flexWrap: 'wrap' }]}>
-            <View style={[styles.playerColor, { backgroundColor: tradeInitiator?.color }]} />
+            {tradeInitiator && (
+              <PlayerMarker color={tradeInitiator.color} size={20} style={styles.playerColor} />
+            )}
             <Text style={styles.text}>{tradeInitiator?.name}</Text>
             <Text style={styles.text}> offers to </Text>
-            <View style={[styles.playerColor, { backgroundColor: tradeTarget?.color }]} />
+            {tradeTarget && (
+              <PlayerMarker color={tradeTarget.color} size={20} style={styles.playerColor} />
+            )}
             <Text style={styles.text}>{tradeTarget?.name}:</Text>
           </View>
           <View style={styles.columns}>
             <View style={styles.column}>
               <View style={styles.columnHeadingRow}>
-                <View
-                  style={[
-                    styles.playerColor,
-                    styles.columnHeadingDot,
-                    { backgroundColor: tradeTarget?.color },
-                  ]}
-                />
+                {tradeTarget && (
+                  <PlayerMarker
+                    color={tradeTarget.color}
+                    size={20}
+                    style={[styles.playerColor, styles.columnHeadingDot]}
+                  />
+                )}
                 <Text
                   style={[styles.subtitle, styles.columnHeadingText]}
                   numberOfLines={1}
@@ -221,13 +226,13 @@ export const TradeModal: React.FC<Props> = ({
 
             <View style={styles.column}>
               <View style={styles.columnHeadingRow}>
-                <View
-                  style={[
-                    styles.playerColor,
-                    styles.columnHeadingDot,
-                    { backgroundColor: tradeTarget?.color },
-                  ]}
-                />
+                {tradeTarget && (
+                  <PlayerMarker
+                    color={tradeTarget.color}
+                    size={20}
+                    style={[styles.playerColor, styles.columnHeadingDot]}
+                  />
+                )}
                 <Text
                   style={[styles.subtitle, styles.columnHeadingText]}
                   numberOfLines={1}
@@ -296,7 +301,7 @@ export const TradeModal: React.FC<Props> = ({
           <View style={styles.headerRow}>
             <View style={styles.nameRow}>
               <Text style={styles.title}>Propose Trade to</Text>
-              <View style={[styles.playerColor, { backgroundColor: target.color }]} />
+              <PlayerMarker color={target.color} size={20} style={styles.playerColor} />
               <Text style={styles.title}>{target.name}</Text>
             </View>
             {!isPhone && (
@@ -310,7 +315,7 @@ export const TradeModal: React.FC<Props> = ({
               {/* Left: You Offer */}
               <View style={styles.column}>
                 <View style={styles.nameRow}>
-                  <View style={[styles.playerColor, { backgroundColor: initiator.color }]} />
+                  <PlayerMarker color={initiator.color} size={20} style={styles.playerColor} />
                   <Text style={styles.subtitle}>You Offer</Text>
                 </View>
 
@@ -401,7 +406,7 @@ export const TradeModal: React.FC<Props> = ({
               {/* Right: You Request */}
               <View style={styles.column}>
                 <View style={styles.nameRow}>
-                  <View style={[styles.playerColor, { backgroundColor: target.color }]} />
+                  <PlayerMarker color={target.color} size={20} style={styles.playerColor} />
                   <Text style={styles.subtitle}>You Request</Text>
                 </View>
 
@@ -644,12 +649,7 @@ const createStyles = (theme: Theme) =>
       justifyContent: 'center',
     },
     playerColor: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
       marginHorizontal: 8,
-      borderWidth: 1,
-      borderColor: theme.borderStrong,
     },
     propertyColor: {
       width: 16,

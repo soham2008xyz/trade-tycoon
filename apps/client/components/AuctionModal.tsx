@@ -8,6 +8,7 @@ import { shouldShowAuctionControls } from './multiplayer-gating';
 import { useTheme } from '../hooks/useTheme';
 import type { Theme } from '../constants/theme';
 import { formatMoney } from './format-money';
+import { PlayerMarker } from './PlayerMarker';
 
 export { shouldShowAuctionControls };
 
@@ -106,7 +107,7 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
     <View style={[styles.playerRow, isTurn && styles.activePlayerRow]}>
       {/* Dimmed per element, not per row: a faded Remove button reads as disabled. */}
       <View style={[styles.playerInfo, !isTurn && styles.inactiveDim]}>
-        <View style={[styles.playerColor, { backgroundColor: player.color }]} />
+        <PlayerMarker color={player.color} size={22} style={styles.playerColor} />
         <Text style={[styles.playerName, isTurn && styles.activePlayerName]}>
           {player.name} ({formatMoney(player.money)}) {isTurn && ' (Bidding)'}
         </Text>
@@ -317,12 +318,7 @@ const createStyles = (theme: Theme) =>
       marginBottom: 10,
     },
     playerColor: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
       marginRight: 10,
-      borderWidth: 1,
-      borderColor: theme.outline,
     },
     playerName: {
       fontSize: 18,

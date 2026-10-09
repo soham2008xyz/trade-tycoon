@@ -12,6 +12,7 @@ import type { StatusPanelProps } from './types';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
 import { formatMoney } from '../format-money';
+import { PlayerMarker } from '../PlayerMarker';
 
 export const Peek: React.FC<StatusPanelProps> = ({
   state,
@@ -61,7 +62,7 @@ export const Peek: React.FC<StatusPanelProps> = ({
     <View style={styles.root}>
       <View style={styles.headerRow}>
         <View style={styles.playerChip}>
-          <View style={[styles.dot, { backgroundColor: currentPlayer.color }]} />
+          <PlayerMarker color={currentPlayer.color} size={16} />
           <Text style={styles.playerName}>{currentPlayer.name}</Text>
           <Text style={styles.money}>{formatMoney(currentPlayer.money)}</Text>
           <GOOJBadge count={currentPlayer.getOutOfJailCards} />
@@ -170,7 +171,6 @@ const createStyles = (theme: Theme) =>
       columnGap: 6,
       rowGap: 2,
     },
-    dot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
     playerName: { fontWeight: '700', fontSize: 14, color: theme.textPrimary },
     money: { color: theme.textSecondary, fontSize: 13 },
     // The text shrinks (rather than the row wrapping) so a long tile name at
