@@ -34,7 +34,12 @@ export const PlayerMarker: React.FC<Props> = ({ color, size, outlineColor, style
   const inner = size - ring * 2;
 
   return (
-    <View accessible={false} style={[styles.box, { width: size, height: size }, style]}>
+    <View
+      // Decorative: hides both glyphs, which are `Text` nodes a screen reader
+      // would otherwise announce as private-use characters before the name.
+      aria-hidden
+      style={[styles.box, { width: size, height: size }, style]}
+    >
       <MaterialCommunityIcons
         name={shape}
         size={size}

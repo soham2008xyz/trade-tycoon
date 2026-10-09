@@ -10,7 +10,7 @@ import {
 } from './types';
 import { BOARD, isTileBuyable } from './board-data';
 import { createPlayer } from './game-setup';
-import { hasDuplicateColors } from './player-colors';
+import { hasDuplicateColors, pickUnusedColor } from './player-colors';
 import { type Card, processCardEffect } from './cards';
 import { CHANCE_CARDS } from './chance-cards';
 import { COMMUNITY_CHEST_CARDS } from './community-chest-cards';
@@ -619,6 +619,9 @@ const reduceGameActionUnbounded = (
     case 'JOIN_GAME': {
       if (state.players.find((p) => p.id === action.playerId)) return state;
       const newPlayer = createPlayer(action.playerId, action.name);
+      // `createPlayer` colors are random hex, which has no marker shape (#361);
+      // a palette color keeps every joiner's color and shape distinct.
+      newPlayer.color = pickUnusedColor(state.players);
       return {
         ...state,
         players: [...state.players, newPlayer],
