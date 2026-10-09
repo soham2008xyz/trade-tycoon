@@ -13,6 +13,7 @@ import { createRoomsRouter } from './routes/rooms';
 import { createEventsRouter } from './routes/events';
 import { errorHandler } from './middleware/errors';
 import { parseTrustProxyHops } from './trustProxy';
+import { resolveAllowedOrigins } from './allowedOrigins';
 import type { RoomStore } from './store/RoomStore';
 import type { EventBus } from './events/EventBus';
 import type { PresenceStore } from './presence/PresenceStore';
@@ -77,16 +78,13 @@ const { roomStore, eventBus, presenceStore } = buildBackends();
 const roomManager = new RoomManager(roomStore, { presence: presenceStore });
 
 // Comma-separated allowlist for production (e.g. the deployed web client's
-// origin). Falls back to known local-dev origins when unset — a wildcard
-// fallback would let any site's browser JS read responses (CodeQL
-// js/cors-permissive-configuration); production deployments should always
-// set ALLOWED_ORIGINS explicitly.
-const DEFAULT_DEV_ORIGINS = ['http://localhost:8081', 'http://localhost:19006'];
-const configuredOrigins = process.env.ALLOWED_ORIGINS?.split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-const allowedOrigins =
-  configuredOrigins && configuredOrigins.length > 0 ? configuredOrigins : DEFAULT_DEV_ORIGINS;
+// origin); see allowedOrigins.ts for the fallback and the unset-in-production
+// warning.
+const { origins: allowedOrigins, warning: allowedOriginsWarning } = resolveAllowedOrigins(
+  process.env.ALLOWED_ORIGINS,
+  process.env
+);
+if (allowedOriginsWarning) console.warn(allowedOriginsWarning);
 
 // The rate limiter keys on `req.ip`, which is only the client's address if
 // Express skips exactly the proxies in front of it. See trustProxy.ts.
