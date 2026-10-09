@@ -473,6 +473,20 @@ and `held-cards.ts`, then pass it as `accessibilityLabel`.
   yet run with VoiceOver on a device (the simulator has no VoiceOver, use
   Accessibility Inspector).
 
+## Player shapes (#361)
+
+A player is identified by shape as well as color. `getPlayerShape(color)`
+(game-logic `player-shapes.ts`) maps each `PLAYER_COLORS` entry to one of
+eight shapes by index; it is derived from the color rather than stored in
+state, so uniqueness follows from the existing one-color-per-player rule and
+reconnects need no extra sync. Draw a player with `PlayerMarker`
+(`components/PlayerMarker.tsx`), never a plain colored `View`. It layers a
+shape glyph (MaterialCommunityIcons, named after the shape) over a slightly
+larger outline glyph. The outline defaults to the theme text color; the board
+stays light in dark mode, so tokens and tile owner markers pass
+`BOARD_OUTLINE`. A new palette color needs a new shape at the same index, or
+`getPlayerShape` falls back to a circle and the shape stops being unique.
+
 ## Test command
 
 ```sh

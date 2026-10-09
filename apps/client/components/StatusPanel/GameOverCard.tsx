@@ -8,6 +8,7 @@ import type { StatusPanelProps } from './types';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
 import { formatMoney } from '../format-money';
+import { PlayerMarker } from '../PlayerMarker';
 
 type Props = Pick<
   StatusPanelProps,
@@ -41,7 +42,7 @@ export const GameOverCard: React.FC<Props> = ({
       <View style={styles.headline}>
         {/* Gold in both schemes: a trophy is not UI chrome. */}
         <MaterialCommunityIcons name="trophy" size={26} color="#f59e0b" />
-        <View style={[styles.dot, { backgroundColor: summary.color }]} />
+        <PlayerMarker color={summary.color} size={18} />
         <Text style={styles.title}>{getGameOverTitle(summary, myPlayerId, isMultiplayer)}</Text>
       </View>
       <Text style={styles.stats}>
@@ -64,7 +65,6 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     root: { gap: 8, alignItems: 'center', width: '100%' },
     headline: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    dot: { width: 12, height: 12, borderRadius: 6 },
     title: { fontSize: 18, fontWeight: '800', color: theme.textPrimary },
     stats: { fontSize: 13, color: theme.textSecondary, textAlign: 'center' },
     actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },

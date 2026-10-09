@@ -4,6 +4,7 @@ import { IconButton } from './ui/IconButton';
 import { KeyboardAwareScreen } from './ui/KeyboardAwareScreen';
 import {
   PLAYER_COLORS,
+  getPlayerShape,
   isColorTakenByOthers,
   limitPlayerNameInput,
   pickUnusedColor,
@@ -12,6 +13,7 @@ import { validateSetupPlayers } from './game-setup-validation';
 import { useTheme } from '../hooks/useTheme';
 import { useAndroidBack } from '../hooks/useAndroidBack';
 import type { Theme } from '../constants/theme';
+import { PlayerMarker } from './PlayerMarker';
 
 interface PlayerConfig {
   name: string;
@@ -123,16 +125,17 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
                       key={color}
                       style={[
                         styles.colorOption,
-                        { backgroundColor: color },
                         player.color === color && styles.selectedColor,
                         taken && styles.takenColor,
                       ]}
                       disabled={taken}
                       accessibilityRole="button"
-                      accessibilityLabel={`Player ${index + 1} color ${color}${taken ? ' (taken)' : ''}`}
+                      accessibilityLabel={`Player ${index + 1} ${getPlayerShape(color)} ${color}${taken ? ' (taken)' : ''}`}
                       accessibilityState={{ disabled: taken, selected: player.color === color }}
                       onPress={() => updatePlayer(index, 'color', color)}
-                    />
+                    >
+                      <PlayerMarker color={color} size={22} />
+                    </TouchableOpacity>
                   );
                 })}
               </View>
@@ -244,9 +247,11 @@ const createStyles = (theme: Theme) =>
       width: 24,
       height: 24,
       borderRadius: 12,
-      // Keeps the darkest palette colours visible on a dark card.
-      borderWidth: 1,
-      borderColor: theme.borderStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+      // The marker draws its own outline; this ring only shows the selection.
+      borderWidth: 2,
+      borderColor: 'transparent',
     },
     selectedColor: {
       borderWidth: 2,

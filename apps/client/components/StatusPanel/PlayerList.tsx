@@ -8,6 +8,7 @@ import type { StatusPanelProps } from './types';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
 import { formatMoney } from '../format-money';
+import { PlayerMarker } from '../PlayerMarker';
 
 interface Props extends Pick<
   StatusPanelProps,
@@ -46,7 +47,7 @@ export const PlayerList: React.FC<Props> = ({
       {state.players.map((player) => (
         <View key={player.id} style={styles.playerRow}>
           <View style={styles.playerInfo}>
-            <View style={[styles.playerColor, { backgroundColor: player.color }]} />
+            <PlayerMarker color={player.color} size={16} style={styles.playerColor} />
             <View style={styles.playerLabel}>
               <Text
                 style={[styles.playerText, activePlayerId === player.id && styles.activePlayerText]}
@@ -114,7 +115,7 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
       columnGap: 6,
     },
-    playerColor: { width: 12, height: 12, marginRight: 6, borderRadius: 2, flexShrink: 0 },
+    playerColor: { marginRight: 6 },
     // flexShrink lets a long "Name ($money)" wrap inside the label instead of
     // being clipped at large Dynamic Type.
     playerText: { fontSize: 14, flexShrink: 1, color: theme.textPrimary },

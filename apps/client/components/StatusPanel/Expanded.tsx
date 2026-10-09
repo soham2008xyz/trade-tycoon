@@ -9,6 +9,7 @@ import type { StatusPanelProps } from './types';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
 import { formatMoney } from '../format-money';
+import { PlayerMarker } from '../PlayerMarker';
 
 export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = (props) => {
   const {
@@ -32,7 +33,7 @@ export const Expanded: React.FC<StatusPanelProps & { scrollable?: boolean }> = (
       {state.players.map((player) => (
         <View key={player.id} style={styles.playerRow}>
           <View style={styles.playerInfo}>
-            <View style={[styles.playerColor, { backgroundColor: player.color }]} />
+            <PlayerMarker color={player.color} size={16} style={styles.playerColor} />
             <View style={styles.playerLabel}>
               <Text
                 style={[
@@ -128,7 +129,7 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
       columnGap: 6,
     },
-    playerColor: { width: 12, height: 12, marginRight: 6, borderRadius: 2, flexShrink: 0 },
+    playerColor: { marginRight: 6 },
     playerText: { fontSize: 14, color: theme.textPrimary },
     activePlayerText: { fontWeight: '700' },
     divider: { height: 1, backgroundColor: theme.border, marginVertical: 12 },

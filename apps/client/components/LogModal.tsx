@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Player } from '@trade-tycoon/game-logic';
+import { PlayerMarker } from './PlayerMarker';
 import { CloseButton } from './ui/CloseButton';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { useGameLayout } from '../hooks/useGameLayout';
@@ -36,7 +37,7 @@ const LogEntry: React.FC<LogEntryProps> = ({ log, players, styles }) => {
   const color = getLogColor(log, players);
   return (
     <View style={styles.logItem}>
-      {color && <View style={[styles.playerColorIndicator, { backgroundColor: color }]} />}
+      {color && <PlayerMarker color={color} size={16} style={styles.playerColorIndicator} />}
       <Text style={styles.logText}>{log}</Text>
     </View>
   );
@@ -131,9 +132,6 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
     },
     playerColorIndicator: {
-      width: 12,
-      height: 12,
-      borderRadius: 2,
       marginRight: 8,
     },
     logText: {

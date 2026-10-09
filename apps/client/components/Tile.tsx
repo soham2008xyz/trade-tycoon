@@ -5,6 +5,7 @@ import { Tile as TileType, Player } from '@trade-tycoon/game-logic';
 import { GROUP_COLORS } from '../constants';
 import { getTileAccessibilityLabel } from './tile-labels';
 import { getCompactTileGlyph } from './tile-glyphs';
+import { BOARD_OUTLINE, PlayerMarker } from './PlayerMarker';
 
 interface Props {
   tile: TileType;
@@ -143,7 +144,14 @@ const TileComponent: React.FC<Props> = ({
     >
       {renderColorBar(isStreet, color, orientation, houseCount)}
       <View style={styles.content}>
-        {owner && <View style={[styles.ownerIndicator, { backgroundColor: owner.color }]} />}
+        {owner && (
+          <PlayerMarker
+            color={owner.color}
+            size={11}
+            outlineColor={BOARD_OUTLINE}
+            style={styles.ownerIndicator}
+          />
+        )}
         {glyph && (
           // The icon is a font glyph, so cap its scaling like the tile text.
           // The Pressable's accessibilityLabel already names the tile.
@@ -192,11 +200,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
     top: 2,
     right: 2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#000',
   },
   colorBar: {
     position: 'relative',

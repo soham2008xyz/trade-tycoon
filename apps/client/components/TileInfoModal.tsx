@@ -8,6 +8,7 @@ import { FullScreenModalShell } from './ui/FullScreenModalShell';
 import { useGameLayout } from '../hooks/useGameLayout';
 import { useTheme } from '../hooks/useTheme';
 import type { Theme } from '../constants/theme';
+import { PlayerMarker } from './PlayerMarker';
 
 interface Props {
   visible: boolean;
@@ -107,7 +108,10 @@ const OwnerStatus: React.FC<OwnerStatusProps> = ({ tile, owner, styles }) => {
   const houseCount = owner.houses[tile.id] || 0;
   return (
     <>
-      <Text style={styles.text}>Owned by: {owner.name}</Text>
+      <View style={styles.ownerRow}>
+        <Text style={styles.text}>Owned by: {owner.name}</Text>
+        <PlayerMarker color={owner.color} size={16} />
+      </View>
       {isMortgaged && <Text style={styles.mortgagedText}>MORTGAGED</Text>}
       {tile.type === 'street' && !isMortgaged && (
         <Text style={styles.text}>Houses: {houseCount === 5 ? 'Hotel' : houseCount}</Text>
@@ -270,6 +274,7 @@ const createStyles = (theme: Theme) =>
       borderBottomColor: theme.border,
       paddingBottom: 10,
     },
+    ownerRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     row: {
       flexDirection: 'row',
       justifyContent: 'space-between',
