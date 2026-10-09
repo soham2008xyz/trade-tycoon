@@ -29,6 +29,12 @@ describe('resolveAllowedOrigins', () => {
     expect(warning).toMatch(/ALLOWED_ORIGINS/);
   });
 
+  it('still detects Render when VERCEL_ENV is set but empty', () => {
+    expect(resolveAllowedOrigins(undefined, { VERCEL_ENV: '', RENDER: 'true' }).warning).toMatch(
+      /ALLOWED_ORIGINS/
+    );
+  });
+
   it('treats a whitespace/comma-only value as unset', () => {
     expect(resolveAllowedOrigins(' , ', { VERCEL_ENV: 'production' }).warning).toMatch(
       /ALLOWED_ORIGINS/

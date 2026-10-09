@@ -1,8 +1,10 @@
 export const DEFAULT_DEV_ORIGINS = ['http://localhost:8081', 'http://localhost:19006'];
 
 /** Hosts we deploy to set one of these; local dev and tests set none. */
+// Each operand is coerced to a boolean on its own: `??` would let an empty
+// `VERCEL_ENV` mask `RENDER`, since `''` is not nullish.
 const isDeployed = (env: NodeJS.ProcessEnv): boolean =>
-  Boolean(env.VERCEL_ENV || env.RENDER) || env.NODE_ENV === 'production';
+  Boolean(env.VERCEL_ENV) || Boolean(env.RENDER) || env.NODE_ENV === 'production';
 
 /**
  * Resolve the CORS allowlist from `ALLOWED_ORIGINS` (comma-separated).
