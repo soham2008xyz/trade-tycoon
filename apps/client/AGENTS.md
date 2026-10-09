@@ -432,7 +432,7 @@ and needs no `useMemo`.
 - **Web shell.** `app/+html.tsx` replaces the generated HTML document. It
   keeps the default markup and `ScrollViewStyleReset` and adds `color-scheme`
   meta plus a `prefers-color-scheme` body background, so overscroll and the
-  first paint are not white. `expo-router/head` tags still land in its
+  first paint are not white (it also carries the OG/Twitter tags, below). `expo-router/head` tags still land in its
   `<head>`. `public/manifest.json` stays white: a manifest has one colour.
 - Add a token to `Theme` (and both themes) rather than a one-off literal; the
   contrast tests in `constants/theme.test.ts` then cover it.
@@ -495,8 +495,10 @@ local `Head`). When editing or replacing that file, you **must**:
 
 - Use `ScrollViewStyleReset` from `expo-router/html`.
 - Spread `htmlAttributes`, `headNodes`, `bodyAttributes`, `bodyNodes` from
-  `useServerDocumentContext()` (from `expo-router/server`).
-- Preserve the manifest link and viewport.
+  `useServerDocumentContext()` (from `expo-router/html`; SDK 57's
+  `expo-router/server` does not export it).
+- Preserve the manifest link, viewport, `color-scheme` meta and the
+  `prefers-color-scheme` body background (see "Web shell" above).
 - Keep OG/Twitter tags with absolute URLs (the production host is
   `https://trade-tycoon.sohambanerjee.me`).
 - Avoid duplicating the same tags in route `Head` blocks if they're already in
