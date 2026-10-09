@@ -432,7 +432,7 @@ and needs no `useMemo`.
 - **Web shell.** `app/+html.tsx` replaces the generated HTML document. It
   keeps the default markup and `ScrollViewStyleReset` and adds `color-scheme`
   meta plus a `prefers-color-scheme` body background, so overscroll and the
-  first paint are not white. `expo-router/head` tags still land in its
+  first paint are not white (it also carries the OG/Twitter tags, below). `expo-router/head` tags still land in its
   `<head>`. `public/manifest.json` stays white: a manifest has one colour.
 - Add a token to `Theme` (and both themes) rather than a one-off literal; the
   contrast tests in `constants/theme.test.ts` then cover it.
@@ -483,3 +483,23 @@ Runs vitest against `components/**/*.test.ts(x)` in node env. There
 are no jsdom or RTL setups; if you need to test something that
 requires either, lift the logic into a pure module first (see
 `multiplayer-gating.ts`) and test that.
+
+## Custom HTML document for static exports (+html.tsx)
+
+Expo Router's `Head` component from `expo-router/head` only augments the
+document head for routes rendered in the normal tree. For the web static
+export, the custom document at `apps/client/app/+html.tsx` is the canonical
+place to inject global Open Graph/Twitter meta tags so they appear on the
+root and on `+not-found` (which otherwise wouldn't receive tags from a route-
+local `Head`). When editing or replacing that file, you **must**:
+
+- Use `ScrollViewStyleReset` from `expo-router/html`.
+- Spread `htmlAttributes`, `headNodes`, `bodyAttributes`, `bodyNodes` from
+  `useServerDocumentContext()` (from `expo-router/html`; SDK 57's
+  `expo-router/server` does not export it).
+- Preserve the manifest link, viewport, `color-scheme` meta and the
+  `prefers-color-scheme` body background (see "Web shell" above).
+- Keep OG/Twitter tags with absolute URLs (the production host is
+  `https://trade-tycoon.sohambanerjee.me`).
+- Avoid duplicating the same tags in route `Head` blocks if they're already in
+  `+html.tsx` — duplicate `description` meta tags can confuse link previews.

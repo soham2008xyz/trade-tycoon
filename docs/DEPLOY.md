@@ -77,7 +77,7 @@ tool such as Plausible.
 The client's production host is `https://trade-tycoon.sohambanerjee.me`. The
 web build's Open Graph and Twitter card tags (`og:url`, `og:image`,
 `twitter:image`) point at it through the `SITE_URL` constant in
-`apps/client/app/_layout.tsx`. Crawlers need absolute URLs, and a static export
+`apps/client/app/+html.tsx`. Crawlers need absolute URLs, and a static export
 can't read the host at request time, so update that constant if the domain
 changes. Check a deploy's link preview with Slack's
 <https://www.slack.com/tools/linkpreview>.
