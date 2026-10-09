@@ -483,3 +483,21 @@ Runs vitest against `components/**/*.test.ts(x)` in node env. There
 are no jsdom or RTL setups; if you need to test something that
 requires either, lift the logic into a pure module first (see
 `multiplayer-gating.ts`) and test that.
+
+## Custom HTML document for static exports (+html.tsx)
+
+Expo Router's `Head` component from `expo-router/head` only augments the
+document head for routes rendered in the normal tree. For the web static
+export, the custom document at `apps/client/app/+html.tsx` is the canonical
+place to inject global Open Graph/Twitter meta tags so they appear on the
+root and on `+not-found` (which otherwise wouldn't receive tags from a route-
+local `Head`). When editing or replacing that file, you **must**:
+
+- Use `ScrollViewStyleReset` from `expo-router/html`.
+- Spread `htmlAttributes`, `headNodes`, `bodyAttributes`, `bodyNodes` from
+  `useServerDocumentContext()` (from `expo-router/server`).
+- Preserve the manifest link and viewport.
+- Keep OG/Twitter tags with absolute URLs (the production host is
+  `https://trade-tycoon.sohambanerjee.me`).
+- Avoid duplicating the same tags in route `Head` blocks if they're already in
+  `+html.tsx` — duplicate `description` meta tags can confuse link previews.
