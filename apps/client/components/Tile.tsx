@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, StyleProp, ViewStyle, Pressable } from 'react-n
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tile as TileType, Player } from '@trade-tycoon/game-logic';
 import { GROUP_COLORS } from '../constants';
-import { getTileAccessibilityLabel } from './tile-labels';
+import { getTileAccessibilityLabel, getOwnerTileLabel } from './tile-labels';
 import { getCompactTileGlyph } from './tile-glyphs';
 import { BOARD_OUTLINE, PlayerMarker } from './PlayerMarker';
 import { OWNER_MARKER_SIZE } from './token-position';
@@ -124,6 +124,7 @@ const TileComponent: React.FC<Props> = ({
   const flexDirection = FLEX_DIRECTION_BY_ORIENTATION.get(orientation) ?? 'column';
   const hideName = compact && orientation !== 'corner';
   const glyph = hideName ? getCompactTileGlyph(tile) : null;
+  const ownerLabel = owner ? getOwnerTileLabel(owner.name, compact) : null;
 
   return (
     <Pressable
@@ -175,6 +176,20 @@ const TileComponent: React.FC<Props> = ({
         {tile.price && (
           <Text maxFontSizeMultiplier={TILE_MAX_FONT_SCALE} style={styles.price}>
             ${tile.price}
+          </Text>
+        )}
+        {ownerLabel && (
+          // Shown in the owner's name, not just their marker, so ownership never
+          // rests on colour alone (#360). One line with an ellipsis keeps a long
+          // name inside the tile; the Pressable's label already reads it aloud.
+          <Text
+            testID={`tile-${tile.id}-owner`}
+            maxFontSizeMultiplier={TILE_MAX_FONT_SCALE}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={styles.ownerLabel}
+          >
+            {ownerLabel}
           </Text>
         )}
       </View>
@@ -250,6 +265,15 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 8,
     marginTop: 2,
+  },
+  ownerLabel: {
+    // Fixed, like the cream tile background: board colours don't theme.
+    color: GLYPH_COLOR,
+    fontSize: 7,
+    fontWeight: '600',
+    marginTop: 1,
+    maxWidth: '100%',
+    textAlign: 'center',
   },
   mortgagedOverlay: {
     ...StyleSheet.absoluteFill,

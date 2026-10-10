@@ -521,3 +521,7 @@
   server work and survives reconnects. The palette (8) and shape list (8) must
   stay the same length; max players per room is 8. Render players with the
   client's `PlayerMarker`, not a colored `View`.
+- Board tiles show the owner's name as well as their marker (#360):
+  `getOwnerTileLabel` (`tile-labels.ts`) gives the full name, or the initial on
+  compact tiles (~24px wide at the 320px minimum board). Tile text sizes are
+  fixed (`maxFontSizeMultiplier` 1); keep a new label to one line.

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Tile } from '@trade-tycoon/game-logic';
-import { getTileAccessibilityLabel } from './tile-labels';
+import { getTileAccessibilityLabel, getOwnerTileLabel } from './tile-labels';
 
 const street: Tile = {
   id: 'boardwalk',
@@ -56,5 +56,28 @@ describe('getTileAccessibilityLabel', () => {
         isMortgaged: true,
       })
     ).toBe('Boardwalk, $400, owned by Alice, mortgaged');
+  });
+});
+
+describe('getOwnerTileLabel', () => {
+  it('shows the full name on a normal tile', () => {
+    expect(getOwnerTileLabel('Alice', false)).toBe('Alice');
+  });
+
+  it('trims surrounding whitespace', () => {
+    expect(getOwnerTileLabel('  Alice ', false)).toBe('Alice');
+  });
+
+  it('shows the uppercase initial on a compact tile', () => {
+    expect(getOwnerTileLabel('alice', true)).toBe('A');
+  });
+
+  it('keeps an astral first character whole on a compact tile', () => {
+    expect(getOwnerTileLabel('😀 Bob', true)).toBe('😀');
+  });
+
+  it('has no label for a blank name', () => {
+    expect(getOwnerTileLabel('   ', false)).toBeNull();
+    expect(getOwnerTileLabel('', true)).toBeNull();
   });
 });

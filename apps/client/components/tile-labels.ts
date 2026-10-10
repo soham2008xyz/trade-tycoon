@@ -41,3 +41,20 @@ export const getTileAccessibilityLabel = ({
   if (isMortgaged) parts.push('mortgaged');
   return parts.join(', ');
 };
+
+/**
+ * Owner text drawn on a board tile beside the owner's marker (#360), so
+ * ownership does not rest on the marker's colour and shape alone. Normal tiles
+ * show the full name (the caller truncates it to one line with an ellipsis);
+ * compact tiles (see `Tile`'s `compact` prop) are ~24px wide, where even a short
+ * name would not fit, so they show the initial. Whitespace-only names have no
+ * label. Initials are taken by code point, not UTF-16 unit, so an emoji or other
+ * astral first character is not split in half.
+ */
+export const getOwnerTileLabel = (ownerName: string, compact: boolean): string | null => {
+  const name = ownerName.trim();
+  if (!name) return null;
+  if (!compact) return name;
+  const [initial] = Array.from(name);
+  return initial.toUpperCase();
+};
