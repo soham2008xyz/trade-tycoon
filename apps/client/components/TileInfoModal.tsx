@@ -108,9 +108,15 @@ const OwnerStatus: React.FC<OwnerStatusProps> = ({ tile, owner, styles }) => {
   const houseCount = owner.houses[tile.id] || 0;
   return (
     <>
+      {/* Name, colour and shape together (#360): the board tile shows only the
+          marker, so this is where the owner's name is spelled out. The name sits
+          in a shrinking Text so a long one wraps instead of pushing the marker
+          off the modal. */}
       <View style={styles.ownerRow}>
-        <Text style={styles.text}>Owned by: {owner.name}</Text>
-        <PlayerMarker color={owner.color} size={16} />
+        <PlayerMarker color={owner.color} size={20} />
+        <Text style={styles.ownerText}>
+          Owned by: <Text style={styles.ownerName}>{owner.name}</Text>
+        </Text>
       </View>
       {isMortgaged && <Text style={styles.mortgagedText}>MORTGAGED</Text>}
       {tile.type === 'street' && !isMortgaged && (
@@ -274,7 +280,9 @@ const createStyles = (theme: Theme) =>
       borderBottomColor: theme.border,
       paddingBottom: 10,
     },
-    ownerRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    ownerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    ownerText: { flexShrink: 1, fontSize: 14, color: theme.textPrimary },
+    ownerName: { fontWeight: 'bold' },
     row: {
       flexDirection: 'row',
       justifyContent: 'space-between',
