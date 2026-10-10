@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ACTION_REJECTED, gameReducer, reduceGameAction, removePlayerFromGame } from './reducer';
-import { createInitialState, createPlayer } from './index';
+import { createInitialState, createPlayer, getPlayerShape, PLAYER_COLORS } from './index';
 import { GameState } from './types';
 import { BOARD } from './board-data';
 import { mulberry32 } from './helpers';
@@ -18,6 +18,17 @@ describe('Game Reducer', () => {
   });
 
   describe('JOIN_GAME', () => {
+    it('gives each joiner a distinct palette color and shape', () => {
+      let state = initialState;
+      for (let i = 1; i <= PLAYER_COLORS.length; i++) {
+        state = gameReducer(state, { type: 'JOIN_GAME', playerId: `p${i}`, name: `P${i}` });
+      }
+      expect(state.players.map((p) => p.color)).toEqual(PLAYER_COLORS);
+      expect(new Set(state.players.map((p) => getPlayerShape(p.color))).size).toBe(
+        PLAYER_COLORS.length
+      );
+    });
+
     it('should add a player', () => {
       const newState = gameReducer(initialState, {
         type: 'JOIN_GAME',

@@ -6,6 +6,7 @@ import { GROUP_COLORS } from '../constants';
 import { getTileAccessibilityLabel } from './tile-labels';
 import { getCompactTileGlyph } from './tile-glyphs';
 import { BOARD_OUTLINE, PlayerMarker } from './PlayerMarker';
+import { OWNER_MARKER_SIZE } from './token-position';
 
 interface Props {
   tile: TileType;
@@ -147,7 +148,7 @@ const TileComponent: React.FC<Props> = ({
         {owner && (
           <PlayerMarker
             color={owner.color}
-            size={11}
+            size={OWNER_MARKER_SIZE}
             outlineColor={BOARD_OUTLINE}
             style={styles.ownerIndicator}
           />

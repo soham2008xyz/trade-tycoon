@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { getInterpolatedPoint, getTokenPoint, getTokenSize } from './token-position';
+import {
+  OWNER_MARKER_SIZE,
+  getInterpolatedPoint,
+  getTokenPoint,
+  getTokenSize,
+} from './token-position';
 
 const CORNER = 0.14;
 const TILE = (1 - 2 * CORNER) / 9;
@@ -32,6 +37,8 @@ function anchorFraction(index: number, p: { x: number; y: number }, board: numbe
 }
 
 const BOARDS = [360, 370, 770, 1000];
+// The landscape-web phone layout passes minSize 0 and gets a board about this wide.
+const SMALL_BOARD = 300;
 
 describe('getTokenSize', () => {
   it('shrinks on small boards and caps on large ones', () => {
@@ -100,25 +107,33 @@ describe('getTokenPoint', () => {
     }
   });
 
-  it.each(BOARDS)('keeps a lone token off the owner dot at board size %i', (board) => {
-    const size = getTokenSize(board);
-    for (let tile = 1; tile < 40; tile++) {
-      if (tile % 10 === 0) continue;
-      const r = tileRect(tile, board);
-      const p = getTokenPoint(tile, board, size, 0);
-      // Tile draws the owner dot 2px in from the top-right corner of its content
-      // area, 8px across. On the bottom row the bar sits above the content, so
-      // the dot starts below the bar's 25% of the tile depth.
-      const top = r.y + (tile < 10 ? r.h * 0.25 : 0) + 2;
-      const dot = { l: r.x + r.w - 10, r: r.x + r.w - 2, t: top, b: top + 8 };
-      const apart =
-        p.x + size / 2 <= dot.l ||
-        p.x - size / 2 >= dot.r ||
-        p.y + size / 2 <= dot.t ||
-        p.y - size / 2 >= dot.b;
-      expect(apart).toBe(true);
+  it.each([SMALL_BOARD, ...BOARDS])(
+    'keeps a lone token off the owner dot at board size %i',
+    (board) => {
+      const size = getTokenSize(board);
+      for (let tile = 1; tile < 40; tile++) {
+        if (tile % 10 === 0) continue;
+        const r = tileRect(tile, board);
+        const p = getTokenPoint(tile, board, size, 0);
+        // Tile draws the owner dot 2px in from the top-right corner of its content
+        // area, OWNER_MARKER_SIZE px across. On the bottom row the bar sits above
+        // the content, so the dot starts below the bar's 25% of the tile depth.
+        const top = r.y + (tile < 10 ? r.h * 0.25 : 0) + 2;
+        const dot = {
+          l: r.x + r.w - 2 - OWNER_MARKER_SIZE,
+          r: r.x + r.w - 2,
+          t: top,
+          b: top + OWNER_MARKER_SIZE,
+        };
+        const apart =
+          p.x + size / 2 <= dot.l ||
+          p.x - size / 2 >= dot.r ||
+          p.y + size / 2 <= dot.t ||
+          p.y - size / 2 >= dot.b;
+        expect(apart).toBe(true);
+      }
     }
-  });
+  );
 
   it('puts corner tokens in the outer corner', () => {
     const board = 770;

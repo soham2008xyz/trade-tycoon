@@ -16,6 +16,13 @@ const EDGE_TILES = 9;
 const TILE_PCT = (1 - 2 * CORNER_PCT) / EDGE_TILES;
 const EDGE_MARGIN = 1;
 
+/**
+ * Side of the owner marker `Tile` draws in its top-right corner. Shared so the
+ * clearance test models the real size (a bigger marker once slipped under a
+ * token), and sized for a shape to stay readable (#361).
+ */
+export const OWNER_MARKER_SIZE = 10;
+
 export interface Point {
   x: number;
   y: number;
