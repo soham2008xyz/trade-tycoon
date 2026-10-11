@@ -121,7 +121,7 @@ On the phone layout the shell draws the only header (title + ✕) and fills
 the screen; on wide layouts it is a bare transparent `Modal` and the
 children draw their own backdrop and card. So a modal's children must not
 render their own title, ✕ or backdrop/card when `useGameLayout() ===
-'phone'` — see `LogModal` and `TradeModal` for the pattern. Keep an extra
+'phone'` — see `LogModal` and `trade/ProposeTradeView` for the pattern. Keep an extra
 button only where it means something different from "close" (e.g. cancelling
 an in-flight trade proposal). `AuctionModal` is `showClose={false}` and not
 covered by this rule.
