@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   canAcceptTrade,
   canCancelTrade,
+  isWaitingOnTrade,
   canRemovePlayer,
   canStartNewGame,
   shouldShowAuctionControls,
@@ -72,6 +73,26 @@ describe('multiplayer-gating', () => {
       expect(canCancelTrade('alice', trade, true)).toBe(true); // initiator
       expect(canCancelTrade('bob', trade, true)).toBe(false); // target
       expect(canCancelTrade('charlie', trade, true)).toBe(false); // bystander
+    });
+  });
+
+  describe('isWaitingOnTrade', () => {
+    it('hotseat: never waiting, the device holder can act', () => {
+      expect(isWaitingOnTrade('alice', trade, false)).toBe(false);
+      expect(isWaitingOnTrade('charlie', trade, false)).toBe(false);
+    });
+
+    it('multiplayer: the initiator and the target can both act', () => {
+      expect(isWaitingOnTrade('alice', trade, true)).toBe(false); // initiator can cancel
+      expect(isWaitingOnTrade('bob', trade, true)).toBe(false); // target can accept
+    });
+
+    it('multiplayer: a bystander can only wait', () => {
+      expect(isWaitingOnTrade('charlie', trade, true)).toBe(true);
+    });
+
+    it('multiplayer: a missing id can only wait', () => {
+      expect(isWaitingOnTrade('', trade, true)).toBe(true);
     });
   });
 

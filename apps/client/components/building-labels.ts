@@ -15,3 +15,7 @@ export const buildLabel = (houses: number, cost: number): string =>
 /** Label for the sell button at the street's current house count. */
 export const sellLabel = (houses: number, refund: number): string =>
   `Sell ${houses === HOTEL_COUNT ? 'Hotel' : 'House'} ($${refund})`;
+
+/** Heading under a street's name: "Hotel", "1 House", "0 Houses", "3 Houses". */
+export const houseCountLabel = (houses: number): string =>
+  houses === HOTEL_COUNT ? 'Hotel' : `${houses} House${houses === 1 ? '' : 's'}`;

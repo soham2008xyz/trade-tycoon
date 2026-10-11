@@ -21,6 +21,10 @@ components/
   multiplayer-gating.ts       Pure visibility predicates (NO React)
   multiplayer-gating.test.ts  vitest tests for the predicates
   held-cards.ts               Pure formatter for the GOOJ-card badge (NO React)
+  trade-draft.ts, trade-labels.ts
+                              Pure draft state + wording for the trade proposal form
+  property-manager.ts         Pure grouping + mortgage-button rules for Manage Properties
+  trade/                      The pieces TradeModal composes (propose form, active trade)
   ui/                         Primitives (IconButton, Toast, …)
   online/                     OnlineGame's connect, lobby and message screens
 hooks/                        Custom hooks
@@ -117,7 +121,7 @@ On the phone layout the shell draws the only header (title + ✕) and fills
 the screen; on wide layouts it is a bare transparent `Modal` and the
 children draw their own backdrop and card. So a modal's children must not
 render their own title, ✕ or backdrop/card when `useGameLayout() ===
-'phone'` — see `LogModal` and `TradeModal` for the pattern. Keep an extra
+'phone'` — see `LogModal` and `trade/ProposeTradeView` for the pattern. Keep an extra
 button only where it means something different from "close" (e.g. cancelling
 an in-flight trade proposal). `AuctionModal` is `showClose={false}` and not
 covered by this rule.
