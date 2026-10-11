@@ -1,0 +1,347 @@
+/* Brand green and white match the app's og-image. Light/dark follow the OS. */
+:root {
+  --bg: #ffffff;
+  --bg-alt: #f1f7f1;
+  --surface: #ffffff;
+  --text: #1c2a1d;
+  --text-muted: #4a5a4b;
+  --border: #d5e3d6;
+  --brand: #1b5e20;
+  --brand-contrast: #ffffff;
+  --link: #14501a;
+  --focus: #0062cc;
+  --hero-bg: #1b5e20;
+  --hero-text: #ffffff;
+  --hero-muted: #d9efda;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1a10;
+    --bg-alt: #142216;
+    --surface: #182a1a;
+    --text: #e8f1e8;
+    --text-muted: #b2c4b3;
+    --border: #2b402d;
+    --brand: #6fcf76;
+    --brand-contrast: #0f1a10;
+    --link: #8fe096;
+    --focus: #7db8ff;
+    --hero-bg: #12351a;
+    --hero-text: #ffffff;
+    --hero-muted: #cfe6d0;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 4.5rem; /* keeps anchored headings clear of the sticky header */
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    1rem/1.6 system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: var(--link);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 20;
+  padding: 0.6rem 1rem;
+  background: var(--brand);
+  color: var(--brand-contrast);
+  border-radius: 0.4rem;
+  font-weight: 600;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* Header */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1.5rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+}
+.brand img {
+  border-radius: 0.4rem;
+}
+.site-header ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.site-header nav a {
+  display: inline-block;
+  padding: 0.5rem 0; /* ≥ 24px tall tap target */
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 500;
+}
+.site-header nav a:hover {
+  text-decoration: underline;
+}
+
+/* Hero */
+.hero {
+  background: var(--hero-bg);
+  color: var(--hero-text);
+  padding: 3rem 0;
+}
+.hero-grid {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+.eyebrow {
+  margin: 0 0 0.5rem;
+  color: var(--hero-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  line-height: 1.1;
+}
+.hero .lead {
+  color: var(--hero-muted);
+}
+.hero-art {
+  border-radius: 0.75rem;
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.35);
+}
+
+@media (min-width: 56rem) {
+  .hero {
+    padding: 5rem 0;
+  }
+  .hero-grid {
+    grid-template-columns: 1.1fr 1fr;
+  }
+}
+
+.lead {
+  max-width: 40rem;
+  font-size: 1.15rem;
+  color: var(--text-muted);
+}
+
+/* Buttons */
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.5rem 0 0;
+}
+.btn {
+  display: inline-block;
+  min-height: 2.75rem;
+  padding: 0.7rem 1.4rem;
+  border: 2px solid transparent;
+  border-radius: 0.6rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+.btn-primary {
+  background: #ffffff;
+  color: #14501a;
+}
+.btn-primary:hover {
+  background: #e6f4e7;
+}
+.btn-secondary {
+  border-color: currentColor;
+  color: var(--hero-text);
+}
+.btn-secondary:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+/* Outside the hero the primary button sits on the page background. */
+section:not(.hero) .btn-primary {
+  background: var(--brand);
+  color: var(--brand-contrast);
+}
+section:not(.hero) .btn-primary:hover {
+  background: var(--brand);
+  filter: brightness(1.1);
+}
+
+/* Sections */
+section {
+  padding: 3.5rem 0;
+}
+section.alt {
+  background: var(--bg-alt);
+}
+h2 {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
+  line-height: 1.2;
+}
+h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.15rem;
+}
+p {
+  margin: 0 0 1rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+#features .cards {
+  margin-top: 0;
+}
+.cards li {
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+.cards p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.steps li {
+  position: relative;
+  padding: 1.25rem 1.25rem 1.25rem 4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  counter-increment: step;
+}
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 1.25rem;
+  top: 1.25rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--brand-contrast);
+  font-weight: 700;
+}
+.steps p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.link-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.link-list li {
+  display: flex;
+  flex-direction: column;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.link-list a {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.link-list span {
+  color: var(--text-muted);
+}
+
+/* Footer */
+.site-footer {
+  padding: 2rem 0;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.site-footer p {
+  margin: 0 0 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

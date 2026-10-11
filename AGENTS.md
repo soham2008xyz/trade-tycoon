@@ -61,6 +61,10 @@ workflow (`.github/workflows/keep-render-awake.yml`) keeps the free server
 from spinning down. Details and free-plan limits are in `docs/DEPLOY.md` →
 "Render standby".
 
+**Landing page:** `site/` is a plain HTML/CSS marketing page deployed to
+GitHub Pages by `.github/workflows/pages.yml`. It is deliberately not an npm
+workspace. Asset-path rules and setup are in `docs/DEPLOY.md` → "Landing page".
+
 **Key directives:**
 
 - **Monorepo discipline.** Respect workspace boundaries. Don't edit

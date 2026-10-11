@@ -156,3 +156,8 @@ See [ADR 0013](adr/0013-turn-deadlines-are-stamped-by-the-server-and-enforced-la
 ## 10. Appearance
 
 - [x] **Dark mode** (#264): The UI follows the system appearance (`userInterfaceStyle: automatic`). Colour tokens in `constants/theme.ts` cover menus, panels, modals, buttons and inputs; the board itself stays light in both modes. The web export sets `color-scheme` and a `prefers-color-scheme` page background (`app/+html.tsx`).
+
+## Landing page
+
+- [x] **Marketing site** (#356): `site/` is a responsive, dependency-free static page (hero, features, how to play, tech stack, links) with skip link, landmarks, focus styles, light/dark themes and reduced-motion support. `.github/workflows/pages.yml` deploys it to GitHub Pages at <https://soham2008xyz.github.io/trade-tycoon/>; setup is in [DEPLOY.md](DEPLOY.md#landing-page).
+- [~] **No gameplay screenshots yet**: the hero uses the Open Graph logo image, because the screenshots in `apps/client/public/` are placeholders.

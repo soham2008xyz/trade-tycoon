@@ -3,7 +3,8 @@
 The two halves of Trade Tycoon are deployed separately. The client is a static
 Expo Web export; the server is a Node.js Express app. Both run on Vercel.
 A separate standby copy of both runs on Render's free plans — see
-[Render standby](#render-standby).
+[Render standby](#render-standby). A static landing page is published on GitHub
+Pages — see [Landing page](#landing-page).
 
 ## Architecture quick recap
 
@@ -231,3 +232,37 @@ host with WebSocket support (Render, Fly.io, a VPS), the abstractions in `apps/s
 `apps/server/src/events` are deliberately small enough to swap — a future
 `WebSocketEventBus` would slot in next to `RedisEventBus` with no client-side
 changes.
+
+## Landing page
+
+`site/` is the public marketing page: hand-written HTML and CSS with no build
+step and no dependencies. It is not an npm workspace, so it never affects
+`npm ci`, tests or the Vercel/Render builds. It lives at
+<https://soham2008xyz.github.io/trade-tycoon/> and links to the game on Vercel,
+the Render standby, the repo and these docs.
+
+`.github/workflows/pages.yml` uploads `site/` and deploys it with GitHub's
+Pages actions on every push to `master` that touches `site/**` or the workflow.
+Run it by hand from the Actions tab (**Run workflow**) to redeploy.
+
+### Enabling Pages
+
+Once per repo: **Settings → Pages → Build and deployment → Source: GitHub
+Actions**. The workflow can't enable Pages itself. Until it is enabled the
+deploy job fails at "Configure Pages". The `github-pages` environment only
+accepts deploys from `master`, so the page goes live after the first merge.
+
+### Editing the page
+
+- Keep every asset path relative (`./styles.css`, `./img/...`). Pages serves a
+  project site under `/trade-tycoon/`, so a leading `/` points at the wrong
+  root.
+- `canonical`, `og:url` and `og:image` in `site/index.html` need absolute URLs
+  (crawlers don't resolve relative ones). Update them if the host changes, for
+  example when adding a custom domain.
+- `site/img/` holds copies of `apps/client/public/{og-image,favicon,icon-192}.png`.
+  Re-copy them if the app's branding changes.
+- Preview with `npx serve site` (or any static server), not `file://`, so dark
+  mode and relative paths behave as they will in production.
+- The page repeats a few facts (player count, starting cash, turn limits).
+  Check them against `docs/SPECIFICATION.md` when those change.

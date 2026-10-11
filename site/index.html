@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trade Tycoon — a property-trading board game</title>
+    <meta
+      name="description"
+      content="Buy, trade and build your way to the top in a Monopoly-style property-trading board game. Play pass-and-play on one device or online with friends. Free, in your browser."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#1b5e20" />
+    <!-- Paths are relative on purpose: GitHub Pages serves a project site from
+         /trade-tycoon/, so a leading "/" would point at the wrong root. -->
+    <link rel="icon" type="image/png" href="./img/favicon.png" />
+    <link rel="apple-touch-icon" href="./img/icon-192.png" />
+    <link rel="stylesheet" href="./styles.css" />
+
+    <!-- Crawlers need absolute URLs; keep in sync with docs/DEPLOY.md. -->
+    <link rel="canonical" href="https://soham2008xyz.github.io/trade-tycoon/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Trade Tycoon" />
+    <meta property="og:title" content="Trade Tycoon" />
+    <meta
+      property="og:description"
+      content="Buy, trade and build your way to the top in a property-trading board game. Play pass-and-play on one device or online with friends."
+    />
+    <meta property="og:url" content="https://soham2008xyz.github.io/trade-tycoon/" />
+    <meta
+      property="og:image"
+      content="https://soham2008xyz.github.io/trade-tycoon/img/og-image.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Trade Tycoon logo: a die showing six" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="wrap bar">
+        <a class="brand" href="#top">
+          <img src="./img/icon-192.png" alt="" width="32" height="32" />
+          <span>Trade Tycoon</span>
+        </a>
+        <nav aria-label="Primary">
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how-to-play">How to play</a></li>
+            <li><a href="#tech">Tech</a></li>
+            <li><a href="#links">Links</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <div class="wrap hero-grid">
+          <div>
+            <p class="eyebrow">Free · Plays in your browser · 2–8 players</p>
+            <h1 id="hero-title">Buy, trade and build your way to the top.</h1>
+            <p class="lead">
+              Trade Tycoon is a Monopoly-style property-trading game. Pass the device around the
+              table, or open a room and play online with friends — no sign-up, no install.
+            </p>
+            <p class="cta">
+              <a class="btn btn-primary" href="https://trade-tycoon.sohambanerjee.me">Play now</a>
+              <a class="btn btn-secondary" href="#how-to-play">How to play</a>
+            </p>
+          </div>
+          <img
+            class="hero-art"
+            src="./img/og-image.png"
+            width="1200"
+            height="630"
+            alt="Trade Tycoon logo: a die showing six, beside the title and the tagline “Buy, trade and build your way to the top.”"
+          />
+        </div>
+      </section>
+
+      <section id="features" aria-labelledby="features-title">
+        <div class="wrap">
+          <h2 id="features-title">Everything you expect from a night of property trading</h2>
+          <ul class="cards">
+            <li>
+              <h3>Two ways to play</h3>
+              <p>
+                Hotseat on one shared device, or online in a room: share a code and everyone joins
+                from their own screen.
+              </p>
+            </li>
+            <li>
+              <h3>Real trading</h3>
+              <p>
+                Offer cash, properties and Get Out of Jail Free cards. The other player reviews and
+                accepts or declines.
+              </p>
+            </li>
+            <li>
+              <h3>Auctions</h3>
+              <p>
+                Pass on a property and it goes to auction, so nothing sits unowned while the rest of
+                the table bids.
+              </p>
+            </li>
+            <li>
+              <h3>Build and mortgage</h3>
+              <p>
+                Complete a colour set, build houses and hotels evenly, and mortgage to raise cash
+                when rent comes due.
+              </p>
+            </li>
+            <li>
+              <h3>Turn timers online</h3>
+              <p>
+                A three-minute turn clock and a 30-second bid clock keep the game moving when
+                someone wanders off. The server enforces them, so every screen agrees.
+              </p>
+            </li>
+            <li>
+              <h3>Accessible by design</h3>
+              <p>
+                Every player has a distinct colour <em>and</em> shape, and board tiles are labelled
+                for screen readers. It adapts to phones, tablets and wide screens.
+              </p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="how-to-play" class="alt" aria-labelledby="how-title">
+        <div class="wrap">
+          <h2 id="how-title">How to play</h2>
+          <ol class="steps">
+            <li>
+              <h3>Pick a mode</h3>
+              <p>
+                Choose <strong>Local Multiplayer</strong> to pass one device around, or
+                <strong>Online Multiplayer</strong> to create a room and share its code with
+                friends.
+              </p>
+            </li>
+            <li>
+              <h3>Roll and move</h3>
+              <p>
+                Everyone starts with $1,500. Roll two dice, move your piece, and collect $200 each
+                time you pass Go. Doubles roll again, but three in a row sends you to jail.
+              </p>
+            </li>
+            <li>
+              <h3>Buy, rent and trade</h3>
+              <p>
+                Land on an unowned property to buy it or send it to auction. Landing on someone
+                else’s costs rent. Trade with other players to complete colour sets.
+              </p>
+            </li>
+            <li>
+              <h3>Outlast everyone</h3>
+              <p>
+                Build houses and hotels to raise the rent. When you can’t pay a debt, declare
+                bankruptcy. The last player standing wins.
+              </p>
+            </li>
+          </ol>
+          <p class="cta">
+            <a class="btn btn-primary" href="https://trade-tycoon.sohambanerjee.me">Start a game</a>
+          </p>
+        </div>
+      </section>
+
+      <section id="tech" aria-labelledby="tech-title">
+        <div class="wrap">
+          <h2 id="tech-title">Under the hood</h2>
+          <p class="lead">
+            An open-source TypeScript monorepo. All the game rules live in one pure package that the
+            app and the server share, so they can never disagree about what is legal.
+          </p>
+          <ul class="cards">
+            <li>
+              <h3>Client</h3>
+              <p>
+                Expo (React Native) with React 19, rendering to the web, iOS and Android from one
+                codebase.
+              </p>
+            </li>
+            <li>
+              <h3>Server</h3>
+              <p>
+                Node.js and Express. Plain REST for actions and Server-Sent Events for live updates
+                — no WebSockets.
+              </p>
+            </li>
+            <li>
+              <h3>Game logic</h3>
+              <p>
+                A framework-free, immutable reducer written in TypeScript and covered by Vitest
+                tests.
+              </p>
+            </li>
+            <li>
+              <h3>Hosting</h3>
+              <p>
+                Vercel for the app and API, Upstash Redis for room state, and a standby copy on
+                Render.
+              </p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="links" class="alt" aria-labelledby="links-title">
+        <div class="wrap">
+          <h2 id="links-title">Links</h2>
+          <ul class="link-list">
+            <li>
+              <a href="https://trade-tycoon.sohambanerjee.me">Play on the web</a>
+              <span>The live game, hosted on Vercel.</span>
+            </li>
+            <li>
+              <a href="https://trade-tycoon-web.onrender.com">Standby game</a>
+              <span>A separate copy on Render. Rooms are not shared with the main game.</span>
+            </li>
+            <li>
+              <a href="https://github.com/soham2008xyz/trade-tycoon">Source code</a>
+              <span>Browse the repository, file issues and contribute.</span>
+            </li>
+            <li>
+              <a href="https://github.com/soham2008xyz/trade-tycoon/blob/master/docs/DEPLOY.md"
+                >Deployment guide</a
+              >
+              <span>Run your own copy on Vercel, Upstash or Render.</span>
+            </li>
+            <li>
+              <a
+                href="https://github.com/soham2008xyz/trade-tycoon/blob/master/docs/ARCHITECTURE.md"
+                >Architecture</a
+              >
+              <span>How the client, server and shared game logic fit together.</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>
+          Trade Tycoon is an independent open-source project and is not affiliated with or endorsed
+          by Hasbro or Monopoly.
+        </p>
+        <p>
+          <a href="https://github.com/soham2008xyz/trade-tycoon/blob/master/LICENSE">License</a> ·
+          <a href="https://github.com/soham2008xyz/trade-tycoon">GitHub</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

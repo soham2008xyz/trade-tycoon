@@ -21,6 +21,9 @@ Events on top of Upstash Redis.
 - `apps/server` — Express server for multiplayer (REST + SSE).
 - `packages/game-logic` — Pure-TypeScript game rules shared by both.
 
+- `site/` — static landing page, published at
+  <https://soham2008xyz.github.io/trade-tycoon/> (not a workspace).
+
 See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the multiplayer data flow and
 [DEPLOY.md](./docs/DEPLOY.md) for production deployment / env vars.
 
