@@ -37,7 +37,7 @@ export interface TimerSubject {
  * alone.
  */
 export const getTimerSubject = (state: GameState): TimerSubject | null => {
-  if (state.winner || state.players.length === 0) return null;
+  if (!!state.winner || state.players.length === 0) return null;
 
   const { auction } = state;
   if (state.phase === 'auction' && auction) {
@@ -126,6 +126,6 @@ export const expireTurnTimer = (state: GameState, now: number, rng: Rng): GameSt
  */
 export const localizeTurnTimer = (state: GameState, receivedAt: number): GameState => {
   const { timer } = state;
-  if (!timer || timer.remainingMs === undefined) return state;
+  if (timer?.remainingMs === undefined) return state;
   return { ...state, timer: { ...timer, expiresAt: receivedAt + timer.remainingMs } };
 };

@@ -1,5 +1,9 @@
 import type { TurnTimer } from '@trade-tycoon/game-logic';
 
+// Generic so call sites name no `TurnTimer | null` union: Codacy can't resolve
+// the game-logic types, reads them as `any` and flags such unions as redundant.
+export type Maybe<T> = T | null | undefined;
+
 /** Under this much time left the countdown is drawn as urgent. */
 export const LOW_TIME_MS = 10_000;
 
@@ -9,7 +13,7 @@ export const LOW_TIME_MS = 10_000;
  * that was never localized — see `localizeTurnTimer` in game-logic). Never
  * negative: an overdue clock reads 0 until the server's timeout arrives.
  */
-export const getRemainingMs = (timer: TurnTimer | null | undefined, now: number): number | null => {
+export const getRemainingMs = (timer: Maybe<TurnTimer>, now: number): number | null => {
   if (!timer || timer.expiresAt === undefined) return null;
   return Math.max(0, timer.expiresAt - now);
 };

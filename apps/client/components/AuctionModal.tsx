@@ -5,6 +5,7 @@ import { AuctionState, Player, BOARD, type TurnTimer } from '@trade-tycoon/game-
 import { IconButton } from './ui/IconButton';
 import { DisconnectedBadge } from './ui/DisconnectedBadge';
 import { TurnTimerBadge } from './ui/TurnTimerBadge';
+import type { Maybe } from './turn-timer-display';
 import { shouldShowAuctionControls } from './multiplayer-gating';
 import { useTheme } from '../hooks/useTheme';
 import type { Theme } from '../constants/theme';
@@ -53,7 +54,7 @@ interface Props {
    * Online only: the running bid clock (`state.timer`), drawn for every
    * viewer next to the current bid. Omitted in hotseat, which has no timers.
    */
-  timer?: TurnTimer | null;
+  timer?: Maybe<TurnTimer>;
 }
 
 // `shouldShowAuctionControls` lives in `./multiplayer-gating` so it can be

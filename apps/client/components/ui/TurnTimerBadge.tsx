@@ -9,11 +9,12 @@ import {
   getTimerAccessibilityLabel,
   getTimerLabel,
   isTimeLow,
+  type Maybe,
 } from '../turn-timer-display';
 
 interface TurnTimerBadgeProps {
   /** `state.timer`; the badge draws nothing without a localized one (hotseat, timers off). */
-  timer: TurnTimer | null | undefined;
+  timer: Maybe<TurnTimer>;
   /** Name of the player whose clock is running. */
   playerName: string;
   /** Whether that player is the local user (online), so the label can say "You". */

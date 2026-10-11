@@ -10,7 +10,9 @@ export function useNow(active: boolean, intervalMs = 250): number {
   useEffect(() => {
     if (!active) return;
     // Catch up immediately: `now` may be stale from when the clock last ran.
-    const tick = () => setNow(Date.now());
+    const tick = () => {
+      setNow(Date.now());
+    };
     const timeout = setTimeout(tick, 0);
     const id = setInterval(tick, intervalMs);
     return () => {

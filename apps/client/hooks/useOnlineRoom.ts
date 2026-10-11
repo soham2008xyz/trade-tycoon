@@ -179,7 +179,9 @@ function useRoomSync(options: RoomSyncOptions) {
       },
       // The server's countdown is relative (`remainingMs`), so anchor it to the
       // local clock the moment the snapshot arrives; see `localizeTurnTimer`.
-      onGameState: (state) => setGameState(localizeTurnTimer(state, Date.now())),
+      onGameState: (state) => {
+        setGameState(localizeTurnTimer(state, Date.now()));
+      },
       onPresence: setDisconnectedPlayerIds,
       onConnected: () => {
         setConnected(true);
