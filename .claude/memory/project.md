@@ -447,7 +447,18 @@
   locally with `uvx lizard -l typescript -C 15 -L 50 -w <files>`. Lizard
   loses components typed `React.FC<{ ... }>` (an inline object generic) and
   folds the following code, often `createStyles`, into the next function, so
-  give each component a named props interface. Codacy's issue list for a PR
+  give each component a named props interface. That is what produced the
+  "`TradePropertyLine` has 588 lines / CCN 65" and "`MortgageControls` has 302
+  lines" findings: both were mis-scoped, not real, and the real size lived in
+  `TradeModal` / `PropertyManager`. Other JSX that makes it lose where a
+  component ends (found by bisecting with `lizard` on a scratch copy; check a
+  new component with `lizard -l typescript` and look for a function whose end
+  line is the file's last): a bare attribute right after a `{…}` attribute
+  (`style={s} adjustsFontSizeToFit`; write `adjustsFontSizeToFit={true}`), any
+  JSX spread `{...props}`, and an `&apos;` entity in JSX text that follows a
+  `style={…}` attribute (use a string constant). A rendered-DOM diff before and
+  after is a good refactor check: modals are portaled outside `#root`, so
+  snapshot `document.body`, not `#root`. Codacy's issue list for a PR
   is readable without a token at
   `app.codacy.com/api/v3/analysis/organizations/gh/soham2008xyz/repositories/trade-tycoon/pull-requests/<n>/issues?status=new`.
 - Codacy (#341) runs `@typescript-eslint/no-confusing-void-expression`,

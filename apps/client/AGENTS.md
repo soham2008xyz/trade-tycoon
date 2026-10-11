@@ -21,6 +21,10 @@ components/
   multiplayer-gating.ts       Pure visibility predicates (NO React)
   multiplayer-gating.test.ts  vitest tests for the predicates
   held-cards.ts               Pure formatter for the GOOJ-card badge (NO React)
+  trade-draft.ts, trade-labels.ts
+                              Pure draft state + wording for the trade proposal form
+  property-manager.ts         Pure grouping + mortgage-button rules for Manage Properties
+  trade/                      The pieces TradeModal composes (propose form, active trade)
   ui/                         Primitives (IconButton, Toast, …)
   online/                     OnlineGame's connect, lobby and message screens
 hooks/                        Custom hooks
