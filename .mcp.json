@@ -1,29 +1,17 @@
 {
   "mcpServers": {
     "render": {
-      "command": "npx",
+      "command": "sh",
       "args": [
-        "-y",
-        "dotenv-cli@latest",
-        "-e",
-        ".env",
-        "--",
-        "sh",
         "-c",
-        "exec npx -y mcp-remote@latest https://mcp.render.com/mcp --header \"Authorization: Bearer $RENDER_API_KEY\""
+        "[ -s \"$HOME/.nvm/nvm.sh\" ] && . \"$HOME/.nvm/nvm.sh\" >/dev/null 2>&1; nvm use --silent >/dev/null 2>&1; exec npx -y dotenv-cli@latest -e .env -- sh -c 'exec npx -y mcp-remote@latest https://mcp.render.com/mcp --header \"Authorization: Bearer $RENDER_API_KEY\"'"
       ]
     },
     "codacy": {
-      "command": "npx",
+      "command": "sh",
       "args": [
-        "-y",
-        "dotenv-cli@latest",
-        "-e",
-        ".env",
-        "--",
-        "npx",
-        "-y",
-        "@codacy/codacy-mcp@latest"
+        "-c",
+        "[ -s \"$HOME/.nvm/nvm.sh\" ] && . \"$HOME/.nvm/nvm.sh\" >/dev/null 2>&1; nvm use --silent >/dev/null 2>&1; exec npx -y dotenv-cli@latest -e .env -- npx -y @codacy/codacy-mcp@latest"
       ]
     }
   }
