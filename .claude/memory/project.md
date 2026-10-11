@@ -139,6 +139,17 @@
   also suppresses security-update PRs, while `update-types` only filters
   routine version updates. Exact pins in `overrides` ignore
   major/minor/patch; tilde pins ignore major/minor so in-range patches flow.
+  Security-update PRs (titled "bump the npm_and_yarn group") do NOT honor
+  those ignores, so they can still drag in an SDK bump: #366 moved
+  `expo-router` to 58 to clear the `decode-uri-component` alert (pulled in by
+  `query-string@7`, patch 0.5.0 is out of its range) and broke `npm ci`. Revert
+  the bump, keep only the real fix (there `concurrently` 10.0.6 for
+  `shell-quote`), and dismiss the alert as tolerable risk until the SDK
+  upgrade; the ignore config can't prevent it. When a dependent pins a
+  vulnerable transitive exactly (`serve` pins `compression` 1.8.1), an
+  `overrides` entry is the fix (#367). Alerts whose patch needs an out-of-range
+  or non-existent upstream release (`image-size` via metro, `uuid` via `xcode`,
+  `braces`, `node-forge`) just stay open.
 - Phone layout stacking (#257): `Board`, `Tile` and `PlayerToken` use explicit
   `zIndex` values (10–100+). In `PhoneGameLayout` the sibling `BottomSheet` has
   no stacking of its own by default, so those values painted over the expanded
