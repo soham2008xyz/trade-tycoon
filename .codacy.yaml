@@ -11,14 +11,15 @@
 #   mirrors .markdownlintignore.
 # - apps/client/*.config.js are CommonJS tool configs (metro, babel, eslint) where
 #   `require` is required, so TypeScript-oriented rules don't apply.
-# - `**/x` needs a parent directory in Codacy's globs, so root-level files are
-#   listed bare as well.
+# - `**/x` needs a parent directory in Codacy's globs, so it does not match a
+#   root-level file. The root package-lock.json is therefore excluded from Lizard
+#   only (see engines below) and NOT globally: Trivy scans the lockfile for
+#   dependency vulnerabilities and a global exclusion could hide those findings.
 
 exclude_paths:
   - '.agents/skills/**'
   - '.claude/skills/**'
   - 'apps/client/*.config.js'
-  - 'package-lock.json'
   - '**/*.test.ts'
   - '**/*.test.tsx'
   - '**/dist/**'
@@ -30,5 +31,9 @@ exclude_paths:
 engines:
   eslint:
     enabled: true
+  lizard:
+    # A 20k-line lockfile trips the file-size threshold; it is not authored code.
+    exclude_paths:
+      - 'package-lock.json'
   duplication:
     enabled: false
