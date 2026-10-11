@@ -565,3 +565,14 @@
   keep them in sync with `docs/DEPLOY.md`. The `github-pages` environment only
   deploys from `master`, so the live URL appears after the first merge, and Pages
   must be enabled once in repo settings (the workflow can't do it).
+- Dependency overrides for Trivy findings: `uuid@11` under `xcode` is safe.
+  Don't force `image-size@2` onto the root `metro@0.84.4` (it declares `^1`);
+  instead the root Metro family was re-resolved to 0.84.6, which drops
+  `image-size` entirely. The `metro*` packages pin each other exactly, so
+  `npm update` can't move them one at a time: delete the root
+  `node_modules/metro*` lock entries and `npm install`. `npm run export` runs
+  through `@expo/metro`'s nested Metro, so it does not exercise the root one.
+  Do NOT override `decode-uri-component` to 0.5.0 under `query-string@7`: 0.5.0
+  exports `{ default }`, so `query-string` throws "decodeComponent is not a
+  function" at runtime (the web export does not catch it). `node-forge` and
+  `braces` have no upstream fix.
