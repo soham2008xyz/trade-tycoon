@@ -120,6 +120,27 @@ be drawn again. `Player.getOutOfJailCards` stays the per-player **count**
   makes exactly **one** rng call, so server-side tests that script rng
   sequences stay valid.
 
+## Turn timers
+
+`turn-timer.ts` holds the pure pieces of the online turn/bid clocks (design in
+[ADR 0013](../../docs/adr/0013-turn-deadlines-are-stamped-by-the-server-and-enforced-lazily.md)).
+The reducer never reads a clock; rules that bite:
+
+- Only the **server** stamps and expires: `stampTurnTimer(state, now)` after an
+  accepted reducer step, `expireTurnTimer(state, now, rng)` when due. Both take
+  `now`, so tests pass numbers and never fake timers. Hotseat calls neither.
+- Stamp **after** the "unchanged reference means rejected" checks:
+  `stampTurnTimer` returns the same reference only when nothing needed
+  re-arming, and a rejected action must not be stamped into a "change".
+- The re-arm key (`getTimerSubject`) is what makes "no free extension" true. A
+  new reducer path that changes whose turn it is, or who is bidding, needs no
+  timer code as long as the key still changes; one that should _not_ reset the
+  clock must leave the key alone.
+- Expiry reuses real reducer paths (`forceEndTurn` → END_TURN,
+  `passAuctionBidder` → CONCEDE_AUCTION) so logs, auctions and the debt rule
+  stay in one place. `timer.remainingMs` (wire) and `timer.expiresAt` (client)
+  are never stored; `deadline` is the only authoritative field.
+
 ## Where things live
 
 ```text
@@ -132,6 +153,8 @@ src/
                               server lobby, RESET_GAME all share it)
   board-data.ts               BOARD constant — every tile, in order
   cards.ts                    Chance + Community Chest deck logic
+  turn-timer.ts               Online turn/bid deadlines: stamp, expire, localize
+                              (see "Turn timers" below)
   jail-cards.ts               Which deck each held Get Out of Jail Free card
                               belongs to (see "Jail cards" below)
   chance-cards.ts             Chance card content

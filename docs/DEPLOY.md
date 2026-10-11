@@ -44,6 +44,11 @@ In the server project's **Settings → Environment Variables**:
 | `REDIS_URL`       | `rediss://default:<token>@<host>:<port>`                                      | Production + Preview |
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (e.g. the client's deployed URL) | Production + Preview |
 
+Optional: `TURN_TIME_LIMIT_SECONDS` (whole player turn, default `180`) and
+`AUCTION_TURN_TIME_LIMIT_SECONDS` (one bidder's bid-or-pass, default `30`) set
+the turn timers. Each is a whole number of seconds, `0` turns that timer off,
+and a game keeps the limits it started with.
+
 `ALLOWED_ORIGINS` falls back to known local-dev origins
 (`http://localhost:8081`, `http://localhost:19006`) when unset — always set
 it explicitly in any deployed environment (the server logs a warning at boot

@@ -7,7 +7,7 @@ import {
   type SetStateAction,
 } from 'react';
 import { Platform } from 'react-native';
-import type { GameState, LobbyState } from '@trade-tycoon/game-logic';
+import { localizeTurnTimer, type GameState, type LobbyState } from '@trade-tycoon/game-logic';
 import { supportsOnlineEventStream } from '../components/online-platform';
 import { startRoomSync, type RoomSyncHandle } from '../components/online-sync';
 import {
@@ -88,7 +88,7 @@ function useResumeSession(
       setPlayerId(session.playerId);
       setToken(session.token);
       if (body.gameState) {
-        setGameState(body.gameState);
+        setGameState(localizeTurnTimer(body.gameState, Date.now()));
         setStep('game');
       } else {
         setStep('lobby');
@@ -168,7 +168,7 @@ function useRoomSync(options: RoomSyncOptions) {
         }
         setLobbyState(state);
         if (state.status === 'game' && state.gameState) {
-          setGameState(state.gameState);
+          setGameState(localizeTurnTimer(state.gameState, Date.now()));
           setStep('game');
         } else if (transport === 'poll') {
           // Poll snapshots are authoritative about the current screen. The
@@ -177,7 +177,9 @@ function useRoomSync(options: RoomSyncOptions) {
           setStep('lobby');
         }
       },
-      onGameState: setGameState,
+      // The server's countdown is relative (`remainingMs`), so anchor it to the
+      // local clock the moment the snapshot arrives; see `localizeTurnTimer`.
+      onGameState: (state) => setGameState(localizeTurnTimer(state, Date.now())),
       onPresence: setDisconnectedPlayerIds,
       onConnected: () => {
         setConnected(true);

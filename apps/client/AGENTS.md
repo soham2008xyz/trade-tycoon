@@ -143,6 +143,23 @@ can't disagree. Verified in the web build: Trade at phone and wide
 widths, Log at phone, Tile info at wide (Manage in #335). Auction only by
 `toast-host.test.ts`. Not re-run on Android or iOS.
 
+## Turn timers
+
+Online games show a countdown for the running turn or bid clock
+(`components/ui/TurnTimerBadge.tsx`: `GameTimerBadge` in the status panels,
+`TurnTimerBadge` in `AuctionModal`). The client never decides that time is
+up — it only draws it and sits at 0:00 until the server's skip arrives.
+
+- A snapshot's `timer.remainingMs` is relative to the server clock;
+  `useOnlineRoom` runs every incoming game state through `localizeTurnTimer`
+  (game-logic) to stamp the local `expiresAt`. Draw from `expiresAt` only —
+  never from `deadline`, which is on the server's clock. Any new place that
+  puts a game state into React state from the network must localize it too.
+- Hotseat states have no `timer`, so the badge renders nothing and `useNow`
+  runs no interval; there is no hotseat gate to write.
+- The formatting rules are pure and tested in `turn-timer-display.ts`; keep
+  new countdown wording there, not in the component.
+
 ## Game over
 
 `state.winner` is the single signal. `getStatusPanelActions` returns

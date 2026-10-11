@@ -18,12 +18,15 @@ src/
   index.test.ts               trust proxy / per-IP rate-limit test
   trustProxy.ts               TRUST_PROXY_HOPS parsing
   RoomManager.ts              Business logic — async, takes a RoomStore
-  serialize.ts                Wire boundary: strips sessions/errorMessage
+  serialize.ts                Wire boundary: strips sessions/errorMessage,
+                              adds timer.remainingMs
+  turnTimerConfig.ts          TURN_TIME_LIMIT_SECONDS / AUCTION_… env parsing
   middleware/
     errors.ts                 Terminal JSON error handler (503 on CAS
                               exhaustion, 500 otherwise)
   routes/
     rooms.ts                  REST endpoints
+    expiry.ts                 expireAndPublish: settle overdue turn timers
     rooms.test.ts             Supertest integration tests
     events.ts                 SSE stream
     events.test.ts            Real-HTTP SSE tests
@@ -72,6 +75,33 @@ and written on every native poll, so it lives in its own `PresenceStore`
 - The `presence` SSE event is written directly by `routes/events.ts` (one
   `res.write` per frame) and is deliberately **not** a `RoomEvent` — it is
   never put on the `EventBus`.
+
+## Turn timers
+
+Deadlines live in `GameState.timer` and are enforced lazily (ADR 0013). Rules
+that bite:
+
+- `RoomManager.expireIfDue` is the one place expiry is applied. **Every route
+  that reads or acts on a running game calls `expireAndPublish`
+  (`routes/expiry.ts`) first** — it publishes the timeout on the bus, which
+  `RoomManager` cannot do. A new such route needs the call. It is best-effort
+  and swallows its own errors.
+- Read the clock **once, outside** a store mutator (`const now = this.clock()`)
+  and pass it in, like the rng seed, so a CAS retry judges the same instant.
+  `removePlayerFrom` takes `now` for this reason: removing the current player
+  changes whose clock runs, so it re-stamps.
+- Every `RoomManager` path that produces a public state goes through
+  `publicRoom` / `publicGame` (the manager's clock) so `timer.remainingMs`
+  matches the injected test clock. Don't call `toPublic*` directly with the
+  default `Date.now()` from manager code.
+- The SSE route arms one timeout per stream from the `remainingMs` of the last
+  state it wrote, and re-arms from a fresh read after firing. Tests of that
+  path use a real `RoomManager` with tiny limits (see `routes/timers.test.ts`);
+  everything else uses `setupGame(names, { turnTimers })` and moves
+  `ctx.clock.now`.
+- Limits come from `TURN_TIME_LIMIT_SECONDS` / `AUCTION_TURN_TIME_LIMIT_SECONDS`
+  (`turnTimerConfig.ts`) and are snapshotted into `GameState.timerConfig` at
+  start.
 
 ## Adding a new REST endpoint
 

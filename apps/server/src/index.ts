@@ -13,6 +13,7 @@ import { createRoomsRouter } from './routes/rooms';
 import { createEventsRouter } from './routes/events';
 import { errorHandler } from './middleware/errors';
 import { parseTrustProxyHops } from './trustProxy';
+import { resolveTurnTimerConfig } from './turnTimerConfig';
 import { resolveAllowedOrigins } from './allowedOrigins';
 import type { RoomStore } from './store/RoomStore';
 import type { EventBus } from './events/EventBus';
@@ -75,7 +76,11 @@ function buildBackends(): {
 }
 
 const { roomStore, eventBus, presenceStore } = buildBackends();
-const roomManager = new RoomManager(roomStore, { presence: presenceStore });
+const roomManager = new RoomManager(roomStore, {
+  presence: presenceStore,
+  // Per-game turn limits (TURN_TIME_LIMIT_SECONDS / AUCTION_TURN_TIME_LIMIT_SECONDS).
+  turnTimers: resolveTurnTimerConfig(process.env),
+});
 
 // Comma-separated allowlist for production (e.g. the deployed web client's
 // origin); see allowedOrigins.ts for the fallback and the unset-in-production

@@ -126,6 +126,17 @@ This document tracks the implementation status of features for the Trade Tycoon 
 - [x] **Remove a disconnected player**: The host (or any player, once the host is disconnected too) can remove a disconnected player after a confirmation. They leave the game exactly as if they had left the room (turn passes on, assets go to nobody) and cannot rejoin. A connected player can never be removed; the server enforces this.
 - [~] **Known limitation**: A closed _web_ tab can keep looking present for up to ~5 minutes on Vercel, until the SSE function times out. Native is unaffected. Removal is manual only; there is no automatic timeout.
 
+### 8.2b Turn Timers
+
+- [x] **Player-turn limit**: Each online turn has a maximum time (default 3 minutes, `TURN_TIME_LIMIT_SECONDS`). It starts when the turn begins and is not extended by rolling doubles, buying or managing property. When it runs out the turn is ended for the player (an unowned tile they stand on goes to auction; a player in debt is skipped and keeps the debt).
+- [x] **Bid limit**: Each bidder in an auction has their own limit (default 30 seconds, `AUCTION_TURN_TIME_LIMIT_SECONDS`) that restarts for every bidder and every new bid. When it runs out the bidder concedes; a high bidder who runs out wins the auction. When the auction ends the turn clock restarts at the full turn limit.
+- [x] **Configurable**: The two limits are independent, `0` disables either, and they are fixed per game when it starts.
+- [x] **Server-enforced**: Deadlines live in the authoritative game state. They are settled lazily on any request that touches the room and by a timeout on every open event stream, so a late action is rejected (409) and never changes the game. After a long idle only one stalled turn is skipped.
+- [x] **Visible to everyone**: A countdown (`⏱ You · 1:05`, `⏱ Bob's bid · 0:12`) shows in the status panel and the auction modal, turning red under 10 seconds. It counts down from the server's remaining time, so clients agree after reconnecting or joining mid-turn, whatever their clock says.
+- [~] **Not covered**: Hotseat play has no timers. Rooms nobody touches are only settled when someone returns. Not yet checked in a browser or on a device.
+
+See [ADR 0013](adr/0013-turn-deadlines-are-stamped-by-the-server-and-enforced-lazily.md).
+
 ### 8.3 Persistence & Reconnection
 
 - [x] **Session Storage**: The client persists `{ roomId, playerId, token }` (key `trade_tycoon_session_v2`) in `localStorage` on web and in the keychain/keystore via `expo-secure-store` on native so a refresh or app restart can resume the session. `token` is the private credential; `playerId` alone cannot authenticate.

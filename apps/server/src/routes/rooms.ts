@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { parseGameAction } from '@trade-tycoon/game-logic';
 import type { RoomManager, RoomFailure } from '../RoomManager';
 import type { EventBus } from '../events/EventBus';
+import { expireAndPublish } from './expiry';
 
 /**
  * REST surface that replaces the Socket.IO control plane. Each endpoint
@@ -90,6 +91,10 @@ export const createRoomsRouter = (deps: {
     }
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
+    // Settle an overdue turn/bid first, so the action below is judged against
+    // the game as it stands after the deadline — and the timeout is broadcast
+    // even if this (late) action is then rejected.
+    await expireAndPublish(roomManager, eventBus, roomId);
     const result = await roomManager.handleGameAction(roomId, token, action);
     if (!result.ok) {
       if (result.reason === 'unauthorized') return res.status(401).json({ error: result.message });
@@ -111,6 +116,9 @@ export const createRoomsRouter = (deps: {
     if (!token) return res.status(400).json({ error: 'token is required' });
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
+    // Native clients poll this endpoint instead of holding an SSE stream, so it
+    // is also where they learn that a deadline passed.
+    await expireAndPublish(roomManager, eventBus, roomId);
     const result = await roomManager.reconnect(roomId, token);
     if (!result.ok) return failWith(res, result);
     res.status(200).json({
