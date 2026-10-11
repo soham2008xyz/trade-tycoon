@@ -561,9 +561,14 @@
   with inline `eslint-disable` (the local config doesn't load the plugins).
   The Codacy MCP server needs Node >= 18 (`Headers is not defined` on Node 16);
   the REST API with `CODACY_ACCOUNT_TOKEN` from `.env` also works.
-- Dependency overrides for Trivy findings: `image-size@2` under `metro` and
-  `uuid@11` under `xcode` are safe (verified via `npm run export`). Do NOT
-  override `decode-uri-component` to 0.5.0 under `query-string@7`: 0.5.0 exports
-  `{ default }`, so `query-string` throws "decodeComponent is not a function"
-  at runtime (the web export does not catch it). `node-forge` and `braces` have
-  no upstream fix.
+- Dependency overrides for Trivy findings: `uuid@11` under `xcode` is safe.
+  Don't force `image-size@2` onto the root `metro@0.84.4` (it declares `^1`);
+  instead the root Metro family was re-resolved to 0.84.6, which drops
+  `image-size` entirely. The `metro*` packages pin each other exactly, so
+  `npm update` can't move them one at a time: delete the root
+  `node_modules/metro*` lock entries and `npm install`. `npm run export` runs
+  through `@expo/metro`'s nested Metro, so it does not exercise the root one.
+  Do NOT override `decode-uri-component` to 0.5.0 under `query-string@7`: 0.5.0
+  exports `{ default }`, so `query-string` throws "decodeComponent is not a
+  function" at runtime (the web export does not catch it). `node-forge` and
+  `braces` have no upstream fix.
