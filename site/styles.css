@@ -1,18 +1,19 @@
 /* Brand green and white match the app's og-image. Light/dark follow the OS. */
 :root {
-  --bg: #ffffff;
+  --bg: #fff;
   --bg-alt: #f1f7f1;
-  --surface: #ffffff;
+  --surface: #fff;
   --text: #1c2a1d;
   --text-muted: #4a5a4b;
   --border: #d5e3d6;
   --brand: #1b5e20;
-  --brand-contrast: #ffffff;
+  --brand-contrast: #fff;
   --link: #14501a;
   --focus: #0062cc;
   --hero-bg: #1b5e20;
-  --hero-text: #ffffff;
+  --hero-text: #fff;
   --hero-muted: #d9efda;
+
   color-scheme: light dark;
 }
 
@@ -29,7 +30,7 @@
     --link: #8fe096;
     --focus: #7db8ff;
     --hero-bg: #12351a;
-    --hero-text: #ffffff;
+    --hero-text: #fff;
     --hero-muted: #cfe6d0;
   }
 }
@@ -57,7 +58,7 @@ body {
     Helvetica,
     Arial,
     sans-serif;
-  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 img {
@@ -72,6 +73,11 @@ a {
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
+}
+
+/* The blue ring is only ~1.4:1 against the green hero, so use white there. */
+.hero :focus-visible {
+  outline-color: #fff;
 }
 
 .wrap {
@@ -92,6 +98,7 @@ a {
   border-radius: 0.4rem;
   font-weight: 600;
 }
+
 .skip-link:focus {
   top: 1rem;
 }
@@ -104,6 +111,7 @@ a {
   background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
+
 .bar {
   display: flex;
   flex-wrap: wrap;
@@ -113,6 +121,7 @@ a {
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
 }
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -122,9 +131,11 @@ a {
   font-size: 1.1rem;
   text-decoration: none;
 }
+
 .brand img {
   border-radius: 0.4rem;
 }
+
 .site-header ul {
   display: flex;
   flex-wrap: wrap;
@@ -133,6 +144,7 @@ a {
   padding: 0;
   list-style: none;
 }
+
 .site-header nav a {
   display: inline-block;
   padding: 0.5rem 0; /* ≥ 24px tall tap target */
@@ -140,6 +152,7 @@ a {
   text-decoration: none;
   font-weight: 500;
 }
+
 .site-header nav a:hover {
   text-decoration: underline;
 }
@@ -150,11 +163,13 @@ a {
   color: var(--hero-text);
   padding: 3rem 0;
 }
+
 .hero-grid {
   display: grid;
   gap: 2rem;
   align-items: center;
 }
+
 .eyebrow {
   margin: 0 0 0.5rem;
   color: var(--hero-muted);
@@ -163,32 +178,36 @@ a {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
 h1 {
   margin: 0 0 1rem;
   font-size: clamp(2rem, 6vw, 3.25rem);
   line-height: 1.1;
-}
-.hero .lead {
-  color: var(--hero-muted);
-}
-.hero-art {
-  border-radius: 0.75rem;
-  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.35);
-}
-
-@media (min-width: 56rem) {
-  .hero {
-    padding: 5rem 0;
-  }
-  .hero-grid {
-    grid-template-columns: 1.1fr 1fr;
-  }
 }
 
 .lead {
   max-width: 40rem;
   font-size: 1.15rem;
   color: var(--text-muted);
+}
+
+.hero .lead {
+  color: var(--hero-muted);
+}
+
+.hero-art {
+  border-radius: 0.75rem;
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 35%);
+}
+
+@media (width >= 56rem) {
+  .hero {
+    padding: 5rem 0;
+  }
+
+  .hero-grid {
+    grid-template-columns: 1.1fr 1fr;
+  }
 }
 
 /* Buttons */
@@ -198,6 +217,7 @@ h1 {
   gap: 0.75rem;
   margin: 1.5rem 0 0;
 }
+
 .btn {
   display: inline-block;
   min-height: 2.75rem;
@@ -208,25 +228,31 @@ h1 {
   text-align: center;
   text-decoration: none;
 }
+
 .btn-primary {
-  background: #ffffff;
+  background: #fff;
   color: #14501a;
 }
+
 .btn-primary:hover {
   background: #e6f4e7;
 }
+
 .btn-secondary {
-  border-color: currentColor;
+  border-color: currentcolor;
   color: var(--hero-text);
 }
+
 .btn-secondary:hover {
-  background: rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 12%);
 }
+
 /* Outside the hero the primary button sits on the page background. */
 section:not(.hero) .btn-primary {
   background: var(--brand);
   color: var(--brand-contrast);
 }
+
 section:not(.hero) .btn-primary:hover {
   background: var(--brand);
   filter: brightness(1.1);
@@ -236,18 +262,22 @@ section:not(.hero) .btn-primary:hover {
 section {
   padding: 3.5rem 0;
 }
+
 section.alt {
   background: var(--bg-alt);
 }
+
 h2 {
   margin: 0 0 1.5rem;
   font-size: clamp(1.5rem, 4vw, 2.1rem);
   line-height: 1.2;
 }
+
 h3 {
   margin: 0 0 0.4rem;
   font-size: 1.15rem;
 }
+
 p {
   margin: 0 0 1rem;
 }
@@ -260,15 +290,18 @@ p {
   padding: 0;
   list-style: none;
 }
+
 #features .cards {
   margin-top: 0;
 }
+
 .cards li {
   padding: 1.25rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 0.75rem;
 }
+
 .cards p {
   margin: 0;
   color: var(--text-muted);
@@ -283,6 +316,7 @@ p {
   list-style: none;
   counter-reset: step;
 }
+
 .steps li {
   position: relative;
   padding: 1.25rem 1.25rem 1.25rem 4rem;
@@ -291,6 +325,7 @@ p {
   border-radius: 0.75rem;
   counter-increment: step;
 }
+
 .steps li::before {
   content: counter(step);
   position: absolute;
@@ -305,6 +340,7 @@ p {
   color: var(--brand-contrast);
   font-weight: 700;
 }
+
 .steps p {
   margin: 0;
   color: var(--text-muted);
@@ -315,16 +351,19 @@ p {
   padding: 0;
   list-style: none;
 }
+
 .link-list li {
   display: flex;
   flex-direction: column;
   padding: 0.9rem 0;
   border-bottom: 1px solid var(--border);
 }
-.link-list a {
+
+.link-title {
   font-weight: 700;
   overflow-wrap: anywhere;
 }
+
 .link-list span {
   color: var(--text-muted);
 }
@@ -336,6 +375,7 @@ p {
   color: var(--text-muted);
   font-size: 0.9rem;
 }
+
 .site-footer p {
   margin: 0 0 0.5rem;
 }
