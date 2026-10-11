@@ -42,7 +42,13 @@
     "react-native-worklets": "0.10.1",
     "react-native-safe-area-context": "~5.7.0",
     "@types/react": "~19.2.14",
-    "compression": "~1.8.2"
+    "compression": "~1.8.2",
+    "metro": {
+      "image-size": "2.0.3"
+    },
+    "xcode": {
+      "uuid": "11.1.1"
+    }
   },
   "allowScripts": {
     "fsevents@2.3.3": true,

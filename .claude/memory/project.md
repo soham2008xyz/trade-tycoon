@@ -550,3 +550,20 @@
   keep them in sync with `docs/DEPLOY.md`. The `github-pages` environment only
   deploys from `master`, so the live URL appears after the first merge, and Pages
   must be enabled once in repo settings (the workflow can't do it).
+- Codacy triage: `.codacy.yaml` `exclude_paths` is the repo-side lever. Vendored
+  `.agents/skills/**` and `.claude/skills/**` are excluded (they were ~88% of
+  all findings; edits there are overwritten on skill updates). Codacy's globs
+  need a parent directory for `**/x`, so root files like `package-lock.json`
+  are listed bare. Several ESLint findings are false positives caused by
+  Codacy's lack of type info (`no-misused-promises` on Express 5 handlers,
+  `no-redundant-type-constituents`, `no-unnecessary-condition` on closure-assigned
+  `let`s, `no-unused-vars` on TS signature params) — fix those cloud-side, never
+  with inline `eslint-disable` (the local config doesn't load the plugins).
+  The Codacy MCP server needs Node >= 18 (`Headers is not defined` on Node 16);
+  the REST API with `CODACY_ACCOUNT_TOKEN` from `.env` also works.
+- Dependency overrides for Trivy findings: `image-size@2` under `metro` and
+  `uuid@11` under `xcode` are safe (verified via `npm run export`). Do NOT
+  override `decode-uri-component` to 0.5.0 under `query-string@7`: 0.5.0 exports
+  `{ default }`, so `query-string` throws "decodeComponent is not a function"
+  at runtime (the web export does not catch it). `node-forge` and `braces` have
+  no upstream fix.
