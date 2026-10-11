@@ -61,11 +61,41 @@
       "skillPath": "skills/chrome-devtools/SKILL.md",
       "computedHash": "85d9c4ef94e00ddfc937d50aab72a307e80b98bc7e6744ec6e239ef68819c2d7"
     },
+    "codacy-analysis-cli": {
+      "source": "codacy/codacy-skills",
+      "sourceType": "github",
+      "skillPath": "skills/codacy-analysis-cli/SKILL.md",
+      "computedHash": "6fa0d801fb7d657220fed65dee1feaa907686f876e7ced6e385c6aa6f06ee90e"
+    },
+    "codacy-cloud-cli": {
+      "source": "codacy/codacy-skills",
+      "sourceType": "github",
+      "skillPath": "skills/codacy-cloud-cli/SKILL.md",
+      "computedHash": "b0491a9353356830083f6dd59788a3d69900ea2f73b8a3412f93b7aa25880279"
+    },
+    "codacy-code-review": {
+      "source": "codacy/codacy-skills",
+      "sourceType": "github",
+      "skillPath": "skills/codacy-code-review/SKILL.md",
+      "computedHash": "e57b4de537c87cc1d7af78324e76580f7314fb7ed36caba9a77a812ba372b129"
+    },
     "codeql": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "skillPath": "skills/codeql/SKILL.md",
       "computedHash": "a7d80450799b2141ddff9ec614477e237c1f50acb9eeade2dd869aeac3d004a9"
+    },
+    "configure-codacy": {
+      "source": "codacy/codacy-skills",
+      "sourceType": "github",
+      "skillPath": "skills/configure-codacy/SKILL.md",
+      "computedHash": "9af28bef0d17aa87f28c9b0f1c4d7aad01d244bd4ed8f969380dd4305590104a"
+    },
+    "configure-codacy-cloud": {
+      "source": "codacy/codacy-skills",
+      "sourceType": "github",
+      "skillPath": "skills/configure-codacy-cloud/SKILL.md",
+      "computedHash": "067ba3d3be6861eb74f831fed89391a63329545bb4d190c891f768cfc0c283d0"
     },
     "create-architectural-decision-record": {
       "source": "github/awesome-copilot",
@@ -402,6 +432,12 @@
       "sourceType": "github",
       "skillPath": "skills/secret-scanning/SKILL.md",
       "computedHash": "cc7de79bee80775578227a370637d0a83aa0f2cbec28374058899859261d2081"
+    },
+    "setup-coverage": {
+      "source": "codacy/codacy-skills",
+      "sourceType": "github",
+      "skillPath": "skills/setup-coverage/SKILL.md",
+      "computedHash": "5cf236cb10ee04f09afd42bf9a8bb5df165a393cc910c2c3e8ec2e8035504e33"
     },
     "setup-react-native-storybook": {
       "source": "storybookjs/react-native",
