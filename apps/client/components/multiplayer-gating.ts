@@ -67,6 +67,19 @@ export const canCancelTrade = (
 };
 
 /**
+ * Whether the trade modal should show "Waiting for … to respond" instead of
+ * any button. Only online: a client that is neither the target nor the
+ * initiator (an observer) can act on nothing, so the modal explains itself
+ * rather than sit empty. Hotseat always has Accept/Reject/Cancel to show.
+ */
+export const isWaitingOnTrade = (
+  selfId: string,
+  trade: Pick<TradeRequest, 'initiatorId' | 'targetPlayerId'> | null | undefined,
+  isMultiplayer: boolean
+): boolean =>
+  isMultiplayer && !canAcceptTrade(selfId, trade, true) && !canCancelTrade(selfId, trade, true);
+
+/**
  * Whether the game-over card offers "New Game". Hotseat shares one device,
  * so the user can go straight back to player setup and dispatch `RESET_GAME`
  * locally. Online, `RESET_GAME` is server-issued only (the server rejects it
