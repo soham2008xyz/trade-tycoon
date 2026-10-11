@@ -6,8 +6,19 @@
 # - Tests don't carry production risk, so we don't apply the lint surface to them.
 # - Lockfiles and generated PWA assets aren't authored code.
 # - The bundled dist/ output is a build artifact, never reviewed.
+# - .agents/skills and .claude/skills are vendored third-party skill packs
+#   (see skills-lock.json); edits would be overwritten on the next update. This
+#   mirrors .markdownlintignore.
+# - apps/client/*.config.js are CommonJS tool configs (metro, babel, eslint) where
+#   `require` is required, so TypeScript-oriented rules don't apply.
+# - `**/x` needs a parent directory in Codacy's globs, so root-level files are
+#   listed bare as well.
 
 exclude_paths:
+  - '.agents/skills/**'
+  - '.claude/skills/**'
+  - 'apps/client/*.config.js'
+  - 'package-lock.json'
   - '**/*.test.ts'
   - '**/*.test.tsx'
   - '**/dist/**'
