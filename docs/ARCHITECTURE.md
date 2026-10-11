@@ -51,6 +51,10 @@ trade-tycoon/
   the room record and travels to clients as a side channel (SSE `presence`
   event / `disconnectedPlayerIds` on `/reconnect`) — see
   [ADR 0012](adr/0012-presence-lives-outside-the-room-record.md).
+- **Turn timers:** Not a backend but state: `GameState.timer` holds the
+  running deadline, stamped by the server and settled lazily (on any room
+  request and by a timeout on each open SSE stream) — see
+  [ADR 0013](adr/0013-turn-deadlines-are-stamped-by-the-server-and-enforced-lazily.md).
 
 ### 3. `packages/game-logic`
 

@@ -13,6 +13,7 @@ import type { StatusPanelProps } from './types';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
 import { PlayerMarker } from '../PlayerMarker';
+import { GameTimerBadge } from '../ui/TurnTimerBadge';
 
 interface TurnInfoProps {
   player: Player;
@@ -36,6 +37,7 @@ function TurnInfo({ player, tileName, tileGroup, panel }: TurnInfoProps) {
         <Text style={styles.statusText}>{player.name}</Text>
         <GOOJBadge count={player.getOutOfJailCards} />
       </View>
+      <GameTimerBadge state={panel.state} myPlayerId={panel.myPlayerId} />
       <View style={styles.currentTileInfo}>
         <Text style={styles.statusText}>Position: </Text>
         {!panel.isTokenMoving && groupColor && (

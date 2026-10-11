@@ -89,6 +89,48 @@ export type JailCardDeck = 'chance' | 'communityChest';
  */
 export type JailCardHolders = Record<JailCardDeck, string | null>;
 
+/**
+ * Per-room turn limits, in milliseconds. `0` disables that timer. Snapshotted
+ * into `GameState.timerConfig` when an online game starts so every client and
+ * every server instance agree on the limits for the whole game.
+ */
+export interface TurnTimerConfig {
+  /** Max time for one player's whole turn (roll, act, manage, end). */
+  turnLimitMs: number;
+  /** Max time for one bidder's chance to bid or pass in an auction. */
+  auctionLimitMs: number;
+}
+
+/**
+ * The running countdown. Exactly one is active at a time: the current player's
+ * turn, or — while an auction is open — the current bidder's bid-or-pass.
+ * Online only; hotseat never sets it.
+ */
+export interface TurnTimer {
+  kind: 'turn' | 'auction';
+  /** Whose clock this is (the current player, or the current bidder). */
+  playerId: string;
+  /**
+   * Identity of what is being timed (see `getTimerSubject`). The deadline is
+   * re-armed whenever it changes and left alone otherwise, so e.g. rolling
+   * doubles or buying a property doesn't hand the player a fresh turn.
+   */
+  key: string;
+  /** Authoritative expiry, epoch ms on the **server** clock. */
+  deadline: number;
+  /**
+   * Wire only (added by the server's public serializer, never stored): ms left
+   * when the snapshot was serialized. Lets a client with a skewed clock count
+   * down correctly — see `localizeTurnTimer`.
+   */
+  remainingMs?: number;
+  /**
+   * Client only (added by `localizeTurnTimer`): the expiry on the **local**
+   * clock, which is what a countdown should be drawn from.
+   */
+  expiresAt?: number;
+}
+
 export interface GameState {
   players: Player[];
   currentPlayerId: string;
@@ -115,6 +157,10 @@ export interface GameState {
    */
   jailCardHolders?: JailCardHolders;
   activeTrade: TradeRequest | null;
+  /** Turn limits for this game; absent (old rooms, hotseat) means no timers. */
+  timerConfig?: TurnTimerConfig;
+  /** The running countdown, or null/absent when nothing is being timed. */
+  timer?: TurnTimer | null;
   errorMessage?: string;
   toastMessage?: string;
   logs: string[];

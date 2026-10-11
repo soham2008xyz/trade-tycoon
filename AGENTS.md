@@ -179,6 +179,15 @@ stored session. The reducer adds role-specific checks
 (only-host-can-start, only-target-can-accept-trade, …). Both layers
 participate in the security boundary.
 
+### Turn deadlines are server state, enforced lazily
+
+Online turns and auction bids have a deadline stamped into `GameState.timer`;
+the server settles it on any room request and from each open SSE stream, and
+clients only display the countdown. Details and the workspace rules are in
+[ADR 0013](docs/adr/0013-turn-deadlines-are-stamped-by-the-server-and-enforced-lazily.md),
+`packages/game-logic/AGENTS.md`, `apps/server/AGENTS.md` and
+`apps/client/AGENTS.md`.
+
 ### Resume is opt-in, never auto
 
 `OnlineGame` does NOT auto-restore the stored session on mount. The

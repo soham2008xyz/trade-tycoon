@@ -1,3 +1,4 @@
+import type { TurnTimerConfig } from '@trade-tycoon/game-logic';
 import { RoomManager } from '../RoomManager';
 import { InMemoryRoomStore } from '../store/InMemoryRoomStore';
 import type { RoomStore } from '../store/RoomStore';
@@ -18,12 +19,16 @@ export interface Seat {
  */
 export const setupGame = async (
   names: string[],
-  overrides: { presence?: PresenceStore; store?: RoomStore } = {}
+  overrides: { presence?: PresenceStore; store?: RoomStore; turnTimers?: TurnTimerConfig } = {}
 ) => {
   const store = overrides.store ?? new InMemoryRoomStore();
   const presence = overrides.presence ?? new InMemoryPresenceStore();
   const clock = { now: START };
-  const manager = new RoomManager(store, { presence, clock: () => clock.now });
+  const manager = new RoomManager(store, {
+    presence,
+    clock: () => clock.now,
+    turnTimers: overrides.turnTimers,
+  });
 
   const created = await manager.createRoom(names[0]);
   const seats: Seat[] = [{ playerId: created.playerId, token: created.token }];

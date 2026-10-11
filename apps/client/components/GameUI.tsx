@@ -372,6 +372,7 @@ export const GameUI: React.FC<GameUIProps> = ({
           onRemovePlayer ? { disconnectedPlayerIds, removablePlayerIds, onRemovePlayer } : undefined
         }
         overlay={toastHost === 'auction' ? toasts : null}
+        timer={state.timer}
       />
 
       {currentPlayer && selfId && (

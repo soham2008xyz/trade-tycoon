@@ -1,8 +1,13 @@
 import { Router, type Request, type Response } from 'express';
 import type { RoomManager } from '../RoomManager';
 import type { EventBus, RoomEvent } from '../events/EventBus';
+import { expireAndPublish } from './expiry';
 
 const HEARTBEAT_MS = 15_000;
+/** Wait this long past a deadline before settling it, so the clock has surely passed it. */
+const EXPIRY_SLACK_MS = 50;
+/** `setTimeout` overflows (and fires at once) above this. */
+const MAX_TIMEOUT_MS = 2 ** 31 - 1;
 
 /**
  * Server-Sent Events stream that replaces the Socket.IO push channel.
@@ -38,6 +43,9 @@ export const createEventsRouter = (deps: {
       return res.status(400).json({ error: 'token query param is required' });
     }
 
+    // A stream opened after a deadline (a client reconnecting mid-turn) must
+    // start from the settled game, not replay the overdue turn.
+    await expireAndPublish(roomManager, eventBus, roomId);
     const room = await roomManager.getRoom(roomId);
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
@@ -64,10 +72,12 @@ export const createEventsRouter = (deps: {
     let cleanedUp = false;
     let unsubscribe: (() => void) | null = null;
     let heartbeat: NodeJS.Timeout | null = null;
+    let expiryTimer: NodeJS.Timeout | null = null;
     const cleanup = () => {
       if (cleanedUp) return;
       cleanedUp = true;
       if (heartbeat) clearInterval(heartbeat);
+      if (expiryTimer) clearTimeout(expiryTimer);
       if (unsubscribe) unsubscribe();
       try {
         res.end();
@@ -82,6 +92,29 @@ export const createEventsRouter = (deps: {
     // which is the disconnect signal a long-lived stream actually needs.
     res.on('close', cleanup);
 
+    // Nothing wakes a serverless function when a turn timer runs out, but this
+    // open stream keeps one alive: aim a timeout at the deadline of the clock
+    // the last event carried, and settle it then. Every stream in the room does
+    // the same; the settle is a compare-and-swap, so the first one applies it
+    // and the rest find nothing due. The result is published on the bus, which
+    // lands back in `writeEvent` and arms the next deadline.
+    const armExpiry = (remainingMs: number | undefined) => {
+      if (expiryTimer) clearTimeout(expiryTimer);
+      expiryTimer = null;
+      if (remainingMs === undefined || cleanedUp) return;
+      const delay = Math.min(remainingMs + EXPIRY_SLACK_MS, MAX_TIMEOUT_MS);
+      expiryTimer = setTimeout(() => {
+        void (async () => {
+          await expireAndPublish(roomManager, eventBus, roomId);
+          if (cleanedUp) return;
+          // Re-arm from a fresh read: covers a deadline that was not quite due
+          // by the manager's clock, and an expiry another instance applied.
+          const fresh = await roomManager.getRoom(roomId);
+          armExpiry(fresh?.gameState?.timer?.remainingMs);
+        })();
+      }, delay);
+    };
+
     const writeEvent = (event: RoomEvent) => {
       try {
         res.write(`event: ${event.type}\n`);
@@ -89,7 +122,10 @@ export const createEventsRouter = (deps: {
       } catch (err) {
         console.warn('[SSE] write failed, closing stream', err);
         cleanup();
+        return;
       }
+      const game = event.type === 'lobby_update' ? event.state.gameState : event.state;
+      armExpiry(game?.timer?.remainingMs);
     };
 
     // Initial snapshot so the client doesn't have to wait for the next mutation.
@@ -159,6 +195,8 @@ export const createEventsRouter = (deps: {
         return;
       }
       void sendPresence();
+      // Safety net for the exact-deadline timeout above (e.g. a missed publish).
+      void expireAndPublish(roomManager, eventBus, roomId);
     }, heartbeatMs);
   });
 

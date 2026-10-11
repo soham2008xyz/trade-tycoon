@@ -525,3 +525,11 @@
   board tiles: the user asked for board tiles to show only the colored shape
   marker, since tiles are ~24px wide on the minimum board. Don't add name text
   to `Tile`.
+- Turn timers (#359): deadlines are `GameState.timer`, stamped and expired only
+  by the server via pure `stampTurnTimer` / `expireTurnTimer` (game-logic) and
+  settled lazily — any route touching a running game must call
+  `expireAndPublish` first, since `RoomManager` has no event bus. The wire
+  carries `timer.remainingMs` so skewed client clocks agree; the client
+  localizes it to `expiresAt` in `useOnlineRoom`. `RoomManager` passes its own
+  injectable clock to `toPublic*` (via `publicRoom`/`publicGame`), otherwise
+  tests with a fake clock see nonsense `remainingMs`. Design: ADR 0013.

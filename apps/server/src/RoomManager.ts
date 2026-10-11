@@ -12,6 +12,11 @@ import {
   PLAYER_COLORS,
   isColorTakenByOthers,
   normalizePlayerName,
+  DEFAULT_TURN_TIMER_CONFIG,
+  expireTurnTimer,
+  isTurnTimerExpired,
+  stampTurnTimer,
+  type TurnTimerConfig,
 } from '@trade-tycoon/game-logic';
 import { randomBytes, randomInt } from 'crypto';
 import type { RoomStore } from './store/RoomStore';
@@ -22,6 +27,10 @@ import { toPublicGameState, toPublicLobbyState } from './serialize';
 
 const MAX_ROOM_ID_RETRIES = 10;
 const MAX_PLAYERS_PER_ROOM = 8;
+
+// Generic so the signature names no `GameState | null` union: Codacy can't
+// resolve the game-logic types, reads them as `any` and flags such unions.
+type Nullable<T> = T | null;
 
 export interface CreateRoomResult {
   roomId: string;
@@ -89,19 +98,33 @@ const INVALID_TOKEN_MESSAGE = 'Invalid or expired session token';
 export class RoomManager {
   private readonly presence: PresenceStore;
   private readonly clock: () => number;
+  private readonly turnTimers: TurnTimerConfig;
 
   /**
-   * `presence` and `clock` are optional so callers that don't care about
-   * presence (and the many existing tests) keep working: the defaults are an
-   * in-memory store and the wall clock. Tests inject a controllable clock to
-   * age presence deterministically.
+   * `presence`, `clock` and `turnTimers` are optional so callers that don't
+   * care (and the many existing tests) keep working: the defaults are an
+   * in-memory store, the wall clock and the standard turn limits. Tests inject
+   * a controllable clock to age presence and turn deadlines deterministically.
+   * `turnTimers` is snapshotted into each game at start; a limit of 0 disables
+   * that timer.
    */
   constructor(
     private readonly store: RoomStore,
-    options: { presence?: PresenceStore; clock?: () => number } = {}
+    options: { presence?: PresenceStore; clock?: () => number; turnTimers?: TurnTimerConfig } = {}
   ) {
     this.presence = options.presence ?? new InMemoryPresenceStore();
     this.clock = options.clock ?? Date.now;
+    this.turnTimers = options.turnTimers ?? DEFAULT_TURN_TIMER_CONFIG;
+  }
+
+  /** Public wire view of a room, with timer countdowns measured on our clock. */
+  private publicRoom(room: LobbyState): LobbyState {
+    return toPublicLobbyState(room, this.clock());
+  }
+
+  /** Public wire view of a game state; see `publicRoom`. */
+  private publicGame(state: GameState): GameState {
+    return toPublicGameState(state, this.clock());
   }
 
   /**
@@ -238,7 +261,7 @@ export class RoomManager {
 
     console.log(`[RoomManager] Player ${playerName} (${userId}) joined room ${roomId}`);
     await this.touch(roomId, userId);
-    return { ok: true, playerId: userId, token, state: toPublicLobbyState(state) };
+    return { ok: true, playerId: userId, token, state: this.publicRoom(state) };
   }
 
   /**
@@ -277,10 +300,12 @@ export class RoomManager {
    * and trades). Shared by a player leaving and by the room removing a
    * disconnected player so the two paths cannot drift apart.
    *
-   * Pure function of `current` (it runs inside store mutators, which may be
-   * retried). The caller must have checked that `userId` is in the lobby.
+   * Pure function of `current` and `now` (it runs inside store mutators, which
+   * may be retried; callers read the clock once, outside). The caller must have
+   * checked that `userId` is in the lobby. `now` re-arms the turn clock, since
+   * removing the current player (or a bidder) changes whose turn it is.
    */
-  private removePlayerFrom(current: LobbyState, userId: string): LobbyState {
+  private removePlayerFrom(current: LobbyState, userId: string, now: number): LobbyState {
     const remainingSessions = Object.fromEntries(
       Object.entries(current.sessions ?? {}).filter(([, id]) => id !== userId)
     );
@@ -322,7 +347,7 @@ export class RoomManager {
       };
     }
 
-    const nextGameState = removePlayerFromGame(current.gameState, userId);
+    const nextGameState = stampTurnTimer(removePlayerFromGame(current.gameState, userId), now);
 
     if (nextGameState.players.length === 0) {
       return {
@@ -347,13 +372,14 @@ export class RoomManager {
     token: string
   ): Promise<RoomResult<{ state: LobbyState; gameState: GameState | null }>> {
     roomId = roomId.trim().toUpperCase();
+    const now = this.clock();
 
     const updated = await this.bumpedUpdate(roomId, (current) => {
       const userId = this.resolvePlayerId(current, token);
       if (!userId) return null;
       const player = current.players.find((entry) => entry.id === userId);
       if (!player) return null;
-      return this.removePlayerFrom(current, userId);
+      return this.removePlayerFrom(current, userId, now);
     });
 
     // Whether the room is gone or the token is stale, the caller's session is
@@ -363,8 +389,8 @@ export class RoomManager {
 
     return {
       ok: true,
-      state: toPublicLobbyState(updated),
-      gameState: updated.gameState ? toPublicGameState(updated.gameState) : null,
+      state: this.publicRoom(updated),
+      gameState: updated.gameState ? this.publicGame(updated.gameState) : null,
     };
   }
 
@@ -386,6 +412,7 @@ export class RoomManager {
     targetPlayerId: string
   ): Promise<RoomResult<{ state: LobbyState; gameState: GameState | null }>> {
     roomId = roomId.trim().toUpperCase();
+    const now = this.clock();
 
     // An authenticated request proves the caller is alive, so count it before
     // reading presence — otherwise a host whose last poll was just over the
@@ -427,7 +454,7 @@ export class RoomManager {
       }
 
       console.log(`[RoomManager] ${callerId} removed disconnected ${targetPlayerId} in ${roomId}`);
-      return this.removePlayerFrom(current, targetPlayerId);
+      return this.removePlayerFrom(current, targetPlayerId, now);
     });
 
     if (!updated) {
@@ -443,8 +470,8 @@ export class RoomManager {
 
     return {
       ok: true,
-      state: toPublicLobbyState(updated),
-      gameState: updated.gameState ? toPublicGameState(updated.gameState) : null,
+      state: this.publicRoom(updated),
+      gameState: updated.gameState ? this.publicGame(updated.gameState) : null,
     };
   }
 
@@ -476,8 +503,8 @@ export class RoomManager {
 
     return {
       ok: true,
-      state: toPublicLobbyState(room),
-      gameState: room.gameState ? toPublicGameState(room.gameState) : undefined,
+      state: this.publicRoom(room),
+      gameState: room.gameState ? this.publicGame(room.gameState) : undefined,
       disconnectedPlayerIds: await this.getDisconnectedPlayerIds(roomId, room),
     };
   }
@@ -531,7 +558,7 @@ export class RoomManager {
       }
       return { ok: false, reason: 'not_found', message: 'Room not found' };
     }
-    return { ok: true, state: toPublicLobbyState(updated) };
+    return { ok: true, state: this.publicRoom(updated) };
   }
 
   /**
@@ -542,6 +569,7 @@ export class RoomManager {
     roomId = roomId.trim().toUpperCase();
 
     let failure: RoomFailure | null = null;
+    const now = this.clock();
 
     const updated = await this.bumpedUpdate(roomId, (current) => {
       const userId = this.resolvePlayerId(current, token);
@@ -578,8 +606,11 @@ export class RoomManager {
       });
       gameState.players = gamePlayers;
       gameState.currentPlayerId = gamePlayers[0].id;
+      // The limits are fixed for the whole game, and the first turn's clock
+      // starts the moment the game does.
+      gameState.timerConfig = this.turnTimers;
 
-      return { ...current, status: 'game' as const, gameState };
+      return { ...current, status: 'game' as const, gameState: stampTurnTimer(gameState, now) };
     });
 
     if (!updated) {
@@ -588,7 +619,7 @@ export class RoomManager {
       return { ok: false, reason: 'not_found', message: 'Room not found' };
     }
 
-    return { ok: true, state: toPublicLobbyState(updated) };
+    return { ok: true, state: this.publicRoom(updated) };
   }
 
   async handleGameAction(
@@ -618,6 +649,9 @@ export class RoomManager {
     // the mutator, a fresh mulberry32(seed) instance replays the exact same
     // dice roll / card draw instead of silently re-rolling on retry.
     const seed = this.generateRngSeed();
+    // Read once for the same reason: a CAS retry must judge the deadline
+    // against the same instant, not a later one.
+    const now = this.clock();
 
     // Captured from inside the mutator so the caller learns *why* a rejected
     // action was rejected. Safe to reassign across CAS retries: only the
@@ -660,7 +694,15 @@ export class RoomManager {
         return null;
       }
 
-      const newState = reduceGameAction(current.gameState, safeAction, mulberry32(seed));
+      // A turn whose deadline has passed is settled first, so a late action is
+      // judged against the post-timeout game and can never rescue the turn it
+      // arrived too late for. (The routes also expire before calling in, so
+      // that expiry is persisted and broadcast even if this action is
+      // rejected; this is the backstop for a deadline crossed in between.)
+      const gameState =
+        expireTurnTimer(current.gameState, now, mulberry32(seed)) ?? current.gameState;
+
+      const newState = reduceGameAction(gameState, safeAction, mulberry32(seed));
       if (newState === ACTION_REJECTED) {
         console.warn(`[RoomManager] Rejected ${safeAction.type} from ${userId}`);
         return null;
@@ -679,11 +721,14 @@ export class RoomManager {
       // Pure no-op guard clauses (e.g. acting out of turn) return the exact
       // same state reference — nothing changed, so there's nothing to persist
       // or broadcast.
-      if (newState === current.gameState) {
+      if (newState === gameState) {
         return null;
       }
 
-      return { ...current, gameState: newState };
+      // Re-arm the clock for whoever is up now (a no-op while the same turn or
+      // bid is still being played). After the rejection checks above, which
+      // rely on an unchanged state reference.
+      return { ...current, gameState: stampTurnTimer(newState, now) };
     });
 
     if (authenticatedPlayerId) await this.touch(roomId, authenticatedPlayerId);
@@ -691,12 +736,41 @@ export class RoomManager {
     if (!updated?.gameState) {
       return { ok: false, reason: rejectionReason, message: rejectionMessage };
     }
-    return { ok: true, state: toPublicGameState(updated.gameState) };
+    return { ok: true, state: this.publicGame(updated.gameState) };
+  }
+
+  /**
+   * Lazily enforces the turn clocks: if the running timer has expired, applies
+   * the automatic action (skip the turn / pass the bid) and persists it.
+   * Returns the new public game state when something expired, otherwise null.
+   *
+   * Serverless has no background worker, so every request path that touches a
+   * room calls this first (see `routes/expiry.ts`), and open SSE streams also
+   * call it when the deadline they last saw comes due. It is safe to call from
+   * any number of streams or instances at once: the update is a CAS, so the
+   * first caller applies the expiry and everyone else finds nothing due.
+   *
+   * The cheap `get` comes first so the common case — nothing due — costs one
+   * read and no write attempt.
+   */
+  async expireIfDue(roomId: string): Promise<Nullable<GameState>> {
+    roomId = roomId.trim().toUpperCase();
+    const now = this.clock();
+    const peek = await this.store.get(roomId);
+    if (!peek?.gameState || !isTurnTimerExpired(peek.gameState, now)) return null;
+
+    const seed = this.generateRngSeed();
+    const updated = await this.bumpedUpdate(roomId, (current) => {
+      if (!current.gameState) return null;
+      const next = expireTurnTimer(current.gameState, now, mulberry32(seed));
+      return next ? { ...current, gameState: next } : null;
+    });
+    return updated?.gameState ? this.publicGame(updated.gameState) : null;
   }
 
   async getRoom(roomId: string): Promise<LobbyState | null> {
     const room = await this.store.get(roomId.trim().toUpperCase());
-    return room ? toPublicLobbyState(room) : null;
+    return room ? this.publicRoom(room) : null;
   }
 
   /**
@@ -712,7 +786,7 @@ export class RoomManager {
     if (!room) return null;
     const playerId = this.resolvePlayerId(room, token);
     if (!playerId) return null;
-    return { playerId, room: toPublicLobbyState(room) };
+    return { playerId, room: this.publicRoom(room) };
   }
 
   private generateRoomId(): string {

@@ -554,6 +554,26 @@ const startAuction = (state: GameState, tile: Tile): GameState => ({
 const canManageInPhase = (phase: GameState['phase']): boolean =>
   phase === 'roll' || phase === 'action';
 
+/**
+ * Hands the turn to the next player in seat order. Shared by END_TURN and the
+ * turn timer's forced skip so both reset the same per-turn fields.
+ */
+const passTurn = (state: GameState, playerName?: string): GameState => {
+  const currentIndex = state.players.findIndex((p) => p.id === state.currentPlayerId);
+  const nextIndex = (currentIndex + 1) % state.players.length;
+
+  return {
+    ...state,
+    currentPlayerId: state.players[nextIndex].id,
+    phase: 'roll',
+    doublesCount: 0,
+    auctionedPropertyId: undefined,
+    errorMessage: undefined,
+    toastMessage: undefined, // Clear any persisting messages
+    logs: [...state.logs, `[${playerName ?? 'Player'}] Ended their turn.`],
+  };
+};
+
 const describeRoll = (die1: number, die2: number): string =>
   `Rolled ${die1} + ${die2}${die1 === die2 ? ' (doubles)' : ''}`;
 
@@ -1634,20 +1654,7 @@ const reduceGameActionUnbounded = (
         }
       }
 
-      // Next player
-      const currentIndex = state.players.findIndex((p) => p.id === state.currentPlayerId);
-      const nextIndex = (currentIndex + 1) % state.players.length;
-
-      return {
-        ...state,
-        currentPlayerId: state.players[nextIndex].id,
-        phase: 'roll',
-        doublesCount: 0,
-        auctionedPropertyId: undefined,
-        errorMessage: undefined,
-        toastMessage: undefined, // Clear any persisting messages
-        logs: [...state.logs, `[${player?.name ?? 'Player'}] Ended their turn.`],
-      };
+      return passTurn(state, player?.name);
     }
 
     default:
@@ -1670,4 +1677,64 @@ export const reduceGameAction = (
   // A no-op must stay reference-equal (the server's rejection signal), even if
   // the input carried a stale debt that clearSettledDebts would otherwise copy.
   return result === state ? state : capLogs(clearSettledDebts(result));
+};
+
+/**
+ * Turn-timer expiry for the current player's turn (server-side; not a client
+ * action). Tries the ordinary END_TURN first so the usual consequences apply —
+ * ending on an unowned tile sends it to auction — and only when the player is
+ * unable to end normally (negative funds) skips them anyway: the clock must be
+ * able to advance a stalled table, and the debt stays theirs to settle next
+ * turn.
+ */
+export const forceEndTurn = (state: GameState, rng: Rng = Math.random): GameState => {
+  const ended = reduceGameAction(state, { type: 'END_TURN', playerId: state.currentPlayerId }, rng);
+  if (ended !== ACTION_REJECTED && ended !== state && !ended.errorMessage) return ended;
+  const player = state.players.find((p) => p.id === state.currentPlayerId);
+  return capLogs(passTurn(state, player?.name));
+};
+
+/**
+ * Turn-timer expiry for an auction bidder: they pass (CONCEDE_AUCTION). A
+ * bidder who is currently the high bidder can't concede, so the auction is
+ * settled in their favour instead — it can't be left running with nobody able
+ * to move.
+ */
+export const passAuctionBidder = (state: GameState, rng: Rng = Math.random): GameState => {
+  const auction = state.auction;
+  if (state.phase !== 'auction' || !auction) return state;
+  const bidderId = auction.participants[auction.currentBidderIndex];
+  const conceded = reduceGameAction(state, { type: 'CONCEDE_AUCTION', playerId: bidderId }, rng);
+  if (conceded !== ACTION_REJECTED && conceded !== state && !conceded.errorMessage) return conceded;
+
+  const winner = state.players.find((p) => p.id === auction.highestBidderId);
+  if (!winner) {
+    return capLogs({
+      ...state,
+      phase: 'action',
+      auction: null,
+      toastMessage: 'Auction cancelled. No bidders.',
+      logs: [...state.logs, `[Game] Auction cancelled.`],
+    });
+  }
+  const tileName = BOARD.find((t) => t.id === auction.propertyId)?.name;
+  return capLogs({
+    ...state,
+    players: state.players.map((p) =>
+      p.id === winner.id
+        ? {
+            ...p,
+            money: p.money - auction.currentBid,
+            properties: [...p.properties, auction.propertyId],
+          }
+        : p
+    ),
+    phase: 'action',
+    auction: null,
+    toastMessage: `${winner.name} won the auction for $${auction.currentBid}!`,
+    logs: [
+      ...state.logs,
+      `[${winner.name}] Won auction for ${tileName} at $${auction.currentBid}.`,
+    ],
+  });
 };

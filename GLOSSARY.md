@@ -69,6 +69,14 @@ The player whose Turn it is.
 **Phase**:
 Where the game is within a Turn: roll, action, auction or end.
 
+**Turn timer**:
+The maximum time a Current player has for their whole Turn in an Online game; when it runs out the server ends the Turn for them. Switched off in Hotseat.
+_Avoid_: Shot clock, countdown (that is only how it is displayed)
+
+**Bid timer**:
+The maximum time one bidder has to bid or concede in an Auction; when it runs out they concede, and it starts over for each bidder and each new Bid.
+_Avoid_: Auction timer (the Auction has no overall limit)
+
 **Doubles**:
 A roll where both dice match; the player rolls again, and three in a row sends them to Jail.
 

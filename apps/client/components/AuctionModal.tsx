@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { FullScreenModalShell } from './ui/FullScreenModalShell';
-import { AuctionState, Player, BOARD } from '@trade-tycoon/game-logic';
+import { AuctionState, Player, BOARD, type TurnTimer } from '@trade-tycoon/game-logic';
 import { IconButton } from './ui/IconButton';
 import { DisconnectedBadge } from './ui/DisconnectedBadge';
+import { TurnTimerBadge } from './ui/TurnTimerBadge';
+import type { Maybe } from './turn-timer-display';
 import { shouldShowAuctionControls } from './multiplayer-gating';
 import { useTheme } from '../hooks/useTheme';
 import type { Theme } from '../constants/theme';
@@ -48,6 +50,11 @@ interface Props {
   };
   /** Toasts to draw above the modal while it is open (see `FullScreenModalShell`). */
   overlay?: React.ReactNode;
+  /**
+   * Online only: the running bid clock (`state.timer`), drawn for every
+   * viewer next to the current bid. Omitted in hotseat, which has no timers.
+   */
+  timer?: Maybe<TurnTimer>;
 }
 
 // `shouldShowAuctionControls` lives in `./multiplayer-gating` so it can be
@@ -195,9 +202,11 @@ export const AuctionModal: React.FC<Props> = ({
   myPlayerId,
   presence,
   overlay,
+  timer,
 }) => {
   const styles = createStyles(useTheme());
   if (!auction) return null;
+  const bidder = players.find((p) => p.id === timer?.playerId);
 
   const property = BOARD.find((t) => t.id === auction.propertyId);
   const highestBidder = players.find((p) => p.id === auction.highestBidderId);
@@ -222,6 +231,13 @@ export const AuctionModal: React.FC<Props> = ({
               Current Bid: ${auction.currentBid}
               {highestBidder ? ` by ${highestBidder.name}` : ' (No bids yet)'}
             </Text>
+            {timer && bidder && (
+              <TurnTimerBadge
+                timer={timer}
+                playerName={bidder.name}
+                isMe={isMultiplayer ? bidder.id === myPlayerId : false}
+              />
+            )}
           </View>
 
           <ScrollView style={styles.participantsList}>

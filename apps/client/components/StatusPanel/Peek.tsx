@@ -13,6 +13,7 @@ import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
 import { formatMoney } from '../format-money';
 import { PlayerMarker } from '../PlayerMarker';
+import { GameTimerBadge } from '../ui/TurnTimerBadge';
 
 export const Peek: React.FC<StatusPanelProps> = ({
   state,
@@ -71,6 +72,8 @@ export const Peek: React.FC<StatusPanelProps> = ({
           <Dice value1={state.dice[0]} value2={state.dice[1]} isRolling={isTokenMoving} />
         )}
       </View>
+
+      <GameTimerBadge state={state} myPlayerId={myPlayerId} />
 
       <View style={styles.positionRow}>
         <Text style={styles.positionLabel}>Position: </Text>

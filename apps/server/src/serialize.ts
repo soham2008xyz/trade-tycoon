@@ -11,16 +11,22 @@ import type { GameState, LobbyState } from '@trade-tycoon/game-logic';
  * errorMessage-bearing state can be persisted or broadcast. Stripping it
  * here too is defense in depth — the boundary holds even if a future code
  * path persists one.
+ *
+ * `now` is the server clock at serialization. A running turn timer gets a
+ * `remainingMs` computed from it so clients with a skewed clock still count
+ * down correctly; it is wire-only and never stored. Callers inside
+ * `RoomManager` pass its injectable clock.
  */
-export function toPublicGameState(state: GameState): GameState {
+export function toPublicGameState(state: GameState, now: number = Date.now()): GameState {
   const { errorMessage, ...rest } = state;
   void errorMessage; // destructured only to drop the field from the returned object
-  return rest;
+  if (!rest.timer) return rest;
+  return { ...rest, timer: { ...rest.timer, remainingMs: Math.max(0, rest.timer.deadline - now) } };
 }
 
-export function toPublicLobbyState(state: LobbyState): LobbyState {
+export function toPublicLobbyState(state: LobbyState, now: number = Date.now()): LobbyState {
   const { sessions, ...rest } = state;
   void sessions; // destructured only to drop the field from the returned object
   if (!rest.gameState) return rest;
-  return { ...rest, gameState: toPublicGameState(rest.gameState) };
+  return { ...rest, gameState: toPublicGameState(rest.gameState, now) };
 }
