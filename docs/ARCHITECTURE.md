@@ -11,6 +11,7 @@ trade-tycoon/
 │   └── server/          # Express server (REST + SSE) for online multiplayer
 ├── packages/
 │   └── game-logic/      # Shared pure TypeScript game engine (rules, state)
+├── site/                # Static landing page (plain HTML/CSS, GitHub Pages)
 ├── docs/
 │   ├── ARCHITECTURE.md  # This file
 │   ├── DEPLOY.md        # Deployment + env var reference

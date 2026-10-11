@@ -544,3 +544,9 @@
   localizes it to `expiresAt` in `useOnlineRoom`. `RoomManager` passes its own
   injectable clock to `toPublic*` (via `publicRoom`/`publicGame`), otherwise
   tests with a fake clock see nonsense `remainingMs`. Design: ADR 0013.
+- The landing page in `site/` is served by GitHub Pages under the
+  `/trade-tycoon/` subpath, so all asset links must be relative (`./styles.css`),
+  never root-relative. Its `og:*`/`canonical` URLs are absolute and hardcoded;
+  keep them in sync with `docs/DEPLOY.md`. The `github-pages` environment only
+  deploys from `master`, so the live URL appears after the first merge, and Pages
+  must be enabled once in repo settings (the workflow can't do it).
