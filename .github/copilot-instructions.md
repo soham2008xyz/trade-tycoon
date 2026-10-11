@@ -4,7 +4,7 @@ Trade Tycoon is a **Monopoly-style trading game** built as an NPM Workspaces mon
 
 ## Architecture Overview
 
-```
+```text
 trade-tycoon/
 ├── apps/
 │   ├── client/          # Expo (React Native) - Web, iOS, Android
@@ -90,24 +90,21 @@ npm run test --workspace=apps/server                 # Server tests
    - Run `npm run test --workspace=packages/game-logic`
 
 2. **Update `apps/server` only when multiplayer transport/auth needs changes**:
-
-- Keep room API contracts in sync with client usage
-- Keep SSE event payload shape stable (`lobby_update`, `game_state_update`)
-- Add/adjust server tests in `apps/server/src/*.test.ts`
+   - Keep room API contracts in sync with client usage
+   - Keep SSE event payload shape stable (`lobby_update`, `game_state_update`)
+   - Add/adjust server tests in `apps/server/src/*.test.ts`
 
 3. **Update `apps/client`**:
-
-- Create/modify components in `components/`
-- Connect to state via props from `app/index.tsx`
-- For local/offline flow, dispatch actions in `LocalGame`
-- For online flow, route actions through `OnlineGame.handleGameDispatch`
-- Keep visibility and identity checks in `multiplayer-gating.ts`
+   - Create/modify components in `components/`
+   - Connect to state via props from `app/index.tsx`
+   - For local/offline flow, dispatch actions in `LocalGame`
+   - For online flow, route actions through `OnlineGame.handleGameDispatch`
+   - Keep visibility and identity checks in `multiplayer-gating.ts`
 
 4. **Verify both gameplay paths when relevant**:
-
-- Local reducer behavior (offline/hotseat)
-- Online reducer behavior via REST + SSE
-- Turn/identity checks and resume behavior
+   - Local reducer behavior (offline/hotseat)
+   - Online reducer behavior via REST + SSE
+   - Turn/identity checks and resume behavior
 
 ## Key Patterns
 
@@ -181,12 +178,14 @@ describe('Feature Name', () => {
 2. **Test both success and failure paths** - verify `errorMessage` only for user-correctable failures, and unchanged-state behavior for silent auth/identity boundaries
 3. **Use `die1`/`die2` params** to control dice for deterministic movement tests
 4. **Mock `Math.random`** with `vi.spyOn` for card draw tests:
+
    ```typescript
    const randomSpy = vi.spyOn(Math, 'random');
    randomSpy.mockReturnValueOnce(0.5); // Control card index
    // ... test ...
    randomSpy.mockRestore();
    ```
+
 5. **Test turn enforcement** - verify actions fail when wrong player attempts them
 
 ## Multiplayer Architecture (Implemented)
@@ -199,7 +198,7 @@ describe('Feature Name', () => {
 
 ### Data Flow
 
-```
+```text
 ┌─────────────┐       REST + SSE         ┌─────────────┐
 │   Client    │ ─── POST /actions ───→   │   Server    │
 │  (Expo/RN)  │                          │  (Express)  │

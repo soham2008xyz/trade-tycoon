@@ -579,7 +579,7 @@ export class RoomManager {
         return null;
       }
       const player = current.players.find((p) => p.id === userId);
-      if (!player || !player.isHost) {
+      if (!player?.isHost) {
         console.warn(`[RoomManager] Start failed: caller is not host in room ${roomId}`);
         failure = { ok: false, reason: 'conflict', message: 'Only the host can start the game' };
         return null;

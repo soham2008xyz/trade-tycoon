@@ -44,8 +44,8 @@ export class RedisEventBus implements EventBus {
       sub.off('message', onMessage);
       // Best-effort unsubscribe; ignore errors because the connection may
       // already be torn down (e.g. function timing out).
-      sub.unsubscribe(channel).catch(() => {});
-      sub.quit().catch(() => {});
+      sub.unsubscribe(channel).catch(() => undefined);
+      sub.quit().catch(() => undefined);
     };
   }
 }

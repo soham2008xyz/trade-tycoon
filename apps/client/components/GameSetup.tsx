@@ -79,7 +79,9 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
               <TouchableOpacity
                 key={num}
                 style={[styles.countButton, playerCount === num && styles.activeCountButton]}
-                onPress={() => handlePlayerCountChange(num)}
+                onPress={() => {
+                  handlePlayerCountChange(num);
+                }}
               >
                 <Text
                   style={[
@@ -132,7 +134,9 @@ export const GameSetup: React.FC<Props> = ({ onStartGame, onBack }) => {
                       accessibilityRole="button"
                       accessibilityLabel={`Player ${index + 1} ${getPlayerShape(color)} ${color}${taken ? ' (taken)' : ''}`}
                       accessibilityState={{ disabled: taken, selected: player.color === color }}
-                      onPress={() => updatePlayer(index, 'color', color)}
+                      onPress={() => {
+                        updatePlayer(index, 'color', color);
+                      }}
                     >
                       <PlayerMarker color={color} size={22} />
                     </TouchableOpacity>

@@ -347,7 +347,9 @@ export const TradeModal: React.FC<Props> = ({
                         title=""
                         accessibilityLabel="Offer fewer Get Out of Jail Free cards"
                         icon="minus"
-                        onPress={() => setOfferCards(Math.max(0, offerCards - 1))}
+                        onPress={() => {
+                          setOfferCards(Math.max(0, offerCards - 1));
+                        }}
                         size="small"
                         style={styles.stepperBtn}
                         color={theme.border}
@@ -357,9 +359,9 @@ export const TradeModal: React.FC<Props> = ({
                         title=""
                         accessibilityLabel="Offer more Get Out of Jail Free cards"
                         icon="plus"
-                        onPress={() =>
-                          setOfferCards(Math.min(initiator.getOutOfJailCards, offerCards + 1))
-                        }
+                        onPress={() => {
+                          setOfferCards(Math.min(initiator.getOutOfJailCards, offerCards + 1));
+                        }}
                         size="small"
                         style={styles.stepperBtn}
                         color={theme.border}
@@ -377,7 +379,9 @@ export const TradeModal: React.FC<Props> = ({
                   return (
                     <TouchableOpacity
                       key={id}
-                      onPress={() => toggleOfferProp(id)}
+                      onPress={() => {
+                        toggleOfferProp(id);
+                      }}
                       style={styles.checkRow}
                       {...checkRowA11yProps(isChecked, tile?.name ?? id)}
                     >
@@ -438,7 +442,9 @@ export const TradeModal: React.FC<Props> = ({
                         title=""
                         accessibilityLabel="Request fewer Get Out of Jail Free cards"
                         icon="minus"
-                        onPress={() => setReqCards(Math.max(0, reqCards - 1))}
+                        onPress={() => {
+                          setReqCards(Math.max(0, reqCards - 1));
+                        }}
                         size="small"
                         style={styles.stepperBtn}
                         color={theme.border}
@@ -448,9 +454,9 @@ export const TradeModal: React.FC<Props> = ({
                         title=""
                         accessibilityLabel="Request more Get Out of Jail Free cards"
                         icon="plus"
-                        onPress={() =>
-                          setReqCards(Math.min(target.getOutOfJailCards, reqCards + 1))
-                        }
+                        onPress={() => {
+                          setReqCards(Math.min(target.getOutOfJailCards, reqCards + 1));
+                        }}
                         size="small"
                         style={styles.stepperBtn}
                         color={theme.border}
@@ -468,7 +474,9 @@ export const TradeModal: React.FC<Props> = ({
                   return (
                     <TouchableOpacity
                       key={id}
-                      onPress={() => toggleReqProp(id)}
+                      onPress={() => {
+                        toggleReqProp(id);
+                      }}
                       style={styles.checkRow}
                       {...checkRowA11yProps(isChecked, tile?.name ?? id)}
                     >
