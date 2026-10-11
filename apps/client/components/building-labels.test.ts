@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildLabel, sellLabel } from './building-labels';
+import { buildLabel, houseCountLabel, sellLabel } from './building-labels';
 
 describe('buildLabel', () => {
   it('says House for the first four builds', () => {
@@ -22,5 +22,25 @@ describe('sellLabel', () => {
 
   it('says Hotel when the street has a hotel', () => {
     expect(sellLabel(5, 25)).toBe('Sell Hotel ($25)');
+  });
+});
+
+describe('houseCountLabel', () => {
+  it('pluralises zero houses', () => {
+    expect(houseCountLabel(0)).toBe('0 Houses');
+  });
+
+  it('uses the singular for one house', () => {
+    expect(houseCountLabel(1)).toBe('1 House');
+  });
+
+  it('pluralises two to four houses', () => {
+    for (const houses of [2, 3, 4]) {
+      expect(houseCountLabel(houses)).toBe(`${houses} Houses`);
+    }
+  });
+
+  it('says Hotel at five', () => {
+    expect(houseCountLabel(5)).toBe('Hotel');
   });
 });
