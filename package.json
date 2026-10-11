@@ -23,7 +23,7 @@
     "postinstall": "patch-package"
   },
   "devDependencies": {
-    "concurrently": "^10.0.5",
+    "concurrently": "^10.0.6",
     "expo-router": "~57.0.24",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
