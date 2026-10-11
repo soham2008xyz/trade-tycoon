@@ -134,6 +134,10 @@ export const createRoomsRouter = (deps: {
     if (!token) return res.status(400).json({ error: 'token is required' });
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
+    // Settle an overdue clock before the departure re-stamps it: removing a
+    // bidder changes the auction's timer key, which would otherwise hand an
+    // already-overdue bidder a fresh full deadline.
+    await expireAndPublish(roomManager, eventBus, roomId);
     const result = await roomManager.leaveRoom(roomId, token);
     if (!result.ok) return failWith(res, result);
 
@@ -150,6 +154,8 @@ export const createRoomsRouter = (deps: {
     if (!targetPlayerId) return res.status(400).json({ error: 'targetPlayerId is required' });
 
     const roomId = String(req.params.roomId).trim().toUpperCase();
+    // Same as leave: settle first, so removal can't re-arm an overdue clock.
+    await expireAndPublish(roomManager, eventBus, roomId);
     const result = await roomManager.removeDisconnectedPlayer(roomId, token, targetPlayerId);
     if (!result.ok) return failWith(res, result);
 

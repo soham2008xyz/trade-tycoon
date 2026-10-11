@@ -3,7 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import { createServer, type Server } from 'http';
 import type { AddressInfo } from 'net';
-import type { GameState } from '@trade-tycoon/game-logic';
+import { BOARD, type GameState } from '@trade-tycoon/game-logic';
 import { RoomManager } from '../RoomManager';
 import { InMemoryRoomStore } from '../store/InMemoryRoomStore';
 import { InMemoryEventBus } from '../events/InMemoryEventBus';
@@ -14,9 +14,10 @@ import { createEventsRouter } from './events';
 const LIMITS = { turnLimitMs: 60_000, auctionLimitMs: 10_000 };
 
 /** A started 2-player room on a controllable clock, behind the real routers. */
-const build = async (turnTimers = LIMITS) => {
+const build = async (turnTimers = LIMITS, extraPlayers: string[] = []) => {
   const clock = { now: 2_000_000 };
-  const roomManager = new RoomManager(new InMemoryRoomStore(), {
+  const store = new InMemoryRoomStore();
+  const roomManager = new RoomManager(store, {
     clock: () => clock.now,
     turnTimers,
   });
@@ -29,8 +30,16 @@ const build = async (turnTimers = LIMITS) => {
   const created = await roomManager.createRoom('Alice');
   const joined = await roomManager.joinRoom(created.roomId, 'Bob');
   if (!joined.ok) throw new Error('join failed');
+  const extras = [];
+  for (const name of extraPlayers) {
+    const extra = await roomManager.joinRoom(created.roomId, name);
+    if (!extra.ok) throw new Error('join failed');
+    extras.push({ playerId: extra.playerId, token: extra.token });
+  }
   await roomManager.startGame(created.roomId, created.token);
   return {
+    store,
+    extras,
     app,
     clock,
     roomManager,
@@ -105,6 +114,65 @@ describe('turn timers over REST', () => {
 
     expect(a.body.gameState.timer.remainingMs).toBe(48_000);
     expect(b.body.gameState.timer).toEqual(a.body.gameState.timer);
+  });
+});
+
+describe('turn timers when a player leaves or is removed', () => {
+  const MEDITERRANEAN = BOARD.findIndex((t) => t.id === 'mediterranean');
+
+  /** Alice declines Mediterranean, so a 3-way auction opens with Alice to bid. */
+  const overdueAuction = async () => {
+    const ctx = await build(LIMITS, ['Cara']);
+    await ctx.store.update(ctx.roomId, (current) => ({
+      ...current,
+      gameState: current.gameState && {
+        ...current.gameState,
+        phase: 'action',
+        players: current.gameState.players.map((p, i) =>
+          i === 0 ? { ...p, position: MEDITERRANEAN } : p
+        ),
+      },
+    }));
+    await ctx.roomManager.handleGameAction(ctx.roomId, ctx.alice.token, {
+      type: 'DECLINE_BUY',
+      playerId: ctx.alice.playerId,
+    });
+    ctx.clock.now += LIMITS.auctionLimitMs + 1; // Alice's bid clock has run out
+    return ctx;
+  };
+
+  it('passes the overdue bidder first instead of re-arming their clock when someone else leaves', async () => {
+    const ctx = await overdueAuction();
+    const [cara] = ctx.extras;
+    const events: RoomEvent[] = [];
+    await ctx.eventBus.subscribe(ctx.roomId, (e) => events.push(e));
+
+    const res = await request(ctx.app)
+      .post(`/api/rooms/${ctx.roomId}/leave`)
+      .send({ token: cara.token });
+
+    expect(res.status).toBe(200);
+    const game = (await ctx.roomManager.getRoom(ctx.roomId))?.gameState;
+    expect(game?.auction?.participants).toEqual([ctx.bob.playerId]);
+    // Alice's pass was broadcast, then Cara's departure.
+    expect(events.map((e) => e.type)).toEqual(['game_state_update', 'lobby_update']);
+  });
+
+  it('does the same when a disconnected player is removed', async () => {
+    const ctx = await overdueAuction();
+    const [cara] = ctx.extras;
+    // Cara has been silent past the presence timeout; everyone else is live.
+    ctx.clock.now += 60_000;
+    await ctx.roomManager.recordSeen(ctx.roomId, ctx.alice.playerId);
+    await ctx.roomManager.recordSeen(ctx.roomId, ctx.bob.playerId);
+
+    const res = await request(ctx.app)
+      .post(`/api/rooms/${ctx.roomId}/remove-player`)
+      .send({ token: ctx.alice.token, targetPlayerId: cara.playerId });
+
+    expect(res.status).toBe(200);
+    const game = (await ctx.roomManager.getRoom(ctx.roomId))?.gameState;
+    expect(game?.auction?.participants ?? []).not.toContain(ctx.alice.playerId);
   });
 });
 
