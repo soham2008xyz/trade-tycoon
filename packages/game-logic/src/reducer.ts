@@ -725,7 +725,6 @@ const reduceGameActionUnbounded = (
 
       const playerIndex = state.players.findIndex((p) => p.id === action.playerId);
       let player = state.players[playerIndex];
-      const wasInJail = player.isInJail;
 
       // Speeding Check
       if (newDoublesCount >= 3) {
@@ -900,7 +899,7 @@ const reduceGameActionUnbounded = (
 
       // Tax Logic
       if (targetTile.type === 'tax') {
-        const taxAmount = targetTile.price || 0;
+        const taxAmount = targetTile.price ?? 0;
         newPlayer = chargePlayer(newPlayer, taxAmount);
         newPlayers[playerIndex] = newPlayer;
         const msg = `Paid $${taxAmount} in Tax.`;
@@ -908,7 +907,7 @@ const reduceGameActionUnbounded = (
       }
 
       // Rent Logic
-      if (targetTile && targetTile.price && !newPlayer.isInJail) {
+      if (targetTile.price && !newPlayer.isInJail) {
         // Don't pay rent if sent to jail
         const ownerIndex = newPlayers.findIndex(
           (p) => p.properties.includes(targetTile.id) && p.id !== newPlayer.id
@@ -1001,7 +1000,7 @@ const reduceGameActionUnbounded = (
       const player = state.players[playerIndex];
       const tile = BOARD.find((t) => t.id === action.propertyId);
 
-      if (!tile || !tile.price) return { ...state, errorMessage: 'Invalid property.' };
+      if (!tile?.price) return { ...state, errorMessage: 'Invalid property.' };
 
       if (!isTileBuyable(tile))
         return { ...state, errorMessage: 'This property cannot be bought.' };
@@ -1474,7 +1473,7 @@ const reduceGameActionUnbounded = (
       const player = state.players[playerIndex];
       const tile = BOARD.find((t) => t.id === action.propertyId);
 
-      if (!tile || !tile.houseCost || !tile.group)
+      if (!tile?.houseCost || !tile.group)
         return { ...state, errorMessage: 'Cannot sell from this property.' };
 
       // Ownership

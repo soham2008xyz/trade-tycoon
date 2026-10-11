@@ -68,8 +68,7 @@ const PlayerTokenComponent: React.FC<Props> = ({
         }
       }
 
-      // Use spread operator to pass array elements as arguments
-      // @ts-ignore - spread operator works for withSequence
+      // Use spread operator to pass array elements as arguments.
       // Reanimated's SharedValue.value assignment is the documented API for
       // driving an animation, not a disallowed mutation of a hook's return value.
       visualIndex.value = withSequence(...animations);

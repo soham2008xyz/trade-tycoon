@@ -66,7 +66,9 @@ function buildBackends(): {
     // and the queue is the difference between a 200-300ms first hit and a
     // 500.
   });
-  redis.on('error', (err) => console.error('[Redis] connection error', err));
+  redis.on('error', (err) => {
+    console.error('[Redis] connection error', err);
+  });
 
   return {
     roomStore: new RedisRoomStore(redis),

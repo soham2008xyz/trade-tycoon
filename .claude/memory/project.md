@@ -536,6 +536,21 @@
   board tiles: the user asked for board tiles to show only the colored shape
   marker, since tiles are ~24px wide on the minimum board. Don't add name text
   to `Tile`.
+- Codacy triage: `.codacy.yaml` `exclude_paths` is the repo-side lever. Vendored
+  `.agents/skills/**` and `.claude/skills/**` are excluded (they were ~88% of
+  all findings; edits there are overwritten on skill updates). Codacy's `**/x`
+  globs need a parent directory, so they miss root-level files (e.g. the root
+  `package-lock.json` still tripped Lizard). Don't fix that with a bare global
+  exclude: Trivy scans the lockfile for vulnerabilities, so scope it per engine
+  (`engines.lizard.exclude_paths`). Several ESLint findings are false positives
+  caused by Codacy's lack of type info (`no-misused-promises` on Express 5
+  handlers, `no-redundant-type-constituents`, `no-unnecessary-condition` on
+  closure-assigned `let`s, `no-unused-vars` on TS signature params): fix those
+  cloud-side (disable the managed pattern or ignore the issue), never with
+  inline `eslint-disable` (the local config doesn't load the plugins). The
+  Codacy MCP server needs Node >= 18 (`Headers is not defined` on Node 16); the
+  REST API with `CODACY_ACCOUNT_TOKEN` from `.env` also works, and `.mcp.json`
+  now activates `.nvmrc` before launching it.
 - Turn timers (#359): deadlines are `GameState.timer`, stamped and expired only
   by the server via pure `stampTurnTimer` / `expireTurnTimer` (game-logic) and
   settled lazily — any route touching a running game must call

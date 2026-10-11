@@ -83,7 +83,9 @@ export const Toast: React.FC<ToastProps> = ({ message, onDismiss, duration = 300
       handleDismiss();
     }, duration);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [message, isSilent, duration, handleDismiss, fadeAnim]);
 
   return (

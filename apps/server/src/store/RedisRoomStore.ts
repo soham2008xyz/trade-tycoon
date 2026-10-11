@@ -41,7 +41,7 @@ export class RedisRoomStore implements RoomStore {
     // Register the CAS Lua script as a custom command on this connection. ioredis
     // ships the script to the server once (SCRIPT LOAD) and cached EVALSHA-calls
     // it thereafter, so this is faster than EVAL on every update too.
-    if (!(redis as unknown as { [k: string]: unknown })[CAS_COMMAND]) {
+    if (!(redis as unknown as Record<string, unknown>)[CAS_COMMAND]) {
       redis.defineCommand(CAS_COMMAND, { numberOfKeys: 1, lua: CAS_SCRIPT });
     }
     this.cas = redis as unknown as RedisWithRoomCas;

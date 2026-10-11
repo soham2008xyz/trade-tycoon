@@ -46,7 +46,7 @@ export const ownsCompleteGroup = (player: Player, group: PropertyGroup): boolean
 
 export const validateEvenBuild = (player: Player, propertyId: string): boolean => {
   const tile = BOARD.find((t) => t.id === propertyId);
-  if (!tile || !tile.group) return false;
+  if (!tile?.group) return false;
 
   const groupTiles = getPropertiesInGroup(tile.group);
   const currentHouses = player.houses[propertyId] || 0;
