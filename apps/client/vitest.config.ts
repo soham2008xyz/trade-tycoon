@@ -9,18 +9,15 @@ export default defineConfig({
     },
   },
   test: {
-    // Coverage only runs under `npm run test:coverage`. The include globs are
-    // deliberate: untested UI files count as 0% instead of being hidden.
+    // Coverage only runs under `npm run test:coverage`. .tsx files (app routes
+    // and components) are excluded: the suite runs in plain Node with no jsdom
+    // or RTL, so UI can't be exercised here (see apps/client/AGENTS.md). Logic
+    // lives in .ts helpers, which stay counted, including untested hooks.
     coverage: {
       provider: 'v8',
       reporter: ['lcovonly', 'text-summary'],
-      include: [
-        'app/**/*.{ts,tsx}',
-        'components/**/*.{ts,tsx}',
-        'hooks/**/*.{ts,tsx}',
-        'constants/**/*.{ts,tsx}',
-      ],
-      exclude: ['**/*.test.{ts,tsx}'],
+      include: ['components/**/*.ts', 'hooks/**/*.ts', 'constants/**/*.ts'],
+      exclude: ['**/*.test.ts', '**/*.tsx'],
     },
   },
 });

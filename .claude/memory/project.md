@@ -634,5 +634,6 @@
   reports a merge SHA Codacy doesn't know) and needs the `CODACY_PROJECT_TOKEN`
   repo secret; without it the steps skip and CI stays green. Put new vitest
   configs in `vitest.config.mts` in the CommonJS packages (game-logic, server)
-  to avoid Vite's "ESM in CommonJS" warning. Client coverage counts untested
-  UI files as 0% on purpose (about 25% lines; all three combined about 58%).
+  to avoid Vite's "ESM in CommonJS" warning. Client coverage excludes `.tsx`
+  (no jsdom/RTL, so UI is untestable here) but keeps untested `.ts` hooks; that
+  is about 52% client lines and about 81% across all three workspaces.
