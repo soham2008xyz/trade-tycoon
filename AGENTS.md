@@ -128,6 +128,10 @@ From the repo root:
   - `npm test --workspace=packages/game-logic`
   - `npm test --workspace=apps/server` (automatically rebuilds game-logic first)
   - `npm test --workspace=apps/client`
+- **Coverage:** `npm run test:coverage --workspaces --if-present` writes
+  `<workspace>/coverage/lcov.info` (git-ignored). CI runs this instead of
+  `npm test` and uploads the reports to Codacy; setup is in `docs/DEPLOY.md` →
+  "Codacy coverage".
 - **Lint client:** `npm run lint`
 - **Markdown lint:** `npm run lint:md`
 - **Format:** `npm run format` (NOT `npm run prettier` — see Gotchas).

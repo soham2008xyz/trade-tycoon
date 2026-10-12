@@ -54,5 +54,44 @@ jobs:
       - name: Type check game logic
         run: npm run type-check --workspace=packages/game-logic
 
-      - name: Run tests
-        run: npm test
+      # Same suites as `npm test`, with vitest's v8 coverage writing
+      # <workspace>/coverage/lcov.info. Run once here so CI doesn't test twice.
+      - name: Run tests with coverage
+        run: npm run test:coverage --workspaces --if-present
+
+      # Upload on push events only. A pull_request run checks out a synthetic
+      # merge commit that Codacy never sees ("Commit Not Found"), and the push
+      # run already covers every branch commit. The secret is also unavailable
+      # on fork and Dependabot PRs (and until a maintainer adds it), so gate the
+      # upload instead of failing the build.
+      - name: Check for Codacy token
+        id: codacy
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != "push" ]; then
+            echo "::notice::Skipping Codacy coverage upload on $GITHUB_EVENT_NAME events."
+          elif [ -z "$CODACY_PROJECT_TOKEN" ]; then
+            echo "::notice::CODACY_PROJECT_TOKEN is not set; skipping coverage upload."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # lcov paths are relative to each workspace (src/reducer.ts). Codacy
+      # matches against the repo root, and src/ exists in two workspaces, so
+      # prefix each report with its workspace path.
+      - name: Make coverage paths repo-relative
+        if: steps.codacy.outputs.enabled == 'true'
+        run: |
+          for ws in packages/game-logic apps/server apps/client; do
+            sed -i "s#^SF:#SF:$ws/#" "$ws/coverage/lcov.info"
+          done
+
+      # The action uploads every report with `--partial`, then sends `final`,
+      # so Codacy merges the three workspaces into one coverage result.
+      - name: Upload coverage to Codacy
+        if: steps.codacy.outputs.enabled == 'true'
+        uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 # v1.3.0
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: packages/game-logic/coverage/lcov.info,apps/server/coverage/lcov.info,apps/client/coverage/lcov.info

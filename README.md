@@ -69,6 +69,7 @@ default is database 15; the tests clear it with `FLUSHDB`.
 npm test                                          # everything
 npm test --workspace=apps/server                  # server only
 npm test --workspace=packages/game-logic          # game logic only
+npm run test:coverage --workspaces --if-present   # with lcov coverage (<workspace>/coverage/)
 ```
 
 **Build:**

@@ -6,9 +6,11 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run src",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:coverage": "vitest run src --coverage"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.3",
     "typescript": "^6.0.3",
     "vitest": "^5.0.3"
   }
