@@ -3,12 +3,11 @@ import { reduceGameAction, ACTION_REJECTED } from './reducer';
 import { BOARD } from './board-data';
 import {
   DEFAULT_TURN_TIMER_CONFIG,
-  expireTurnTimer,
   getTimerSubject,
-  isTurnTimerExpired,
   localizeTurnTimer,
   stampTurnTimer,
 } from './turn-timer';
+import { expireTurnTimer, isTurnTimerExpired } from './turn-timer-expiry';
 import type { GameState, Player } from './types';
 
 const MEDITERRANEAN = BOARD.findIndex((t) => t.id === 'mediterranean');
