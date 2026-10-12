@@ -108,6 +108,56 @@ const renderMortgageOverlay = (isMortgaged: boolean | undefined) => {
   );
 };
 
+interface TileContentProps {
+  tile: TileType;
+  orientation: Props['orientation'];
+  owner?: Player;
+  compact: boolean;
+}
+
+/** The owner dot, compact type glyph, name and price inside a tile's content box. */
+const TileContent: React.FC<TileContentProps> = ({ tile, orientation, owner, compact }) => {
+  const hideName = compact && orientation !== 'corner';
+  const glyph = hideName ? getCompactTileGlyph(tile) : null;
+
+  return (
+    <View style={styles.content}>
+      {owner && (
+        <PlayerMarker
+          color={owner.color}
+          size={OWNER_MARKER_SIZE}
+          outlineColor={BOARD_OUTLINE}
+          style={styles.ownerIndicator}
+        />
+      )}
+      {glyph && (
+        // The icon is a font glyph, so cap its scaling like the tile text.
+        // The Pressable's accessibilityLabel already names the tile.
+        <MaterialCommunityIcons
+          name={glyph}
+          size={GLYPH_SIZE}
+          color={GLYPH_COLOR}
+          maxFontSizeMultiplier={TILE_MAX_FONT_SCALE}
+          accessible={false}
+        />
+      )}
+      {!hideName && (
+        <Text
+          maxFontSizeMultiplier={TILE_MAX_FONT_SCALE}
+          style={[styles.text, { fontSize: orientation === 'corner' ? 10 : 8 }]}
+        >
+          {tile.name}
+        </Text>
+      )}
+      {tile.price && (
+        <Text maxFontSizeMultiplier={TILE_MAX_FONT_SCALE} style={styles.price}>
+          ${tile.price}
+        </Text>
+      )}
+    </View>
+  );
+};
+
 const TileComponent: React.FC<Props> = ({
   tile,
   orientation,
@@ -117,13 +167,10 @@ const TileComponent: React.FC<Props> = ({
   testID,
   compact = false,
 }) => {
-  const isStreet = tile.type === 'street';
   const color = tile.group ? GROUP_COLORS[tile.group] : '#eee';
   const houseCount = owner?.houses[tile.id] || 0;
   const isMortgaged = owner?.mortgaged.includes(tile.id);
   const flexDirection = FLEX_DIRECTION_BY_ORIENTATION.get(orientation) ?? 'column';
-  const hideName = compact && orientation !== 'corner';
-  const glyph = hideName ? getCompactTileGlyph(tile) : null;
 
   return (
     <Pressable
@@ -143,41 +190,8 @@ const TileComponent: React.FC<Props> = ({
         style,
       ]}
     >
-      {renderColorBar(isStreet, color, orientation, houseCount)}
-      <View style={styles.content}>
-        {owner && (
-          <PlayerMarker
-            color={owner.color}
-            size={OWNER_MARKER_SIZE}
-            outlineColor={BOARD_OUTLINE}
-            style={styles.ownerIndicator}
-          />
-        )}
-        {glyph && (
-          // The icon is a font glyph, so cap its scaling like the tile text.
-          // The Pressable's accessibilityLabel already names the tile.
-          <MaterialCommunityIcons
-            name={glyph}
-            size={GLYPH_SIZE}
-            color={GLYPH_COLOR}
-            maxFontSizeMultiplier={TILE_MAX_FONT_SCALE}
-            accessible={false}
-          />
-        )}
-        {!hideName && (
-          <Text
-            maxFontSizeMultiplier={TILE_MAX_FONT_SCALE}
-            style={[styles.text, { fontSize: orientation === 'corner' ? 10 : 8 }]}
-          >
-            {tile.name}
-          </Text>
-        )}
-        {tile.price && (
-          <Text maxFontSizeMultiplier={TILE_MAX_FONT_SCALE} style={styles.price}>
-            ${tile.price}
-          </Text>
-        )}
-      </View>
+      {renderColorBar(tile.type === 'street', color, orientation, houseCount)}
+      <TileContent tile={tile} orientation={orientation} owner={owner} compact={compact} />
       {renderMortgageOverlay(isMortgaged)}
     </Pressable>
   );

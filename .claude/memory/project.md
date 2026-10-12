@@ -461,6 +461,36 @@
   snapshot `document.body`, not `#root`. Codacy's issue list for a PR
   is readable without a token at
   `app.codacy.com/api/v3/analysis/organizations/gh/soham2008xyz/repositories/trade-tycoon/pull-requests/<n>/issues?status=new`.
+- Codacy Lizard cleanup (Oct 2026: 23 of the 25 open issues fixed, the other
+  2 are the Trivy findings below): most of the
+  "huge function" findings were Lizard losing where a function ends, which
+  hides the real size, so fix the trigger first and re-run
+  `uvx lizard -l typescript -T nloc=50 -C 15 -a 8 -w <files>` (the `-a 8`
+  parameter limit counts every destructured prop; take `props` and
+  destructure in the body). More triggers, beyond those listed above: a JSX
+  tag that ends in a spread (`<Peek {...props} />`; follow it with an
+  attribute, or build it with `React.createElement`, or pass one
+  `panel={props}` prop instead); a hyphenated attribute after a `{…}`
+  attribute (`aria-disabled={…}`; put it first in the tag); a bare boolean
+  attribute (`<Modal transparent>`; write `transparent={true}`); a backtick
+  inside a `//` comment in a JSX tag; a comment between attributes in some
+  tags (move it above the `return`); an inline generic `React.FC<{ … }>`;
+  and a `<` comparison in a `.ts` file (`money < 0` swallowed the rest of
+  `useStatusPanelActions.ts`; write `0 > money`). Bisect by deleting one
+  construct at a time on a scratch copy and watching the function's end line.
+- `reducer.ts` was split into `reducer-types.ts` (Action, sentinel, Rng) plus
+  per-domain handler modules; a switch of ~24 cases alone is CCN 25, so each
+  module's `reduce…Action` switch returns `undefined` for foreign actions and
+  `reducer.ts` chains them with `??`. A lookup `HANDLERS[action.type]` would
+  trip `security/detect-object-injection`. `RoomManager.ts` lost its pure
+  helpers to `lobbyRemoval.ts` and `ids.ts` to stay under the 500-line file
+  limit. `GameUI` is now `useGameFlows` + `useLayoutProps` + `GameModals`.
+- `npm run format` runs `prettier --write`, so `npm run format -- --check`
+  still rewrites files. To only check, use `npx prettier --check <files>`.
+- The Trivy `braces` (via `patch-package` → `micromatch`) and `node-forge`
+  (via `@expo/cli`) findings have no patched release (`braces` 3.0.3 and
+  `node-forge` 1.4.0 are the latest) and are dev-tooling only; they can only
+  be ignored in Codacy, not fixed in the repo.
 - Codacy (#341) runs `@typescript-eslint/no-confusing-void-expression`,
   which local lint does not. An arrow shorthand whose body is a void call
   (`() => setX(true)`, `() => sub.remove()`, including effect cleanups and

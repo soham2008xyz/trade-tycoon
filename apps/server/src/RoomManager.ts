@@ -5,11 +5,9 @@ import {
   LobbyState,
   createInitialState,
   reduceGameAction,
-  removePlayerFromGame,
   GameAction,
   createPlayer,
   mulberry32,
-  PLAYER_COLORS,
   isColorTakenByOthers,
   normalizePlayerName,
   DEFAULT_TURN_TIMER_CONFIG,
@@ -18,12 +16,14 @@ import {
   stampTurnTimer,
   type TurnTimerConfig,
 } from '@trade-tycoon/game-logic';
-import { randomBytes, randomInt } from 'crypto';
+import { randomInt } from 'crypto';
 import type { RoomStore } from './store/RoomStore';
 import type { PresenceStore } from './presence/PresenceStore';
 import { getDisconnectedPlayerIds } from './presence/PresenceStore';
 import { InMemoryPresenceStore } from './presence/InMemoryPresenceStore';
 import { toPublicGameState, toPublicLobbyState } from './serialize';
+import { generateRoomId, generateToken, generateUserId, pickRandomColor } from './ids';
+import { removePlayerFromLobby } from './lobbyRemoval';
 
 const MAX_ROOM_ID_RETRIES = 10;
 const MAX_PLAYERS_PER_ROOM = 8;
@@ -184,18 +184,18 @@ export class RoomManager {
   }
 
   async createRoom(hostName: string): Promise<CreateRoomResult> {
-    const hostId = this.generateUserId();
-    const token = this.generateToken();
+    const hostId = generateUserId();
+    const token = generateToken();
     const hostPlayer: LobbyPlayer = {
       id: hostId,
       name: normalizePlayerName(hostName),
-      color: this.getRandomColor(),
+      color: pickRandomColor(),
       isHost: true,
       isReady: true,
     };
 
     for (let i = 0; i < MAX_ROOM_ID_RETRIES; i++) {
-      const roomId = this.generateRoomId();
+      const roomId = generateRoomId();
       const created = await this.store.create({
         roomId,
         players: [hostPlayer],
@@ -218,8 +218,8 @@ export class RoomManager {
     // The id/token are generated once outside the mutator so that even if the
     // store's retry-on-conflict logic runs the closure twice we hand back a
     // stable pair.
-    const userId = this.generateUserId();
-    const token = this.generateToken();
+    const userId = generateUserId();
+    const token = generateToken();
 
     // Captured from inside the mutator so the caller learns *why* the join
     // was refused. If it stays null after a failed update, the store never
@@ -240,7 +240,7 @@ export class RoomManager {
       const newPlayer: LobbyPlayer = {
         id: userId,
         name: normalizePlayerName(playerName),
-        color: this.getRandomColor(current.players.map((p) => p.color)),
+        color: pickRandomColor(current.players.map((p) => p.color)),
         isHost: current.players.length === 0,
         isReady: true,
       };
@@ -293,80 +293,6 @@ export class RoomManager {
     });
   }
 
-  /**
-   * The single definition of "this player is no longer in the room": drops
-   * their lobby entry and session, reassigns the host if needed, and removes
-   * them from the running game (which advances the turn and unwinds auctions
-   * and trades). Shared by a player leaving and by the room removing a
-   * disconnected player so the two paths cannot drift apart.
-   *
-   * Pure function of `current` and `now` (it runs inside store mutators, which
-   * may be retried; callers read the clock once, outside). The caller must have
-   * checked that `userId` is in the lobby. `now` re-arms the turn clock, since
-   * removing the current player (or a bidder) changes whose turn it is.
-   */
-  private removePlayerFrom(current: LobbyState, userId: string, now: number): LobbyState {
-    const remainingSessions = Object.fromEntries(
-      Object.entries(current.sessions ?? {}).filter(([, id]) => id !== userId)
-    );
-
-    const remainingPlayers = current.players.filter((entry) => entry.id !== userId);
-    const reassignedPlayers = remainingPlayers.map((entry, index) => ({
-      ...entry,
-      isHost: remainingPlayers.some((candidate) => candidate.isHost) ? entry.isHost : index === 0,
-    }));
-
-    if (reassignedPlayers.length === 0) {
-      return {
-        ...current,
-        players: [],
-        status: 'lobby' as const,
-        gameState: undefined,
-        sessions: remainingSessions,
-      };
-    }
-
-    if (!current.gameState) {
-      return {
-        ...current,
-        players: reassignedPlayers,
-        sessions: remainingSessions,
-      };
-    }
-
-    // A finished game is a frozen snapshot. `removePlayerFromGame` skips the
-    // reducer's post-game guard, and bankrupt players are already gone from
-    // `gameState.players`, so the winner leaving would empty the roster and
-    // reset `winner` — dropping the game-over screen for everyone still
-    // connected. Keep the snapshot; only the lobby entry and session go.
-    if (current.gameState.winner) {
-      return {
-        ...current,
-        players: reassignedPlayers,
-        sessions: remainingSessions,
-      };
-    }
-
-    const nextGameState = stampTurnTimer(removePlayerFromGame(current.gameState, userId), now);
-
-    if (nextGameState.players.length === 0) {
-      return {
-        ...current,
-        players: reassignedPlayers,
-        status: 'lobby' as const,
-        gameState: undefined,
-        sessions: remainingSessions,
-      };
-    }
-
-    return {
-      ...current,
-      players: reassignedPlayers,
-      gameState: nextGameState,
-      sessions: remainingSessions,
-    };
-  }
-
   async leaveRoom(
     roomId: string,
     token: string
@@ -379,7 +305,7 @@ export class RoomManager {
       if (!userId) return null;
       const player = current.players.find((entry) => entry.id === userId);
       if (!player) return null;
-      return this.removePlayerFrom(current, userId, now);
+      return removePlayerFromLobby(current, userId, now);
     });
 
     // Whether the room is gone or the token is stale, the caller's session is
@@ -454,7 +380,7 @@ export class RoomManager {
       }
 
       console.log(`[RoomManager] ${callerId} removed disconnected ${targetPlayerId} in ${roomId}`);
-      return this.removePlayerFrom(current, targetPlayerId, now);
+      return removePlayerFromLobby(current, targetPlayerId, now);
     });
 
     if (!updated) {
@@ -789,34 +715,8 @@ export class RoomManager {
     return { playerId, room: this.publicRoom(room) };
   }
 
-  private generateRoomId(): string {
-    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-    let result = '';
-    for (let i = 0; i < 8; i++) {
-      result += chars.charAt(randomInt(chars.length));
-    }
-    return result;
-  }
-
-  private generateUserId(): string {
-    return randomBytes(9).toString('base64url');
-  }
-
-  private generateToken(): string {
-    return randomBytes(24).toString('base64url');
-  }
-
   /** Extracted as its own method so tests can force a deterministic seed. */
   private generateRngSeed(): number {
     return randomInt(0, 2 ** 31);
-  }
-
-  private getRandomColor(excludeColors: string[] = []): string {
-    const available = PLAYER_COLORS.filter((c) => !excludeColors.includes(c));
-    if (available.length > 0) {
-      return available[Math.floor(Math.random() * available.length)];
-    }
-    // Fallback to random
-    return '#' + Math.floor(Math.random() * 16777215).toString(16);
   }
 }

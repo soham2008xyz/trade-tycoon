@@ -39,16 +39,22 @@ A new action is **always** three coordinated changes; missing any one
 breaks compilation or correctness.
 
 1. **Type.** Add a variant to the `Action` discriminated union in
-   `src/reducer.ts` (the union near the top of the file). Include
+   `src/reducer-types.ts` (the union at the top of the file). Include
    `playerId: string` if the action is player-scoped — the server
    resolves the caller's session token to a playerId and checks it
    against this field. Client-sent actions must also get a case in
    `src/validate-action.ts` (`parseGameAction`), the network boundary
    validator — an action without a case there can never arrive online.
 
-2. **Reducer case.** Add a `case '<TYPE>':` to `gameReducer` that returns
-   a new state. Validate any role-specific invariants in the case body
-   (e.g. only the host can do X, only the trade target can accept). Most
+2. **Reducer case.** Add a `case '<TYPE>':` to the `reduce…Action` switch
+   of the handler module that owns the rule (`turn-actions.ts`,
+   `property-actions.ts`, `auction-actions.ts` or `trade-actions.ts`; see
+   "Where things live") and put the rule in a small named function that
+   it calls. Keep each switch to the actions of its own module:
+   `reducer.ts` only tries the four modules in turn, so a new module is
+   one more link in that chain. Validate any role-specific invariants in
+   the handler (e.g. only the host can do X, only the trade target can
+   accept). Most
    illegitimate actions should still return the input state unchanged —
    do not throw. The trade-auth exceptions are documented in
    "Reducer rejections" below.
@@ -146,7 +152,21 @@ The reducer never reads a clock; rules that bite:
 ```text
 src/
   types.ts                    GameState, Player, Tile, action types
-  reducer.ts                  gameReducer + Action union
+  reducer.ts                  gameReducer / reduceGameAction entry points: routes an
+                              action to the module below, then settles debts and
+                              caps the log; also removePlayerFromGame, forceEndTurn
+  reducer-types.ts            Action union, ACTION_REJECTED, GameReducerResult, Rng
+                              (re-exported by reducer.ts; handler modules import
+                              from here so they never import reducer.ts back)
+  turn-actions.ts             Handlers: lobby/reset, jail, END_TURN, bankruptcy; passTurn
+  roll-dice.ts                ROLL_DICE as a pipeline of steps over a draft
+                              (move, cards, jail tile, tax, rent)
+  property-actions.ts         Handlers: buy, decline, build, sell, (un)mortgage
+  auction-actions.ts          Handlers: bid, concede; startAuction
+  trade-actions.ts            Handlers: propose, accept, reject, cancel
+  player-removal.ts           Shared cleanup for a leaver or bankrupt player
+  debt.ts                     chargePlayer / settleDebt / clearSettledDebts
+  player-update.ts            replacePlayerAt (immutable player-list update)
   helpers.ts                  Pure helpers used by the reducer
   game-setup.ts               createInitialState, createPlayer
   player-colors.ts            Color palette + uniqueness rule (client setup,

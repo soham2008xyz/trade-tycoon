@@ -1,6 +1,6 @@
 ---
 description: Reducer errorMessage rules for game-logic actions. Use when editing reducer behavior or reducer tests.
-applyTo: 'packages/game-logic/src/{reducer.ts,reducer.test.ts,auction-trade.test.ts}'
+applyTo: 'packages/game-logic/src/{reducer.ts,turn-actions.ts,roll-dice.ts,property-actions.ts,auction-actions.ts,trade-actions.ts,reducer.test.ts,auction-trade.test.ts}'
 ---
 
 # Game Logic Reducer errorMessage Rules

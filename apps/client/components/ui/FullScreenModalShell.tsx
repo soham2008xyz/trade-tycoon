@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, StyleSheet, View, Text } from 'react-native';
+import { Modal, StyleSheet, View, Text, type ModalProps } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useGameLayout } from '../../hooks/useGameLayout';
 import { CloseButton } from './CloseButton';
@@ -29,6 +29,85 @@ interface Props {
   children: React.ReactNode;
 }
 
+const SUPPORTED_ORIENTATIONS: ModalProps['supportedOrientations'] = [
+  'portrait',
+  'portrait-upside-down',
+  'landscape',
+  'landscape-left',
+  'landscape-right',
+];
+
+type PhoneChromeProps = Pick<Props, 'title' | 'showClose' | 'onClose' | 'children'>;
+
+/** The phone layout's safe-area header (close-X + title), connection banner and body. */
+const PhoneChrome: React.FC<PhoneChromeProps> = ({ title, showClose, onClose, children }) => {
+  const styles = createStyles(useTheme());
+  return (
+    <SafeAreaView style={styles.phoneRoot} edges={['top', 'bottom', 'left', 'right']}>
+      <View style={styles.phoneHeader}>
+        {showClose ? <CloseButton onPress={onClose} /> : <View style={styles.headerSpacer} />}
+        {title ? <Text style={styles.phoneTitle}>{title}</Text> : null}
+        <View style={styles.headerSpacer} />
+      </View>
+      <ConnectionBanner />
+      <View style={styles.phoneBody}>{children}</View>
+    </SafeAreaView>
+  );
+};
+
+type ModalVariantProps = Required<Pick<Props, 'showClose'>> &
+  Pick<Props, 'visible' | 'title' | 'onClose' | 'overlay' | 'children'> & {
+    dismiss: () => void;
+  };
+
+const PhoneModal: React.FC<ModalVariantProps> = (props) => {
+  const { visible, title, showClose, onClose, dismiss, overlay, children } = props;
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle={showClose ? 'pageSheet' : 'fullScreen'}
+      supportedOrientations={SUPPORTED_ORIENTATIONS}
+      onRequestClose={dismiss}
+      onDismiss={dismiss}
+    >
+      {/* A Modal mounts its content in a separate native root, so the app's
+          SafeAreaProvider is not an ancestor. Without our own, SafeAreaView
+          finds no provider and applies 0 insets — invisible in a pageSheet
+          (it starts below the status bar) but it puts the header of a
+          fullScreen modal under the Dynamic Island (#260). */}
+      <SafeAreaProvider>
+        <PhoneChrome title={title} showClose={showClose} onClose={onClose}>
+          {children}
+        </PhoneChrome>
+        {/* Outside the SafeAreaView so an absolutely positioned overlay
+            offsets itself by this modal's insets, not twice. */}
+        {overlay}
+      </SafeAreaProvider>
+    </Modal>
+  );
+};
+
+const CenteredModal: React.FC<ModalVariantProps> = ({ visible, dismiss, overlay, children }) => (
+  <Modal
+    visible={visible}
+    animationType="slide"
+    transparent={true}
+    supportedOrientations={SUPPORTED_ORIENTATIONS}
+    onRequestClose={dismiss}
+    onDismiss={dismiss}
+  >
+    {/* Same reason as the phone variant: the Modal is its own native root, so
+        without this provider the floating banner and toasts get 0 insets
+        and can sit under an iPad's status bar. */}
+    <SafeAreaProvider>
+      {children}
+      <ConnectionBanner floating />
+      {overlay}
+    </SafeAreaProvider>
+  </Modal>
+);
+
 /**
  * On phone: full-screen Modal with a safe-area header (close-X + title).
  * On tablet / wide-web: transparent centered Modal — children own their
@@ -40,82 +119,13 @@ interface Props {
  * to no-ops when it's false (paired with `presentationStyle="fullScreen"`
  * on phone to physically block the swipe-down gesture).
  */
-export const FullScreenModalShell: React.FC<Props> = ({
-  visible,
-  onClose,
-  title,
-  showClose = true,
-  overlay,
-  children,
-}) => {
+export const FullScreenModalShell: React.FC<Props> = (props) => {
   const layout = useGameLayout();
-  const styles = createStyles(useTheme());
-  const dismiss = showClose ? onClose : NOOP;
+  const showClose = props.showClose ?? true;
+  const dismiss = showClose ? props.onClose : NOOP;
+  const Variant = layout === 'phone' ? PhoneModal : CenteredModal;
 
-  if (layout === 'phone') {
-    return (
-      <Modal
-        visible={visible}
-        animationType="slide"
-        presentationStyle={showClose ? 'pageSheet' : 'fullScreen'}
-        supportedOrientations={[
-          'portrait',
-          'portrait-upside-down',
-          'landscape',
-          'landscape-left',
-          'landscape-right',
-        ]}
-        onRequestClose={dismiss}
-        onDismiss={dismiss}
-      >
-        {/* A Modal mounts its content in a separate native root, so the app's
-            SafeAreaProvider is not an ancestor. Without our own, SafeAreaView
-            finds no provider and applies 0 insets — invisible in a pageSheet
-            (it starts below the status bar) but it puts the header of a
-            fullScreen modal under the Dynamic Island (#260). */}
-        <SafeAreaProvider>
-          <SafeAreaView style={styles.phoneRoot} edges={['top', 'bottom', 'left', 'right']}>
-            <View style={styles.phoneHeader}>
-              {showClose ? <CloseButton onPress={onClose} /> : <View style={styles.headerSpacer} />}
-              {title ? <Text style={styles.phoneTitle}>{title}</Text> : null}
-              <View style={styles.headerSpacer} />
-            </View>
-            <ConnectionBanner />
-            <View style={styles.phoneBody}>{children}</View>
-          </SafeAreaView>
-          {/* Outside the SafeAreaView so an absolutely positioned overlay
-              offsets itself by this modal's insets, not twice. */}
-          {overlay}
-        </SafeAreaProvider>
-      </Modal>
-    );
-  }
-
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      supportedOrientations={[
-        'portrait',
-        'portrait-upside-down',
-        'landscape',
-        'landscape-left',
-        'landscape-right',
-      ]}
-      onRequestClose={dismiss}
-      onDismiss={dismiss}
-    >
-      {/* Same reason as the phone branch: the Modal is its own native root, so
-          without this provider the floating banner and toasts get 0 insets
-          and can sit under an iPad's status bar. */}
-      <SafeAreaProvider>
-        {children}
-        <ConnectionBanner floating />
-        {overlay}
-      </SafeAreaProvider>
-    </Modal>
-  );
+  return <Variant {...props} showClose={showClose} dismiss={dismiss} />;
 };
 
 /**

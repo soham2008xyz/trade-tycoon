@@ -13,7 +13,7 @@ export const emptyJailCardHolders = (): JailCardHolders => ({ chance: null, comm
 export const holderOf = (holders: JailCardHolders, deck: JailCardDeck): string | null =>
   deck === 'chance' ? holders.chance : holders.communityChest;
 
-const withHolder = (
+export const withHolder = (
   holders: JailCardHolders,
   deck: JailCardDeck,
   holder: string | null
