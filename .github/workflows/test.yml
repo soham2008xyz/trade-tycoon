@@ -59,17 +59,22 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:coverage --workspaces --if-present
 
-      # The secret is unavailable on fork and Dependabot PRs (and until a
-      # maintainer adds it), so gate the upload instead of failing the build.
+      # Upload on push events only. A pull_request run checks out a synthetic
+      # merge commit that Codacy never sees ("Commit Not Found"), and the push
+      # run already covers every branch commit. The secret is also unavailable
+      # on fork and Dependabot PRs (and until a maintainer adds it), so gate the
+      # upload instead of failing the build.
       - name: Check for Codacy token
         id: codacy
         env:
           CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
         run: |
-          if [ -n "$CODACY_PROJECT_TOKEN" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" != "push" ]; then
+            echo "::notice::Skipping Codacy coverage upload on $GITHUB_EVENT_NAME events."
+          elif [ -z "$CODACY_PROJECT_TOKEN" ]; then
+            echo "::notice::CODACY_PROJECT_TOKEN is not set; skipping coverage upload."
           else
-            echo "::notice::CODACY_PROJECT_TOKEN is not available; skipping coverage upload."
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
 
       # lcov paths are relative to each workspace (src/reducer.ts). Codacy

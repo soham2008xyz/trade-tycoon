@@ -13,7 +13,7 @@ export default defineConfig({
     // deliberate: untested UI files count as 0% instead of being hidden.
     coverage: {
       provider: 'v8',
-      reporter: ['lcov', 'text-summary'],
+      reporter: ['lcovonly', 'text-summary'],
       include: [
         'app/**/*.{ts,tsx}',
         'components/**/*.{ts,tsx}',

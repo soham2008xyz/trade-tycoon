@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     coverage: {
       provider: 'v8',
-      reporter: ['lcov', 'text-summary'],
+      reporter: ['lcovonly', 'text-summary'],
       include: ['src/**/*.ts'],
       // test-utils are helpers shared by the tests, not production code.
       exclude: ['src/**/*.test.ts', 'src/test-utils/**'],

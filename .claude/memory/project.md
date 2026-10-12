@@ -626,4 +626,13 @@
   Because the metric counts files, not total complexity, the cheap fix is to
   split cohesive pieces out of files scoring 21-30 (keep each part under ~19),
   not to rewrite the 60+ files. Codacy only re-scores after a push.
-
+- Codacy coverage: CI uploads the three `<workspace>/coverage/lcov.info` files
+  via `codacy/codacy-coverage-reporter-action` (it does `--partial` per report
+  then `final` itself). vitest writes `SF:` paths relative to the workspace and
+  `src/` exists in two workspaces, so the workflow prefixes each with its
+  workspace path before upload. Upload runs on `push` only (a `pull_request` run
+  reports a merge SHA Codacy doesn't know) and needs the `CODACY_PROJECT_TOKEN`
+  repo secret; without it the steps skip and CI stays green. Put new vitest
+  configs in `vitest.config.mts` in the CommonJS packages (game-logic, server)
+  to avoid Vite's "ESM in CommonJS" warning. Client coverage counts untested
+  UI files as 0% on purpose (about 25% lines; all three combined about 58%).
