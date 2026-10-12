@@ -45,6 +45,17 @@
   rebuilt correctly. Debugging tell: bare `npx eslint <file>` passes while
   `expo lint` still fails. Delete `apps/client/.expo/cache/eslint/` to clear
   it; changing `package.json` scripts will not invalidate it.
+- VS Code ESLint (2026-10-12): the repo's only ESLint config is
+  `apps/client/eslint.config.js`, but the extension probes from the workspace
+  root, so opening a root-level `json`/`markdown`/`html`/`css` file (e.g.
+  `.mcp.json`) logs `Could not find config file.`. Flat ESLint throws that
+  exact string (`config-loader.js` → `assertConfigurationExists`), so the
+  `LegacyConfigLoader` frame in the stack does NOT mean eslintrc is in use —
+  don't go hunting for a missing `.eslintrc`. `.vscode/settings.json` trims
+  `eslint.probe` to the four code languages. Prefer `probe` over `validate`:
+  `validate` enforces non-silent validation, which would turn the same
+  no-config failure into visible diagnostics on every server/game-logic TS
+  file.
 - ~~iPad shell~~ removed (2026-05-15): `AppShell.tsx`,
   `ipad-native-presentation.ts`, and their tests were deleted. All platforms
   now lock to `PORTRAIT_UP` via `ScreenOrientation.lockAsync` in `_layout.tsx`.

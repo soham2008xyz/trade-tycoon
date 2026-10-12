@@ -271,6 +271,24 @@ The repo's prettier-runner npm script is named `format`, not
 conflict. The husky pre-commit hook runs `npm run format`. Don't
 rename the script back to `prettier`.
 
+### VS Code ESLint: the repo root is not an ESLint project
+
+The only ESLint config in the repo is `apps/client/eslint.config.js`
+(`npm run lint` runs `expo lint` there). The VS Code ESLint extension
+probes the whole opened folder from the workspace root, so opening a
+root-level `json`/`markdown`/`html`/`css` file (e.g. `.mcp.json`) makes
+it resolve no config and log `Could not find config file.`. Flat ESLint
+throws that same string (`config-loader.js` → `assertConfigurationExists`),
+so the `LegacyConfigLoader` frame in the stack does not mean eslintrc is
+in use. `.vscode/settings.json` trims `eslint.probe` to the four code
+languages for this. Client TypeScript is unaffected: the extension picks
+`apps/client` as the working directory from the config file there. Use
+`probe`, not `validate` — `validate` forces failures to surface as
+diagnostics, so server and game-logic TS files (no ESLint config) would
+sprout visible errors. A root `eslint.config.js` is the wrong fix:
+`expo lint` run from the root already drops a template one to delete, and
+Codacy's ESLint engine runs at the root and could adopt it.
+
 ## 7. Coding Standards
 
 - **TypeScript:** strict mode. Avoid `any`. Prefer narrow types and

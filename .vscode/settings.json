@@ -1,4 +1,9 @@
 {
   "kiroAgent.configureMCP": "Enabled",
-  "snyk.advanced.autoSelectOrganization": true
+  "snyk.advanced.autoSelectOrganization": true,
+  // The only ESLint config in this repo lives in apps/client. Without this the
+  // VS Code ESLint extension probes root-level json/markdown/html/css files
+  // (e.g. .mcp.json) from the repo root, finds no config, and logs
+  // "Could not find config file." See AGENTS.md ("VS Code ESLint").
+  "eslint.probe": ["javascript", "javascriptreact", "typescript", "typescriptreact"]
 }
