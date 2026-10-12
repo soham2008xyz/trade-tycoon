@@ -30,6 +30,25 @@ const PlayerRow: React.FC<{ player: LobbyPlayer; isYou: boolean }> = ({ player, 
   );
 };
 
+const LeaveConfirm: React.FC<{ visible: boolean; onLeave: () => void; onClose: () => void }> = ({
+  visible,
+  onLeave,
+  onClose,
+}) => (
+  <CustomAlert
+    visible={visible}
+    options={{
+      title: 'Leave Room',
+      message: 'Are you sure you want to leave this room?',
+      buttons: [
+        { text: 'No', style: 'cancel' },
+        { text: 'Yes', onPress: onLeave },
+      ],
+    }}
+    onClose={onClose}
+  />
+);
+
 /** The waiting room: who has joined, and Start (host) or a waiting note. */
 export const OnlineLobby: React.FC<Props> = ({ room, actions, busy }) => {
   const styles = createOnlineStyles(useTheme());
@@ -80,16 +99,9 @@ export const OnlineLobby: React.FC<Props> = ({ room, actions, busy }) => {
           />
         </View>
         <ConnectionBanner floating />
-        <CustomAlert
+        <LeaveConfirm
           visible={confirmLeave}
-          options={{
-            title: 'Leave Room',
-            message: 'Are you sure you want to leave this room?',
-            buttons: [
-              { text: 'No', style: 'cancel' },
-              { text: 'Yes', onPress: actions.handleLeave },
-            ],
-          }}
+          onLeave={actions.handleLeave}
           onClose={() => {
             setConfirmLeave(false);
           }}
