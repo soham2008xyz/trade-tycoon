@@ -332,9 +332,14 @@ After every change:
 
 - Project and team IDs are in `.vercel/project.json` (git-ignored; created by
   `vercel link`) but only for the client project; the server is the separate
-  `trade-tycoon-server` project in the same team. `.mcp.json` has a single team-scoped
-  Vercel MCP entry (`vercel`) covering both projects, signed in with OAuth via
-  `/mcp`. Pass the project (`trade-tycoon-client` or `trade-tycoon-server`) to
+  `trade-tycoon-server` project in the same team. Project-scoped MCP servers are
+  declared once per agent harness — `.mcp.json` for Claude Code and
+  `opencode.json` for OpenCode (V2 shape, `mcp.servers.<name>`) — so change both
+  together. Each lists `vercel` (bare `https://mcp.vercel.com`, OAuth-only: sign
+  in with `/mcp` in Claude Code or `/mcps` in OpenCode), plus `render` and
+  `codacy` (local servers that load the repo-root `.env` through `dotenv-cli`).
+  Don't reintroduce a team-scoped `/soham2008xyz-team` path on the Vercel URL —
+  it 404s. Pass the project (`trade-tycoon-client` or `trade-tycoon-server`) to
   its tools. Use them (or the dashboard) to fetch runtime logs filtered to
   `level=error`.
 - The `/api/health` endpoint returns 200 OK and is the cheapest

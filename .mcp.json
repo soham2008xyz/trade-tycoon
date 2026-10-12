@@ -9,7 +9,7 @@
     },
     "vercel": {
       "type": "http",
-      "url": "https://mcp.vercel.com/soham2008xyz-team"
+      "url": "https://mcp.vercel.com"
     },
     "codacy": {
       "command": "sh",

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "render": {
+        "type": "local",
+        "command": [
+          "sh",
+          "-c",
+          "[ -s \"$HOME/.nvm/nvm.sh\" ] && . \"$HOME/.nvm/nvm.sh\" >/dev/null 2>&1; nvm use --silent >/dev/null 2>&1; exec npx -y dotenv-cli@latest -e .env -- sh -c 'exec npx -y mcp-remote@latest https://mcp.render.com/mcp --header \"Authorization: Bearer $RENDER_API_KEY\"'"
+        ]
+      },
+      "vercel": {
+        "type": "remote",
+        "url": "https://mcp.vercel.com"
+      },
+      "codacy": {
+        "type": "local",
+        "command": [
+          "sh",
+          "-c",
+          "[ -s \"$HOME/.nvm/nvm.sh\" ] && . \"$HOME/.nvm/nvm.sh\" >/dev/null 2>&1; nvm use --silent >/dev/null 2>&1; exec npx -y dotenv-cli@latest -e .env -- npx -y @codacy/codacy-mcp@latest"
+        ]
+      }
+    }
+  }
+}

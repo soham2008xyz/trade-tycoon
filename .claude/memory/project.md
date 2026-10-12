@@ -648,3 +648,16 @@
   to avoid Vite's "ESM in CommonJS" warning. Client coverage excludes `.tsx`
   (no jsdom/RTL, so UI is untestable here) but keeps untested `.ts` hooks; that
   is about 52% client lines and about 81% across all three workspaces.
+- Project-scoped MCP servers for this repo are declared **once per harness**:
+  `.mcp.json` (Claude Code / Cursor shape) and `opencode.json` (OpenCode V2
+  shape, `mcp.servers.<name>`; `command` is one array, not `command`+`args`).
+  Edit both together. `vercel` must point at the bare `https://mcp.vercel.com`:
+  the old `/<team>/<project>` form is dead (a single-segment team slug 404s and
+  longer paths hit a catch-all that 401s), and Vercel's current docs list only
+  the root URL — with OpenCode as an officially supported client. Auth is
+  OAuth-only (`/mcp` in Claude Code, `/mcps` in OpenCode), so no `VERCEL_TOKEN`
+  belongs in `.env`. The `render` and `codacy` entries are local `sh -c`
+  servers that keep the nvm + `dotenv-cli -e .env` wrapper verbatim, so
+  `RENDER_API_KEY`/`CODACY_ACCOUNT_TOKEN` never have to be committed; that
+  wrapper survives the port to `opencode.json` because OpenCode's `command`
+  array has no inline-`{env:}` equivalent for a runtime `.env` load.
