@@ -233,6 +233,29 @@ host with WebSocket support (Render, Fly.io, a VPS), the abstractions in `apps/s
 `WebSocketEventBus` would slot in next to `RedisEventBus` with no client-side
 changes.
 
+## Codacy coverage
+
+`.github/workflows/test.yml` runs each workspace's vitest suite with v8 coverage
+(`npm run test:coverage`), then uploads the three `coverage/lcov.info` reports to
+Codacy with `codacy/codacy-coverage-reporter-action`. The action sends each
+report with `--partial` and finishes with a `final` call, so Codacy merges them
+into one result per commit. Before upload the workflow prefixes every `SF:` path
+with its workspace, because Codacy matches paths from the repo root.
+
+One-time setup:
+
+1. In Codacy open the repository → **Settings** → **Coverage** and copy the
+   **Repository API Token**.
+2. In GitHub open **Settings** → **Secrets and variables** → **Actions** and add
+   a repository secret named `CODACY_PROJECT_TOKEN` with that value.
+
+Without the secret the upload steps are skipped with a notice and the build
+still passes. The same happens on fork and Dependabot PRs, which GitHub never
+gives secrets. Check **Codacy → Repository → Coverage** after a push. A commit
+shows "Commit Not Found" for a few minutes while the webhook arrives. Coverage
+is uploaded for every branch, since PR coverage compares against the common
+ancestor commit.
+
 ## Landing page
 
 `site/` is the public marketing page: hand-written HTML and CSS with no build
