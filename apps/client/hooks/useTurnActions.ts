@@ -18,32 +18,27 @@ export const useTurnActions = (params: TurnActionsParams) => {
   const turnPlayerId = state.currentPlayerId;
   const currentPlayer = state.players.find((p) => p.id === turnPlayerId);
 
-  const onRoll = React.useCallback(
-    () => onDispatch({ type: 'ROLL_DICE', playerId: turnPlayerId }),
-    [onDispatch, turnPlayerId]
-  );
-  const onEndTurn = React.useCallback(
-    () => onDispatch({ type: 'END_TURN', playerId: turnPlayerId }),
-    [onDispatch, turnPlayerId]
-  );
+  const onRoll = React.useCallback(() => {
+    onDispatch({ type: 'ROLL_DICE', playerId: turnPlayerId });
+  }, [onDispatch, turnPlayerId]);
+  const onEndTurn = React.useCallback(() => {
+    onDispatch({ type: 'END_TURN', playerId: turnPlayerId });
+  }, [onDispatch, turnPlayerId]);
   const onBuy = React.useCallback(() => {
     const tile = currentPlayer ? BOARD[currentPlayer.position] : null;
     if (turnPlayerId && tile) {
       onDispatch({ type: 'BUY_PROPERTY', playerId: turnPlayerId, propertyId: tile.id });
     }
   }, [onDispatch, currentPlayer, turnPlayerId]);
-  const onDeclineBuy = React.useCallback(
-    () => onDispatch({ type: 'DECLINE_BUY', playerId: turnPlayerId }),
-    [onDispatch, turnPlayerId]
-  );
-  const onPayFine = React.useCallback(
-    () => onDispatch({ type: 'PAY_FINE', playerId: turnPlayerId }),
-    [onDispatch, turnPlayerId]
-  );
-  const onUseGOOJCard = React.useCallback(
-    () => onDispatch({ type: 'USE_GOOJ_CARD', playerId: turnPlayerId }),
-    [onDispatch, turnPlayerId]
-  );
+  const onDeclineBuy = React.useCallback(() => {
+    onDispatch({ type: 'DECLINE_BUY', playerId: turnPlayerId });
+  }, [onDispatch, turnPlayerId]);
+  const onPayFine = React.useCallback(() => {
+    onDispatch({ type: 'PAY_FINE', playerId: turnPlayerId });
+  }, [onDispatch, turnPlayerId]);
+  const onUseGOOJCard = React.useCallback(() => {
+    onDispatch({ type: 'USE_GOOJ_CARD', playerId: turnPlayerId });
+  }, [onDispatch, turnPlayerId]);
 
   return React.useMemo(
     () => ({

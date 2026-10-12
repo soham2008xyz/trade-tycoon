@@ -19,7 +19,9 @@ export const useExitActions = (props: GameUIProps, showAlert: ShowAlert) => {
           {
             text: 'Yes',
             style: 'destructive',
-            onPress: () => onDispatch({ type: 'DECLARE_BANKRUPTCY', playerId: myPlayerId }),
+            onPress: () => {
+              onDispatch({ type: 'DECLARE_BANKRUPTCY', playerId: myPlayerId });
+            },
           },
         ]
       );

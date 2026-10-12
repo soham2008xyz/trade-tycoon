@@ -29,14 +29,18 @@ export const usePropertyManagerFlow = (params: PropertyManagerFlowParams) => {
   const close = () => {
     setShown(false);
   };
-  const onBuild = (id: string) =>
+  const onBuild = (id: string) => {
     onDispatch({ type: 'BUILD_HOUSE', playerId: myPlayerId, propertyId: id });
-  const onSell = (id: string) =>
+  };
+  const onSell = (id: string) => {
     onDispatch({ type: 'SELL_HOUSE', playerId: myPlayerId, propertyId: id });
-  const onMortgage = (id: string) =>
+  };
+  const onMortgage = (id: string) => {
     onDispatch({ type: 'MORTGAGE_PROPERTY', playerId: myPlayerId, propertyId: id });
-  const onUnmortgage = (id: string) =>
+  };
+  const onUnmortgage = (id: string) => {
     onDispatch({ type: 'UNMORTGAGE_PROPERTY', playerId: myPlayerId, propertyId: id });
+  };
 
   return { visible, open, close, onBuild, onSell, onMortgage, onUnmortgage };
 };
