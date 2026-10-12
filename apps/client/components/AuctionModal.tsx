@@ -71,15 +71,114 @@ function noopClose(): void {
   /* auction is controlled by reducer state — no user-driven close */
 }
 
-interface ParticipantRowProps {
+interface RemovePlayerControlProps {
+  player: Player;
+  onRemove: (playerId: string) => void;
+}
+
+/** The host's "Remove" button for an absent bidder, with an inline confirmation step. */
+const RemovePlayerControl: React.FC<RemovePlayerControlProps> = ({ player, onRemove }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
+  // Confirmed inline rather than through `CustomAlert`: that is a second
+  // `Modal`, and presenting one while this auction `Modal` is up can fail to
+  // show on iOS.
+  const [confirming, setConfirming] = React.useState(false);
+
+  if (!confirming) {
+    return (
+      <IconButton
+        title={`Remove ${player.name}`}
+        icon="account-remove"
+        onPress={() => setConfirming(true)}
+        color={theme.danger}
+        size="small"
+      />
+    );
+  }
+  return (
+    <View style={styles.controls}>
+      <Text style={styles.confirmText}>
+        {`Remove ${player.name} from the game? They won't be able to rejoin. If only one player is left, that player wins.`}
+      </Text>
+      <View style={styles.bidButtons}>
+        <IconButton
+          title="Yes, remove"
+          icon="account-remove"
+          onPress={() => onRemove(player.id)}
+          color={theme.danger}
+          size="small"
+        />
+        <IconButton
+          title="Cancel"
+          onPress={() => setConfirming(false)}
+          color={theme.neutralButton}
+          size="small"
+        />
+      </View>
+    </View>
+  );
+};
+
+interface BidControlsProps {
   player: Player;
   isTurn: boolean;
   isHighestBidder: boolean;
-  showControls: boolean;
   currentBid: number;
   increments: readonly number[];
   onBid: (playerId: string, amount: number) => void;
   onConcede: (playerId: string) => void;
+}
+
+/** The bid-increment buttons plus Fold for one participant. */
+const BidControls: React.FC<BidControlsProps> = ({
+  player,
+  isTurn,
+  isHighestBidder,
+  currentBid,
+  increments,
+  onBid,
+  onConcede,
+}) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
+  return (
+    // Not dimmed: off-turn every button here is already disabled-grey, and on
+    // Android a parent opacity fades each child separately, so a dim row
+    // shows boxes behind the button labels (#316).
+    <View style={styles.controls}>
+      <View style={styles.bidButtons}>
+        {increments.map((inc) => {
+          const bidAmount = currentBid + inc;
+          return (
+            <View key={inc} style={styles.buttonWrapper}>
+              <IconButton
+                title={`+${inc}`}
+                icon="arrow-up-bold"
+                onPress={() => onBid(player.id, bidAmount)}
+                disabled={player.money < bidAmount || !isTurn}
+                size="small"
+              />
+            </View>
+          );
+        })}
+      </View>
+      <View style={styles.foldButton}>
+        <IconButton
+          title="Fold"
+          icon="close-circle"
+          onPress={() => onConcede(player.id)}
+          color={theme.danger}
+          disabled={!isTurn || isHighestBidder}
+          size="small"
+        />
+      </View>
+    </View>
+  );
+};
+
+interface ParticipantRowProps extends BidControlsProps {
+  showControls: boolean;
   isDisconnected: boolean;
   canRemove: boolean;
   onRemove: (playerId: string) => void;
@@ -90,25 +189,9 @@ interface ParticipantRowProps {
  * color, and (when `showControls` is true) the bid-increment buttons plus
  * Fold. Extracted so the parent's `.map()` callback stays trivial.
  */
-const ParticipantRow: React.FC<ParticipantRowProps> = ({
-  player,
-  isTurn,
-  isHighestBidder,
-  showControls,
-  currentBid,
-  increments,
-  onBid,
-  onConcede,
-  isDisconnected,
-  canRemove,
-  onRemove,
-}) => {
-  const theme = useTheme();
-  const styles = createStyles(theme);
-  // Confirmed inline rather than through `CustomAlert`: that is a second
-  // `Modal`, and presenting one while this auction `Modal` is up can fail to
-  // show on iOS.
-  const [confirming, setConfirming] = React.useState(false);
+const ParticipantRow: React.FC<ParticipantRowProps> = (props) => {
+  const { player, isTurn, showControls, isDisconnected, canRemove, onRemove } = props;
+  const styles = createStyles(useTheme());
 
   return (
     <View style={[styles.playerRow, isTurn && styles.activePlayerRow]}>
@@ -124,96 +207,92 @@ const ParticipantRow: React.FC<ParticipantRowProps> = ({
           </View>
         )}
       </View>
-      {canRemove &&
-        (confirming ? (
-          <View style={styles.controls}>
-            <Text style={styles.confirmText}>
-              {`Remove ${player.name} from the game? They won't be able to rejoin. If only one player is left, that player wins.`}
-            </Text>
-            <View style={styles.bidButtons}>
-              <IconButton
-                title="Yes, remove"
-                icon="account-remove"
-                onPress={() => onRemove(player.id)}
-                color={theme.danger}
-                size="small"
-              />
-              <IconButton
-                title="Cancel"
-                onPress={() => setConfirming(false)}
-                color={theme.neutralButton}
-                size="small"
-              />
-            </View>
-          </View>
-        ) : (
-          <IconButton
-            title={`Remove ${player.name}`}
-            icon="account-remove"
-            onPress={() => setConfirming(true)}
-            color={theme.danger}
-            size="small"
-          />
-        ))}
-      {showControls && (
-        // Not dimmed: off-turn every button here is already disabled-grey, and on
-        // Android a parent opacity fades each child separately, so a dim row
-        // shows boxes behind the button labels (#316).
-        <View style={styles.controls}>
-          <View style={styles.bidButtons}>
-            {increments.map((inc) => {
-              const bidAmount = currentBid + inc;
-              return (
-                <View key={inc} style={styles.buttonWrapper}>
-                  <IconButton
-                    title={`+${inc}`}
-                    icon="arrow-up-bold"
-                    onPress={() => onBid(player.id, bidAmount)}
-                    disabled={player.money < bidAmount || !isTurn}
-                    size="small"
-                  />
-                </View>
-              );
-            })}
-          </View>
-          <View style={styles.foldButton}>
-            <IconButton
-              title="Fold"
-              icon="close-circle"
-              onPress={() => onConcede(player.id)}
-              color={theme.danger}
-              disabled={!isTurn || isHighestBidder}
-              size="small"
-            />
-          </View>
-        </View>
+      {canRemove && <RemovePlayerControl player={player} onRemove={onRemove} />}
+      {showControls && <BidControls {...props} />}
+    </View>
+  );
+};
+
+// Helper to get next valid bid amount (e.g. current + 10)
+// Or maybe we allow custom amount? For simplicity, let's offer +1, +10, +50, +100
+const BID_INCREMENTS = [1, 10, 50, 100] as const;
+
+type AuctionBodyProps = Pick<
+  Props,
+  'players' | 'timer' | 'isMultiplayer' | 'myPlayerId' | 'presence' | 'onBid' | 'onConcede'
+> & { auction: AuctionState };
+
+/** The header: what is being sold, the current bid, and the running bid clock. */
+const AuctionHeader: React.FC<AuctionBodyProps> = ({
+  auction,
+  players,
+  timer,
+  isMultiplayer = false,
+  myPlayerId,
+}) => {
+  const styles = createStyles(useTheme());
+  const bidder = players.find((p) => p.id === timer?.playerId);
+  const property = BOARD.find((t) => t.id === auction.propertyId);
+  const highestBidder = players.find((p) => p.id === auction.highestBidderId);
+  return (
+    <View style={styles.header}>
+      <Text style={styles.title}>Auction for {property?.name}</Text>
+      <Text style={styles.currentBid}>
+        Current Bid: ${auction.currentBid}
+        {highestBidder ? ` by ${highestBidder.name}` : ' (No bids yet)'}
+      </Text>
+      {timer && bidder && (
+        <TurnTimerBadge
+          timer={timer}
+          playerName={bidder.name}
+          isMe={isMultiplayer ? bidder.id === myPlayerId : false}
+        />
       )}
     </View>
   );
 };
 
-export const AuctionModal: React.FC<Props> = ({
-  visible,
+/** One row per bidder still in the auction, in bidding order. */
+const ParticipantsList: React.FC<AuctionBodyProps> = ({
   auction,
   players,
-  onBid,
-  onConcede,
   isMultiplayer = false,
   myPlayerId,
   presence,
-  overlay,
-  timer,
+  onBid,
+  onConcede,
 }) => {
   const styles = createStyles(useTheme());
+  return (
+    <ScrollView style={styles.participantsList}>
+      {auction.participants.map((playerId, index) => {
+        const player = players.find((p) => p.id === playerId);
+        if (!player) return null;
+        return (
+          <ParticipantRow
+            key={playerId}
+            player={player}
+            isTurn={index === auction.currentBidderIndex}
+            isHighestBidder={auction.highestBidderId === playerId}
+            showControls={shouldShowAuctionControls(playerId, isMultiplayer, myPlayerId)}
+            currentBid={auction.currentBid}
+            increments={BID_INCREMENTS}
+            onBid={onBid}
+            onConcede={onConcede}
+            isDisconnected={!!presence?.disconnectedPlayerIds.includes(playerId)}
+            canRemove={!!presence?.removablePlayerIds.includes(playerId)}
+            onRemove={(id) => presence?.onRemovePlayer(id)}
+          />
+        );
+      })}
+    </ScrollView>
+  );
+};
+
+export const AuctionModal: React.FC<Props> = (props) => {
+  const { visible, auction, overlay } = props;
+  const styles = createStyles(useTheme());
   if (!auction) return null;
-  const bidder = players.find((p) => p.id === timer?.playerId);
-
-  const property = BOARD.find((t) => t.id === auction.propertyId);
-  const highestBidder = players.find((p) => p.id === auction.highestBidderId);
-
-  // Helper to get next valid bid amount (e.g. current + 10)
-  // Or maybe we allow custom amount? For simplicity, let's offer +1, +10, +50, +100
-  const increments = [1, 10, 50, 100];
 
   return (
     <FullScreenModalShell
@@ -225,43 +304,8 @@ export const AuctionModal: React.FC<Props> = ({
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Auction for {property?.name}</Text>
-            <Text style={styles.currentBid}>
-              Current Bid: ${auction.currentBid}
-              {highestBidder ? ` by ${highestBidder.name}` : ' (No bids yet)'}
-            </Text>
-            {timer && bidder && (
-              <TurnTimerBadge
-                timer={timer}
-                playerName={bidder.name}
-                isMe={isMultiplayer ? bidder.id === myPlayerId : false}
-              />
-            )}
-          </View>
-
-          <ScrollView style={styles.participantsList}>
-            {auction.participants.map((playerId, index) => {
-              const player = players.find((p) => p.id === playerId);
-              if (!player) return null;
-              return (
-                <ParticipantRow
-                  key={playerId}
-                  player={player}
-                  isTurn={index === auction.currentBidderIndex}
-                  isHighestBidder={auction.highestBidderId === playerId}
-                  showControls={shouldShowAuctionControls(playerId, isMultiplayer, myPlayerId)}
-                  currentBid={auction.currentBid}
-                  increments={increments}
-                  onBid={onBid}
-                  onConcede={onConcede}
-                  isDisconnected={!!presence?.disconnectedPlayerIds.includes(playerId)}
-                  canRemove={!!presence?.removablePlayerIds.includes(playerId)}
-                  onRemove={(id) => presence?.onRemovePlayer(id)}
-                />
-              );
-            })}
-          </ScrollView>
+          <AuctionHeader {...props} auction={auction} />
+          <ParticipantsList {...props} auction={auction} />
           <View style={styles.footer}>
             <Text style={styles.footerText}>Last player remaining wins the auction!</Text>
           </View>

@@ -34,58 +34,80 @@ const isTradeOffer = (v: unknown): v is TradeOffer => {
   );
 };
 
+type RawAction = Record<string, unknown>;
+
+// Action types are grouped by payload shape so each shape has one small parser.
+// Keeping the switch to the unique shapes also keeps `parseGameAction` under the
+// size/complexity limits Codacy (Lizard) enforces.
+const PLAYER_ONLY_TYPES: ReadonlySet<string> = new Set([
+  'ROLL_DICE',
+  'END_TURN',
+  'PAY_FINE',
+  'USE_GOOJ_CARD',
+  'CONTINUE_TURN',
+  'DECLARE_BANKRUPTCY',
+  'DECLINE_BUY',
+  'CONCEDE_AUCTION',
+  'ACCEPT_TRADE',
+  'REJECT_TRADE',
+  'CANCEL_TRADE',
+]);
+
+const PLAYER_PROPERTY_TYPES: ReadonlySet<string> = new Set([
+  'BUY_PROPERTY',
+  'BUILD_HOUSE',
+  'SELL_HOUSE',
+  'MORTGAGE_PROPERTY',
+  'UNMORTGAGE_PROPERTY',
+]);
+
+function parsePlayerOnlyAction(type: string, action: RawAction): GameAction | null {
+  if (!isNonEmptyString(action.playerId)) return null;
+  return { type, playerId: action.playerId } as GameAction;
+}
+
+function parsePlayerPropertyAction(type: string, action: RawAction): GameAction | null {
+  if (!isNonEmptyString(action.playerId) || !isNonEmptyString(action.propertyId)) return null;
+  return { type, playerId: action.playerId, propertyId: action.propertyId } as GameAction;
+}
+
+function parsePlaceBid(action: RawAction): GameAction | null {
+  if (!isNonEmptyString(action.playerId) || !isSafeNonNegativeInt(action.amount)) return null;
+  return { type: 'PLACE_BID', playerId: action.playerId, amount: action.amount };
+}
+
+function parseProposeTrade(action: RawAction): GameAction | null {
+  if (
+    !isNonEmptyString(action.playerId) ||
+    !isNonEmptyString(action.targetPlayerId) ||
+    !isTradeOffer(action.offer) ||
+    !isTradeOffer(action.request)
+  ) {
+    return null;
+  }
+  return {
+    type: 'PROPOSE_TRADE',
+    playerId: action.playerId,
+    targetPlayerId: action.targetPlayerId,
+    offer: action.offer,
+    request: action.request,
+  };
+}
+
 export function parseGameAction(input: unknown): GameAction | null {
   if (!input || typeof input !== 'object') return null;
-  const action = input as Record<string, unknown>;
-  if (typeof action.type !== 'string') return null;
+  const action = input as RawAction;
+  const { type } = action;
+  if (typeof type !== 'string') return null;
 
-  switch (action.type) {
-    case 'ROLL_DICE':
-    case 'END_TURN':
-    case 'PAY_FINE':
-    case 'USE_GOOJ_CARD':
-    case 'CONTINUE_TURN':
-    case 'DECLARE_BANKRUPTCY':
-    case 'DECLINE_BUY':
-    case 'CONCEDE_AUCTION':
-    case 'ACCEPT_TRADE':
-    case 'REJECT_TRADE':
-    case 'CANCEL_TRADE':
-      if (!isNonEmptyString(action.playerId)) return null;
-      return { type: action.type, playerId: action.playerId } as GameAction;
+  if (PLAYER_ONLY_TYPES.has(type)) return parsePlayerOnlyAction(type, action);
+  if (PLAYER_PROPERTY_TYPES.has(type)) return parsePlayerPropertyAction(type, action);
 
-    case 'BUY_PROPERTY':
-    case 'BUILD_HOUSE':
-    case 'SELL_HOUSE':
-    case 'MORTGAGE_PROPERTY':
-    case 'UNMORTGAGE_PROPERTY':
-      if (!isNonEmptyString(action.playerId) || !isNonEmptyString(action.propertyId)) return null;
-      return {
-        type: action.type,
-        playerId: action.playerId,
-        propertyId: action.propertyId,
-      } as GameAction;
-
+  switch (type) {
     case 'PLACE_BID':
-      if (!isNonEmptyString(action.playerId) || !isSafeNonNegativeInt(action.amount)) return null;
-      return { type: 'PLACE_BID', playerId: action.playerId, amount: action.amount };
-
+      return parsePlaceBid(action);
     case 'PROPOSE_TRADE':
-      if (
-        !isNonEmptyString(action.playerId) ||
-        !isNonEmptyString(action.targetPlayerId) ||
-        !isTradeOffer(action.offer) ||
-        !isTradeOffer(action.request)
-      ) {
-        return null;
-      }
-      return {
-        type: 'PROPOSE_TRADE',
-        playerId: action.playerId,
-        targetPlayerId: action.targetPlayerId,
-        offer: action.offer,
-        request: action.request,
-      };
+      return parseProposeTrade(action);
 
     // JOIN_GAME and RESET_GAME are server-issued only and may never arrive
     // over the network from a player. DISMISS_ERROR / DISMISS_TOAST are

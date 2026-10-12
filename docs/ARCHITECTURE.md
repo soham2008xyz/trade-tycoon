@@ -123,8 +123,9 @@ client only knows about REST + SSE.
 
 1. **Logic first (`packages/game-logic`):**
    - Define any new state shape in `types.ts` (e.g. a `turnOrder` field).
-   - Add a new action type to the discriminated union in `reducer.ts` (e.g. `RANDOMIZE_TURN_ORDER`).
-   - Implement the rules in the reducer.
+   - Add a new action type to the discriminated union in `reducer-types.ts` (e.g. `RANDOMIZE_TURN_ORDER`).
+   - Implement the rules in the handler module that owns them (see
+     `packages/game-logic/AGENTS.md` → "Where things live").
    - Write unit tests.
 
 2. **Client UI (`apps/client`):**

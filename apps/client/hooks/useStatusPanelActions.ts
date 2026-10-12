@@ -103,7 +103,9 @@ function useGOOJButton(ctx: ActionContext): UseGOOJButton {
   return { visible: inRoll(ctx) && ctx.player.isInJail && count > 0, count };
 }
 function declareBankruptcyButton(ctx: ActionContext): VisibleButton {
-  return { visible: ctx.isMyTurn && ctx.player.money < 0 };
+  // Written `0 > money`: a `<` here makes Lizard (the CI complexity analysis) read the
+  // rest of the file as a generic argument list and report it as one function.
+  return { visible: ctx.isMyTurn && 0 > ctx.player.money };
 }
 function buyButton(ctx: ActionContext): BuyButton {
   return {
@@ -164,6 +166,24 @@ function emptyButtons(): StatusPanelButtons {
   };
 }
 
+/** The actions record for a panel with nothing to offer: every button hidden. */
+function noActions(
+  isGameOver: boolean,
+  isMyTurn: boolean,
+  currentPlayer: Player | undefined,
+  currentTile: Tile | null
+): StatusPanelActions {
+  return {
+    isGameOver,
+    isMyTurn,
+    currentPlayer,
+    currentTile,
+    canBuy: false,
+    canAuction: false,
+    buttons: emptyButtons(),
+  };
+}
+
 /**
  * Pure derivation of which status-panel actions are enabled for the local
  * user. Extracted out of GameUI/Board so the three StatusPanel variants
@@ -187,29 +207,8 @@ export function getStatusPanelActions(
   // Checked before the turn logic: after a win `currentPlayerId` still points
   // at the winner, which would otherwise render as an ordinary live turn with
   // a Roll Dice button the reducer silently ignores.
-  if (state.winner) {
-    return {
-      isGameOver: true,
-      isMyTurn,
-      currentPlayer: player,
-      currentTile: tile,
-      canBuy: false,
-      canAuction: false,
-      buttons: emptyButtons(),
-    };
-  }
-
-  if (!player || !tile) {
-    return {
-      isGameOver: false,
-      isMyTurn,
-      currentPlayer: player,
-      currentTile: tile,
-      canBuy: false,
-      canAuction: false,
-      buttons: emptyButtons(),
-    };
-  }
+  if (state.winner) return noActions(true, isMyTurn, player, tile);
+  if (!player || !tile) return noActions(false, isMyTurn, player, tile);
 
   const propertyUnowned = isPropertyUnowned(state, player, tile);
   const canAfford = canAffordTile(player, tile);

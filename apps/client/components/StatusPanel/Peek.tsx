@@ -7,36 +7,170 @@ import { Dice } from '../Dice';
 import { GameOverCard } from './GameOverCard';
 import { GROUP_COLORS } from '../../constants';
 import { getPlayerPositionLabel } from '../jail-status';
-import { useStatusPanelActions } from '../../hooks/useStatusPanelActions';
-import type { StatusPanelProps } from './types';
+import { useStatusPanelActions, type StatusPanelButtons } from '../../hooks/useStatusPanelActions';
+import type { Player, StatusPanelProps, Tile } from './types';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../constants/theme';
 import { formatMoney } from '../format-money';
 import { PlayerMarker } from '../PlayerMarker';
 import { GameTimerBadge } from '../ui/TurnTimerBadge';
 
-export const Peek: React.FC<StatusPanelProps> = ({
-  state,
-  myPlayerId,
-  onRoll,
-  onBuy,
-  onDeclineBuy,
-  onEndTurn,
-  onRollAgain,
-  onPayFine,
-  onUseGOOJCard,
-  onDeclareBankruptcy,
-  onOpenPropertyManager,
-  isMultiplayer,
-  onNewGame,
-  onBackToMenu,
-  isTokenMoving,
-  disconnectedPlayerIds,
-  removablePlayerIds,
-  onRemovePlayer,
-}) => {
+interface PeekPartProps {
+  panel: StatusPanelProps;
+}
+
+interface PeekHeaderProps extends PeekPartProps {
+  player: Player;
+}
+
+/** The active player's name chip (money, held cards) and, in the action phase, the dice. */
+const PeekHeader: React.FC<PeekHeaderProps> = ({ panel, player }) => {
+  const styles = createStyles(useTheme());
+  const { state, isTokenMoving } = panel;
+  return (
+    <View style={styles.headerRow}>
+      <View style={styles.playerChip}>
+        <PlayerMarker color={player.color} size={16} />
+        <Text style={styles.playerName}>{player.name}</Text>
+        <Text style={styles.money}>{formatMoney(player.money)}</Text>
+        <GOOJBadge count={player.getOutOfJailCards} />
+      </View>
+      {state.phase === 'action' && (
+        <Dice value1={state.dice[0]} value2={state.dice[1]} isRolling={isTokenMoving} />
+      )}
+    </View>
+  );
+};
+
+interface PositionRowProps {
+  player: Player;
+  tile: Tile | null;
+  isTokenMoving: boolean;
+}
+
+/** Where the active player is standing, with the tile's group color while they are not moving. */
+const PositionRow: React.FC<PositionRowProps> = ({ player, tile, isTokenMoving }) => {
+  const styles = createStyles(useTheme());
+  const groupColor = tile?.group ? GROUP_COLORS[tile.group] : undefined;
+  return (
+    <View style={styles.positionRow}>
+      <Text style={styles.positionLabel}>Position: </Text>
+      {!isTokenMoving && groupColor && (
+        <View style={[styles.tileColor, { backgroundColor: groupColor }]} />
+      )}
+      <Text style={styles.positionText}>
+        {isTokenMoving ? '…' : getPlayerPositionLabel(player, tile?.name)}
+      </Text>
+    </View>
+  );
+};
+
+/** "Waiting for X…", with a Remove button when the local user may drop them. */
+const WaitingNotice: React.FC<PeekHeaderProps> = ({ panel, player }) => {
   const theme = useTheme();
   const styles = createStyles(theme);
+  const { disconnectedPlayerIds, removablePlayerIds, onRemovePlayer } = panel;
+  return (
+    <>
+      <Text style={styles.waitingText}>
+        Waiting for {player.name}…
+        {disconnectedPlayerIds.includes(player.id) ? ' (disconnected)' : ''}
+      </Text>
+      {removablePlayerIds.includes(player.id) && (
+        <IconButton
+          title={`Remove ${player.name}`}
+          icon="account-remove"
+          onPress={() => onRemovePlayer(player.id)}
+          color={theme.danger}
+        />
+      )}
+    </>
+  );
+};
+
+interface PeekButtonsProps extends PeekPartProps {
+  buttons: StatusPanelButtons;
+}
+
+/** The roll-phase buttons: roll, the two ways out of jail, and bankruptcy. */
+const RollPhaseButtons: React.FC<PeekButtonsProps> = ({ panel, buttons }) => {
+  const theme = useTheme();
+  return (
+    <>
+      {buttons.roll.visible && (
+        <IconButton title="Roll Dice" icon="dice-5" onPress={panel.onRoll} />
+      )}
+      {buttons.payFine.visible && (
+        <IconButton
+          title="Pay Fine ($50)"
+          icon="cash-remove"
+          onPress={panel.onPayFine}
+          disabled={!buttons.payFine.enabled}
+          color={theme.danger}
+        />
+      )}
+      {buttons.useGOOJCard.visible && (
+        <IconButton
+          title={`Use Card (${buttons.useGOOJCard.count})`}
+          icon="card-account-details"
+          onPress={panel.onUseGOOJCard}
+          color={theme.info}
+        />
+      )}
+      {buttons.declareBankruptcy.visible && (
+        <IconButton
+          title="Declare Bankruptcy"
+          icon="alert-circle"
+          onPress={panel.onDeclareBankruptcy}
+          color={theme.neutralButton}
+        />
+      )}
+    </>
+  );
+};
+
+/** The action-phase buttons: buy or auction, manage, roll again and end turn. */
+const ActionPhaseButtons: React.FC<PeekButtonsProps> = ({ panel, buttons }) => {
+  const theme = useTheme();
+  return (
+    <>
+      {buttons.buy.visible && (
+        <IconButton title={`Buy ($${buttons.buy.price})`} icon="cart" onPress={panel.onBuy} />
+      )}
+      {buttons.auction.visible && (
+        <IconButton
+          title="Auction"
+          icon="gavel"
+          onPress={panel.onDeclineBuy}
+          color={theme.warning}
+        />
+      )}
+      {buttons.manage.visible && (
+        <IconButton
+          title="Manage"
+          icon="city"
+          onPress={panel.onOpenPropertyManager}
+          color={theme.brand}
+        />
+      )}
+      {buttons.rollAgain.visible && (
+        <IconButton
+          title="Roll Again"
+          icon="dice-multiple"
+          onPress={panel.onRollAgain}
+          color={theme.warning}
+        />
+      )}
+      {buttons.endTurn.visible && (
+        <IconButton title="End Turn" icon="check" onPress={panel.onEndTurn} color={theme.danger} />
+      )}
+    </>
+  );
+};
+
+export const Peek: React.FC<StatusPanelProps> = (props) => {
+  const { state, myPlayerId, isMultiplayer, onNewGame, onBackToMenu, isTokenMoving } = props;
+  const styles = createStyles(useTheme());
   const { currentPlayer, currentTile, buttons, isGameOver } = useStatusPanelActions(
     state,
     myPlayerId,
@@ -61,100 +195,14 @@ export const Peek: React.FC<StatusPanelProps> = ({
 
   return (
     <View style={styles.root}>
-      <View style={styles.headerRow}>
-        <View style={styles.playerChip}>
-          <PlayerMarker color={currentPlayer.color} size={16} />
-          <Text style={styles.playerName}>{currentPlayer.name}</Text>
-          <Text style={styles.money}>{formatMoney(currentPlayer.money)}</Text>
-          <GOOJBadge count={currentPlayer.getOutOfJailCards} />
-        </View>
-        {state.phase === 'action' && (
-          <Dice value1={state.dice[0]} value2={state.dice[1]} isRolling={isTokenMoving} />
-        )}
-      </View>
-
+      <PeekHeader panel={props} player={currentPlayer} />
       <GameTimerBadge state={state} myPlayerId={myPlayerId} />
-
-      <View style={styles.positionRow}>
-        <Text style={styles.positionLabel}>Position: </Text>
-        {!isTokenMoving && currentTile?.group && GROUP_COLORS[currentTile.group] && (
-          <View style={[styles.tileColor, { backgroundColor: GROUP_COLORS[currentTile.group] }]} />
-        )}
-        <Text style={styles.positionText}>
-          {isTokenMoving ? '…' : getPlayerPositionLabel(currentPlayer, currentTile?.name)}
-        </Text>
-      </View>
-
-      <JailStatus player={currentPlayer} showHint />
-
+      <PositionRow player={currentPlayer} tile={currentTile} isTokenMoving={isTokenMoving} />
+      <JailStatus player={currentPlayer} showHint={true} />
       <View style={styles.actions}>
-        {buttons.waiting.visible && (
-          <>
-            <Text style={styles.waitingText}>
-              Waiting for {currentPlayer.name}…
-              {disconnectedPlayerIds.includes(currentPlayer.id) ? ' (disconnected)' : ''}
-            </Text>
-            {removablePlayerIds.includes(currentPlayer.id) && (
-              <IconButton
-                title={`Remove ${currentPlayer.name}`}
-                icon="account-remove"
-                onPress={() => onRemovePlayer(currentPlayer.id)}
-                color={theme.danger}
-              />
-            )}
-          </>
-        )}
-        {buttons.roll.visible && <IconButton title="Roll Dice" icon="dice-5" onPress={onRoll} />}
-        {buttons.payFine.visible && (
-          <IconButton
-            title="Pay Fine ($50)"
-            icon="cash-remove"
-            onPress={onPayFine}
-            disabled={!buttons.payFine.enabled}
-            color={theme.danger}
-          />
-        )}
-        {buttons.useGOOJCard.visible && (
-          <IconButton
-            title={`Use Card (${buttons.useGOOJCard.count})`}
-            icon="card-account-details"
-            onPress={onUseGOOJCard}
-            color={theme.info}
-          />
-        )}
-        {buttons.declareBankruptcy.visible && (
-          <IconButton
-            title="Declare Bankruptcy"
-            icon="alert-circle"
-            onPress={onDeclareBankruptcy}
-            color={theme.neutralButton}
-          />
-        )}
-        {buttons.buy.visible && (
-          <IconButton title={`Buy ($${buttons.buy.price})`} icon="cart" onPress={onBuy} />
-        )}
-        {buttons.auction.visible && (
-          <IconButton title="Auction" icon="gavel" onPress={onDeclineBuy} color={theme.warning} />
-        )}
-        {buttons.manage.visible && (
-          <IconButton
-            title="Manage"
-            icon="city"
-            onPress={onOpenPropertyManager}
-            color={theme.brand}
-          />
-        )}
-        {buttons.rollAgain.visible && (
-          <IconButton
-            title="Roll Again"
-            icon="dice-multiple"
-            onPress={onRollAgain}
-            color={theme.warning}
-          />
-        )}
-        {buttons.endTurn.visible && (
-          <IconButton title="End Turn" icon="check" onPress={onEndTurn} color={theme.danger} />
-        )}
+        {buttons.waiting.visible && <WaitingNotice panel={props} player={currentPlayer} />}
+        <RollPhaseButtons panel={props} buttons={buttons} />
+        <ActionPhaseButtons panel={props} buttons={buttons} />
       </View>
     </View>
   );

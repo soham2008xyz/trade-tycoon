@@ -92,7 +92,7 @@ Read these before non-trivial work:
 The "logic-first" approach for any game feature:
 
 1. **Logic** (`packages/game-logic/src`):
-   - Add types in `types.ts`, action variants in `reducer.ts`.
+   - Add types in `types.ts`, action variants in `reducer-types.ts`.
    - Implement the state transition in the reducer.
    - **Mandatory:** vitest unit tests for the new rule. Run
      `npm test --workspace=packages/game-logic`. The pattern is in

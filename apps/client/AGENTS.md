@@ -27,7 +27,14 @@ components/
   trade/                      The pieces TradeModal composes (propose form, active trade)
   ui/                         Primitives (IconButton, Toast, …)
   online/                     OnlineGame's connect, lobby and message screens
+  GameUI.tsx                  The game screen: layout + toasts + modals, no logic of its own
+  GameModals.tsx              Every modal the screen opens (log, alert, auction, trade, manage, tile)
+  game-ui-props.ts            GameUIProps, shared by GameUI, GameModals and the hooks below
 hooks/                        Custom hooks
+  useGameFlows.ts             All of GameUI's state/handlers, grouped by surface by calling
+                              useTurnActions, useExitActions, useTradeFlow, usePropertyManagerFlow,
+                              useRemovablePlayers, useGameFeedback, useGameAlert and useScreenState
+  useLayoutProps.ts           The memoized props both layouts share (keeps Board/Tile memo effective)
 constants/                    Color tables and the like
 scripts/                      Build-time PWA / asset generation
 ```
