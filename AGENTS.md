@@ -313,8 +313,10 @@ After every change:
 ## 9. When something is wrong in production
 
 - Project and team IDs are in `.vercel/project.json` (git-ignored; created by
-  `vercel link`). The Vercel MCP server is configured in `.mcp.json` and signs
-  in with OAuth via `/mcp`. Use its tools (or the dashboard) to fetch runtime
+  `vercel link`) but only for the client project; the server is the separate
+  `trade-tycoon-server` project in the same team. `.mcp.json` has one Vercel MCP
+  entry per project (`vercel-server`, `vercel-client`), each signed in with
+  OAuth via `/mcp`. Use their tools (or the dashboard) to fetch runtime
   logs filtered to `level=error`.
 - The `/api/health` endpoint returns 200 OK and is the cheapest
   "is the function deploying / starting at all" probe.
