@@ -7,13 +7,9 @@
         "[ -s \"$HOME/.nvm/nvm.sh\" ] && . \"$HOME/.nvm/nvm.sh\" >/dev/null 2>&1; nvm use --silent >/dev/null 2>&1; exec npx -y dotenv-cli@latest -e .env -- sh -c 'exec npx -y mcp-remote@latest https://mcp.render.com/mcp --header \"Authorization: Bearer $RENDER_API_KEY\"'"
       ]
     },
-    "vercel-server": {
+    "vercel": {
       "type": "http",
-      "url": "https://mcp.vercel.com/soham2008xyz-team/trade-tycoon-server"
-    },
-    "vercel-client": {
-      "type": "http",
-      "url": "https://mcp.vercel.com/soham2008xyz-team/trade-tycoon-client"
+      "url": "https://mcp.vercel.com/soham2008xyz-team"
     },
     "codacy": {
       "command": "sh",

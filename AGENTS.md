@@ -314,10 +314,11 @@ After every change:
 
 - Project and team IDs are in `.vercel/project.json` (git-ignored; created by
   `vercel link`) but only for the client project; the server is the separate
-  `trade-tycoon-server` project in the same team. `.mcp.json` has one Vercel MCP
-  entry per project (`vercel-server`, `vercel-client`), each signed in with
-  OAuth via `/mcp`. Use their tools (or the dashboard) to fetch runtime
-  logs filtered to `level=error`.
+  `trade-tycoon-server` project in the same team. `.mcp.json` has a single team-scoped
+  Vercel MCP entry (`vercel`) covering both projects, signed in with OAuth via
+  `/mcp`. Pass the project (`trade-tycoon-client` or `trade-tycoon-server`) to
+  its tools. Use them (or the dashboard) to fetch runtime logs filtered to
+  `level=error`.
 - The `/api/health` endpoint returns 200 OK and is the cheapest
   "is the function deploying / starting at all" probe.
 - If you see `FUNCTION_INVOCATION_FAILED` on every route → module-load
