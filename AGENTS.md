@@ -312,8 +312,10 @@ After every change:
 
 ## 9. When something is wrong in production
 
-- Vercel project IDs are in `.claude/launch.json`. Use the Vercel MCP
-  tools (or dashboard) to fetch runtime logs filtered to `level=error`.
+- Project and team IDs are in `.vercel/project.json` (git-ignored; created by
+  `vercel link`). The Vercel MCP server is configured in `.mcp.json` and signs
+  in with OAuth via `/mcp`. Use its tools (or the dashboard) to fetch runtime
+  logs filtered to `level=error`.
 - The `/api/health` endpoint returns 200 OK and is the cheapest
   "is the function deploying / starting at all" probe.
 - If you see `FUNCTION_INVOCATION_FAILED` on every route → module-load
