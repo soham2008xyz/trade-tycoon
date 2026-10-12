@@ -617,3 +617,13 @@
   exports `{ default }`, so `query-string` throws "decodeComponent is not a
   function" at runtime (the web export does not catch it). `node-forge` and
   `braces` have no upstream fix.
+- Codacy's per-file "complexity" is the **sum of cyclomatic complexity (CCN) of
+  every function in the file** (Lizard), not the max. A file is "complex" when
+  that sum is over `fileComplexityValueThreshold` (20); the repo goal is under 10%
+  of files. Test files and `.agents/` are not scored. Measure locally with
+  `pip install lizard` and `lizard --csv <files>`, summing column 2 per file
+  (matches Codacy within +/-1; 29 files were over 20 before the Oct 2026 split).
+  Because the metric counts files, not total complexity, the cheap fix is to
+  split cohesive pieces out of files scoring 21-30 (keep each part under ~19),
+  not to rewrite the 60+ files. Codacy only re-scores after a push.
+

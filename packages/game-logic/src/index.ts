@@ -11,3 +11,4 @@ export * from './helpers';
 export * from './socket-types';
 export * from './validate-action';
 export * from './turn-timer';
+export * from './turn-timer-expiry';

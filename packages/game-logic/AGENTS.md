@@ -173,8 +173,10 @@ src/
                               server lobby, RESET_GAME all share it)
   board-data.ts               BOARD constant — every tile, in order
   cards.ts                    Chance + Community Chest deck logic
-  turn-timer.ts               Online turn/bid deadlines: stamp, expire, localize
+  turn-timer.ts               Online turn/bid deadlines: subject, stamp, localize
                               (see "Turn timers" below)
+  turn-timer-expiry.ts        The expiry half: isTurnTimerExpired, expireTurnTimer
+                              (imports turn-timer, never the other way round)
   jail-cards.ts               Which deck each held Get Out of Jail Free card
                               belongs to (see "Jail cards" below)
   chance-cards.ts             Chance card content

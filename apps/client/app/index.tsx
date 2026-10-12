@@ -4,33 +4,7 @@ import { MultiplayerMenuScreen } from '../components/MultiplayerMenuScreen';
 import { LocalGame } from '../components/LocalGame';
 import { OnlineGame } from '../components/OnlineGame';
 import { analytics } from '../components/analytics';
-
-type Screen =
-  | 'new-game'
-  | 'local-game'
-  | 'multiplayer-menu'
-  | 'online-create'
-  | 'online-join'
-  | 'online-resume';
-
-// Screens are a state machine, not routes, so the URL never changes; each one
-// is reported to analytics as a virtual page (#334).
-function pageViewFor(screen: Screen): { path: string; title: string } {
-  switch (screen) {
-    case 'new-game':
-      return { path: '/', title: 'Main menu' };
-    case 'local-game':
-      return { path: '/local-game', title: 'Local game' };
-    case 'multiplayer-menu':
-      return { path: '/multiplayer', title: 'Multiplayer menu' };
-    case 'online-create':
-      return { path: '/online/create', title: 'Create room' };
-    case 'online-join':
-      return { path: '/online/join', title: 'Join room' };
-    case 'online-resume':
-      return { path: '/online/resume', title: 'Resume game' };
-  }
-}
+import { pageViewFor, type Screen } from '../components/screens';
 
 export default function GameScreen() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('new-game');

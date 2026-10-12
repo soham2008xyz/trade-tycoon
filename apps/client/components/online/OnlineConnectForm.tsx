@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, TextInput, type TextInputProps } from 'react-native';
-import { limitPlayerNameInput } from '@trade-tycoon/game-logic';
 import { IconButton } from '../ui/IconButton';
 import { KeyboardAwareScreen } from '../ui/KeyboardAwareScreen';
-import { validateConnectForm } from '../online-form';
-import { analytics } from '../analytics';
-import { createRoom as apiCreateRoom, joinRoom as apiJoinRoom } from '../online-api';
 import { useTheme } from '../../hooks/useTheme';
 import { useAndroidBack } from '../../hooks/useAndroidBack';
+import { useConnectForm } from '../../hooks/useConnectForm';
 import type { OnlineMode, useOnlineRoom } from '../../hooks/useOnlineRoom';
 import type { useRequestGuard } from '../../hooks/useRequestGuard';
 import { createOnlineStyles } from './online-styles';
@@ -18,67 +15,6 @@ interface Props {
   room: ReturnType<typeof useOnlineRoom>;
   guard: ReturnType<typeof useRequestGuard>;
   onBack: () => void;
-}
-
-function useConnectForm({ mode, serverUrl, room, guard }: Props) {
-  const [playerName, setPlayerName] = useState('');
-  const [inputRoomId, setInputRoomId] = useState('');
-  // Form-validation message, kept apart from `error` (server/lobby errors,
-  // which auto-expire): it's cleared on edit and only rendered on the connect
-  // screen, so it can't linger or leak into the lobby (#252).
-  const [formError, setFormError] = useState<string | null>(null);
-  const { enterLobby, setTransientError } = room;
-
-  const handleCreate = async () => {
-    const validationError = validateConnectForm('create', playerName, inputRoomId);
-    setFormError(validationError);
-    if (validationError) return;
-    await guard.run(async () => {
-      const result = await apiCreateRoom(serverUrl, playerName.trim());
-      if (!result.ok) {
-        setTransientError(result.error);
-        return;
-      }
-      analytics.trackEvent('create_room');
-      await enterLobby(result.data);
-    });
-  };
-
-  const handleJoin = async () => {
-    const validationError = validateConnectForm('join', playerName, inputRoomId);
-    setFormError(validationError);
-    if (validationError) return;
-    const targetRoomId = inputRoomId.trim().toUpperCase();
-    await guard.run(async () => {
-      const result = await apiJoinRoom(serverUrl, targetRoomId, playerName.trim());
-      if (!result.ok) {
-        setTransientError(result.error);
-        return;
-      }
-      // Server already normalized the room id, but make sure we use the
-      // exact value it returned for SSE / future requests.
-      analytics.trackEvent('join_room');
-      await enterLobby({ ...result.data, roomId: result.data.roomId || targetRoomId });
-    });
-  };
-
-  const onNameChange = (text: string) => {
-    setPlayerName(limitPlayerNameInput(text));
-    setFormError(null);
-  };
-  const onRoomCodeChange = (text: string) => {
-    setInputRoomId(text.toUpperCase());
-    setFormError(null);
-  };
-
-  return {
-    playerName,
-    inputRoomId,
-    message: formError ?? room.error,
-    onNameChange,
-    onRoomCodeChange,
-    submit: mode === 'create' ? handleCreate : handleJoin,
-  };
 }
 
 const FormInput: React.FC<TextInputProps> = (props) => {

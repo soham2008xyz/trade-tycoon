@@ -3,13 +3,12 @@ import type { GameAction } from '@trade-tycoon/game-logic';
 import {
   startGame as apiStartGame,
   sendGameAction,
-  leaveRoom as apiLeaveRoom,
   removePlayer as apiRemovePlayer,
 } from '../components/online-api';
-import { clearStoredSession } from '../components/session-storage';
 import { analytics } from '../components/analytics';
 import type { useOnlineRoom } from './useOnlineRoom';
 import type { useRequestGuard } from './useRequestGuard';
+import { useLeaveRoom } from './useLeaveRoom';
 
 interface RoomActionsOptions {
   serverUrl: string;
@@ -71,31 +70,14 @@ export function useRoomActions(options: RoomActionsOptions) {
     [serverUrl, roomId, token, run, setTransientError]
   );
 
-  const leaveRoom = useCallback(
-    async (then: () => void) => {
-      // Stop the stream/poll before the leave POST so its own lobby_update
-      // (or a poll racing it) can't resurrect state we're abandoning.
-      stopSync();
-
-      if (roomId && token) {
-        const result = await apiLeaveRoom(serverUrl, roomId, token);
-        if (!result.ok) {
-          console.error('Leave request failed:', result.error);
-        }
-      }
-
-      await clearStoredSession();
-      then();
-    },
-    [serverUrl, roomId, token, stopSync]
-  );
-
-  const handleLeave = useCallback(() => leaveRoom(onBack), [leaveRoom, onBack]);
-
-  // A finished game can't be restarted from its room (see `canStartNewGame`),
-  // so the game-over card's "Back to Menu" goes all the way to the main menu,
-  // matching hotseat, instead of the multiplayer menu (#324).
-  const handleBackToMainMenu = useCallback(() => leaveRoom(onMainMenu), [leaveRoom, onMainMenu]);
+  const { handleLeave, handleBackToMainMenu } = useLeaveRoom({
+    serverUrl,
+    roomId,
+    token,
+    stopSync,
+    onBack,
+    onMainMenu,
+  });
 
   return {
     handleStartGame,
