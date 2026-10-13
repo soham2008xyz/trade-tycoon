@@ -2,7 +2,7 @@
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "servers": {
-      "render": {
+      "Render": {
         "type": "local",
         "command": [
           "sh",
@@ -10,11 +10,11 @@
           "[ -s \"$HOME/.nvm/nvm.sh\" ] && . \"$HOME/.nvm/nvm.sh\" >/dev/null 2>&1; nvm use --silent >/dev/null 2>&1; exec npx -y dotenv-cli@latest -e .env -- sh -c 'exec npx -y mcp-remote@latest https://mcp.render.com/mcp --header \"Authorization: Bearer $RENDER_API_KEY\"'"
         ]
       },
-      "vercel": {
+      "Vercel": {
         "type": "remote",
         "url": "https://mcp.vercel.com"
       },
-      "codacy": {
+      "Codacy": {
         "type": "local",
         "command": [
           "sh",
