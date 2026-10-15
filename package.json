@@ -29,7 +29,7 @@
     "lint-staged": "^17.6.0",
     "markdownlint-cli": "^0.49.1",
     "patch-package": "^8.0.1",
-    "prettier": "^3.9.9",
+    "prettier": "^3.9.10",
     "typescript": "^6.0.3"
   },
   "overrides": {
