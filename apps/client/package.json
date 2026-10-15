@@ -24,7 +24,7 @@
     "@gorhom/bottom-sheet": "5.2.14",
     "@react-native-community/slider": "5.2.1",
     "@trade-tycoon/game-logic": "^1.0.0",
-    "expo": "^57.0.26",
+    "expo": "^57.0.27",
     "expo-build-properties": "~57.0.22",
     "expo-clipboard": "~57.0.2",
     "expo-constants": "~57.0.19",
