@@ -661,3 +661,11 @@
   `RENDER_API_KEY`/`CODACY_ACCOUNT_TOKEN` never have to be committed; that
   wrapper survives the port to `opencode.json` because OpenCode's `command`
   array has no inline-`{env:}` equivalent for a runtime `.env` load.
+- Expo SDK upgrades: `npx expo install --fix` does not move what's installed
+  while the root `overrides` pin react, react-native, reanimated, worklets,
+  gesture-handler, screens, safe-area-context and `@types/react`. Update those
+  pins by hand (and `react-native-reanimated`, which `expo.install.exclude`
+  skips), then regenerate `package-lock.json` from scratch: the SDK 57 → 58
+  move hit ERESOLVE on a stale `@expo/ui@57` left in the old lockfile.
+- `eslint-config-expo` follows the SDK major but doesn't match Dependabot's
+  `expo-*` ignore, so Dependabot opens lone major bumps for it (PR #394).
