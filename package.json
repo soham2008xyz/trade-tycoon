@@ -27,7 +27,7 @@
     "expo-router": "~57.0.24",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
-    "markdownlint-cli": "^0.49.1",
+    "markdownlint-cli": "^0.50.0",
     "patch-package": "^8.0.1",
     "prettier": "^3.9.10",
     "typescript": "^6.0.3"
