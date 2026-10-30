@@ -94,8 +94,9 @@
   dismissal stays a reducer action for local hotseat play, it's just excluded
   from what the server will parse from an untrusted client.
 - Expo SDK 57 apps built with Xcode 27 needed the iOS scene lifecycle via
-  `expo-build-properties` and `ios.enableSceneSupport`. From SDK 58 the
-  template includes it and the setting is a no-op, safe to remove.
+  `expo-build-properties` and `ios.enableSceneSupport`. SDK 58's template
+  includes it, so the setting (and the plugin entry) was removed from
+  `app.json`. Don't add it back.
 - With React Native 0.86 and Reanimated 4, `@gorhom/bottom-sheet` 5.2.14 needs
   the upstream mount-position fallback patch recorded in `patches/`. Fixed
   percentage snap points must also set `enableDynamicSizing={false}` so the
