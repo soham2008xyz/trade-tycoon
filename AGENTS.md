@@ -342,6 +342,12 @@ After every change:
   it 404s. Pass the project (`trade-tycoon-client` or `trade-tycoon-server`) to
   its tools. Use them (or the dashboard) to fetch runtime logs filtered to
   `level=error`.
+- `@codacy/codacy-mcp` installs about 1.5 GB of dependencies, so a cold `npx`
+  takes about two minutes and Claude Code's 30 s connect check reports
+  `codacy` as `CONNECT_TIMEOUT`. The configs pin the version and pass
+  `--prefer-offline` so a new release never forces a re-download on startup;
+  after bumping the pin (or clearing the npm cache), run
+  `npx -y @codacy/codacy-mcp@<version> </dev/null` once to warm the cache.
 - The `/api/health` endpoint returns 200 OK and is the cheapest
   "is the function deploying / starting at all" probe.
 - If you see `FUNCTION_INVOCATION_FAILED` on every route → module-load
