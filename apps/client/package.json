@@ -22,7 +22,7 @@
     "@expo/metro-runtime": "~58.0.15",
     "@expo/vector-icons": "^15.0.3",
     "@gorhom/bottom-sheet": "5.2.14",
-    "@react-native-community/slider": "5.2.1",
+    "@react-native-community/slider": "5.2.2",
     "@trade-tycoon/game-logic": "^1.0.0",
     "expo": "^58.0.21",
     "expo-clipboard": "~58.0.4",
