@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "concurrently": "^10.0.6",
-    "expo-router": "~57.0.24",
+    "expo-router": "~58.0.28",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "markdownlint-cli": "^0.49.1",
@@ -33,15 +33,15 @@
     "typescript": "^6.0.3"
   },
   "overrides": {
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-native": "0.86.3",
-    "react-native-gesture-handler": "~2.32.0",
-    "react-native-reanimated": "4.5.5",
-    "react-native-screens": "~4.26.0",
-    "react-native-worklets": "0.10.1",
-    "react-native-safe-area-context": "~5.7.0",
-    "@types/react": "~19.2.14",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-gesture-handler": "~3.3.0",
+    "react-native-reanimated": "4.7.1",
+    "react-native-screens": "~4.30.0",
+    "react-native-worklets": "0.13.0",
+    "react-native-safe-area-context": "~5.10.1",
+    "@types/react": "~19.3.0",
     "compression": "~1.8.2",
     "xcode": {
       "uuid": "11.1.1"
