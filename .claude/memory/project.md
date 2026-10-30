@@ -93,16 +93,16 @@
   boundary validator (`parseGameAction` in game-logic), not the reducer —
   dismissal stays a reducer action for local hotseat play, it's just excluded
   from what the server will parse from an untrusted client.
-- Expo SDK 57 apps built with Xcode 27 must enable the iOS scene lifecycle via
-  `expo-build-properties` and `ios.enableSceneSupport`; keep that plugin setting
-  until the project moves past SDK 57.
+- Expo SDK 57 apps built with Xcode 27 needed the iOS scene lifecycle via
+  `expo-build-properties` and `ios.enableSceneSupport`. From SDK 58 the
+  template includes it and the setting is a no-op, safe to remove.
 - With React Native 0.86 and Reanimated 4, `@gorhom/bottom-sheet` 5.2.14 needs
   the upstream mount-position fallback patch recorded in `patches/`. Fixed
   percentage snap points must also set `enableDynamicSizing={false}` so the
   sheet can mount before its content height has been measured.
-- Keep `react-native-reanimated` at 4.5.5 or later, even though Expo SDK 57
-  pins 4.5.1. It is in `expo.install.exclude` and the root `overrides`, so
-  `expo install --fix` will not move it back. In 4.5.1 the
+- Keep `react-native-reanimated` at 4.5.5 or later (SDK 57 pinned 4.5.1;
+  SDK 58 pins 4.7.1, which is fine). It is in `expo.install.exclude` and the
+  root `overrides`, so `expo install --fix` will not move it back. In 4.5.1 the
   settled-props sync dropped animated values before React received them
   (upstream #9527). Each unmounted GestureDetector-wrapped view drove its view
   counter negative, so after a few games the sync interval was stopped when
@@ -669,3 +669,6 @@
   move hit ERESOLVE on a stale `@expo/ui@57` left in the old lockfile.
 - `eslint-config-expo` follows the SDK major but doesn't match Dependabot's
   `expo-*` ignore, so Dependabot opens lone major bumps for it (PR #394).
+- From API 37 on, `sdkmanager` names Android platforms with a minor version
+  (`platforms;android-37.0`, not `platforms;android-37`), and the bare name
+  fails with "Failed to find package". `setup-android.sh` uses the full name.

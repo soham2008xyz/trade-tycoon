@@ -8,9 +8,10 @@
 # gradle-mirror.init.gradle from beside itself), and the ~8 GB download would
 # overrun the ~5-minute limit for caching the environment anyway.
 #
-# Versions track what Expo SDK 57 / React Native 0.86 generate (see
+# Versions track what Expo SDK 58 / React Native 0.88 generate (see
 # node_modules/react-native/gradle/libs.versions.toml). Bump them together
-# when the Expo SDK upgrades.
+# when the Expo SDK upgrades. The emulator image follows targetSdk (36), not
+# compileSdk (37), so it can lag the platform.
 #
 # Opt-out: ANDROID_SKIP_EMULATOR=1 skips the emulator + system image (~2 GB)
 # and keeps only what native builds need.
@@ -18,11 +19,12 @@ set -euo pipefail
 
 ANDROID_HOME="${ANDROID_HOME:-$HOME/android-sdk}"
 CMDLINE_TOOLS_VERSION=13114758
-PLATFORM="android-36"
-BUILD_TOOLS="36.0.0"
+PLATFORM="android-37.0"
+BUILD_TOOLS="37.0.0"
+EMULATOR_API="android-36"
 NDK="27.1.12297006"
 CMAKE="3.22.1"
-SYSTEM_IMAGE="system-images;${PLATFORM};google_apis;x86_64"
+SYSTEM_IMAGE="system-images;${EMULATOR_API};google_apis;x86_64"
 AVD_NAME="tt_api36"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

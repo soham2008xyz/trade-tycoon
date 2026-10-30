@@ -8,12 +8,13 @@ which installs the toolchain into `~/android-sdk` and exports `ANDROID_HOME`.
 
 | Piece                   | Version                | Why                             |
 | ----------------------- | ---------------------- | ------------------------------- |
-| Platform / build tools  | 36 / 36.0.0            | Expo SDK 57 + React Native 0.86 |
+| Platform / build tools  | 37 / 37.0.0            | Expo SDK 58 + React Native 0.88 |
 | NDK / CMake             | 27.1.12297006 / 3.22.1 | Native modules                  |
-| Emulator + system image | API 36, x86_64         | AVD `tt_api36`                  |
+| Emulator + system image | API 36, x86_64         | AVD `tt_api36` (targetSdk 36)   |
 
 Bump these together with the Expo SDK (check
-`node_modules/react-native/gradle/libs.versions.toml`). Set
+`node_modules/react-native/gradle/libs.versions.toml`). From API 37 the
+`sdkmanager` package name carries a minor version: `platforms;android-37.0`. Set
 `ANDROID_SKIP_EMULATOR=1` to skip the emulator and its image (~2 GB).
 
 The first run downloads about 8 GB. Don't move this into the cloud

@@ -543,8 +543,8 @@ local `Head`). When editing or replacing that file, you **must**:
 
 - Use `ScrollViewStyleReset` from `expo-router/html`.
 - Spread `htmlAttributes`, `headNodes`, `bodyAttributes`, `bodyNodes` from
-  `useServerDocumentContext()` (from `expo-router/html`; SDK 57's
-  `expo-router/server` does not export it).
+  `useServerDocumentContext()` (from `expo-router/html`;
+  `expo-router/server` does not export it, as of SDK 58).
 - Preserve the manifest link, viewport, `color-scheme` meta and the
   `prefers-color-scheme` body background (see "Web shell" above).
 - Keep OG/Twitter tags with absolute URLs (the production host is

@@ -72,6 +72,10 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@expo/*'
         update-types: ['version-update:semver-major']
+      # Its major also tracks the SDK, but the name doesn't match `expo-*`
+      # (PR #394).
+      - dependency-name: 'eslint-config-expo'
+        update-types: ['version-update:semver-major']
       # TypeScript 7 (the Go port) has no JS compiler API yet, which crashes
       # typescript-eslint under `expo lint`. Drop this once typescript-eslint
       # supports TS 7.
