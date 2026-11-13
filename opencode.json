@@ -19,7 +19,7 @@
         "command": [
           "sh",
           "-c",
-          "[ -s \"$HOME/.nvm/nvm.sh\" ] && . \"$HOME/.nvm/nvm.sh\" >/dev/null 2>&1; nvm use --silent >/dev/null 2>&1; exec npx -y dotenv-cli@latest -e .env -- npx -y @codacy/codacy-mcp@latest"
+          "[ -s \"$HOME/.nvm/nvm.sh\" ] && . \"$HOME/.nvm/nvm.sh\" >/dev/null 2>&1; nvm use --silent >/dev/null 2>&1; exec npx -y dotenv-cli@latest -e .env -- npx -y --prefer-offline @codacy/codacy-mcp@0.7.0"
         ]
       }
     }
